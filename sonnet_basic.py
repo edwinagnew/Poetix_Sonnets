@@ -145,8 +145,8 @@ class Sonnet_Gen():
             print("we must go deeper")
             words = helper.get_similar_word_henry(theme, n_return=20, word_set=set(self.filtered_nouns_verbs))
             w_rhyme_dict = {w3: {word for word in helper.get_rhyming_words_one_step_henry(self.api_url, w3) if
-                                   word in self.poetic_vectors and word not in self.top_common_words} for #deleted: and self.filter_common_word_henry(word, fast=True)
-                              w3 in words if w3 not in self.top_common_words}
+                                   word in self.poetic_vectors and word in self.dict_meters.keys() and word not in self.top_common_words} for #deleted: and self.filter_common_word_henry(word, fast=True)
+                              w3 in words if w3 not in self.top_common_words and w3 in self.dict_meters.keys()}
 
             #if len(w_rhyme_dict) > 0:
             mydict[prompt][tone] = {k: v for k, v in w_rhyme_dict.items() if len(v) > 0}
@@ -194,7 +194,7 @@ class Sonnet_Gen():
         for i in range(1,15):
             if i in [1, 2, 5, 6, 9, 10, 13]:  # lines with a new rhyme
                 last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))] #NB ensure it doesnt pick the same as another one
-                if nltk.pos_tag(last_word_dict[i])[0][1] not in poss_pos or last_word_dict[i][0] in first_rhymes or last_word_dict[i][0] not in self.dict_meters.keys():
+                if nltk.pos_tag(last_word_dict[i])[0][1] not in poss_pos or last_word_dict[i][0] in first_rhymes:
                     i-=1
                     continue
                 first_rhymes.append(last_word_dict[i][0])
@@ -204,7 +204,7 @@ class Sonnet_Gen():
                 pair = last_word_dict[i-2][0]
                 if i == 14:
                     pair = last_word_dict[13][0]
-                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if nltk.pos_tag([word])[0][1] in poss_pos and word in self.dict_meters.keys()]
+                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if nltk.pos_tag([word])[0][1] in poss_pos]
         return last_word_dict
 
 
