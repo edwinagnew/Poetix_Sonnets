@@ -114,6 +114,7 @@ class Sonnet_Gen():
                     curr_template = [self.words_to_pos[word][0]] + curr_template
                     #print(curr_template)
             #print(text, ":", syllables, ",",meter)
+            #make a sentence object
             candidates.append(text)
         if print_poem:
             print("")
