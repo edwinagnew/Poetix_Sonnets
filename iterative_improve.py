@@ -1,4 +1,3 @@
-import math
 import torch
 
 import sonnet_basic
@@ -9,7 +8,7 @@ from pytorch_pretrained_bert import BertTokenizer,BertForMaskedLM
 
 """Implement a*  search based on the generated poem"""
 class Sonnet_Improve():
-    def __init__(self, prompt, syllables_file='saved_objects/cmudict-0.7b.txt'):
+    def __init__(self, syllables_file='saved_objects/cmudict-0.7b.txt'):
 
         self.BertMaskedLM = BertForMaskedLM.from_pretrained('bert-base-uncased')
         self.BertTokenizer = BertTokenizer.from_pretrained('bert-base-uncased')

@@ -21,29 +21,30 @@ def create_syll_dict(fname):
     """
     with open(fname, encoding='UTF-8') as f:
         lines = [line.rstrip("\n").split() for line in f if (";;;" not in line)]
-        dict_meters = {}
-        for i in range(len(lines)):
-            line = lines[i]
-            newLine = [line[0].lower()]
-            if ("(" in newLine[0] and ")" in newLine[0]):
-                newLine[0] = newLine[0][:-3]
-            chars = ""
-            for word in line[1:]:
-                for ch in word:
-                    if (ch in "012"):
-                        if (ch == "2"):
-                            chars += "1"
-                        else:
-                            chars += ch
-            newLine += [chars]
-            lines[i] = newLine
-            if (newLine[0] not in dict_meters):  # THIS IF STATEMENT ALLOWS FOR MULTIPLE PRONUNCIATIONS OF A WORD
-                dict_meters[newLine[0]] = [chars]
-            else:
-                if (chars not in dict_meters[newLine[0]]):
-                    dict_meters[newLine[0]] += [chars]
-        dict_meters[','] = ['']
-        dict_meters['.'] = ['']
+
+    dict_meters = {}
+    for i in range(len(lines)):
+        line = lines[i]
+        newLine = [line[0].lower()]
+        if ("(" in newLine[0] and ")" in newLine[0]):
+            newLine[0] = newLine[0][:-3]
+        chars = ""
+        for word in line[1:]:
+            for ch in word:
+                if (ch in "012"):
+                    if (ch == "2"):
+                        chars += "1"
+                    else:
+                        chars += ch
+        newLine += [chars]
+        lines[i] = newLine
+        if (newLine[0] not in dict_meters):  # THIS IF STATEMENT ALLOWS FOR MULTIPLE PRONUNCIATIONS OF A WORD
+            dict_meters[newLine[0]] = [chars]
+        else:
+            if (chars not in dict_meters[newLine[0]]):
+                dict_meters[newLine[0]] += [chars]
+    dict_meters[','] = ['']
+    dict_meters['.'] = ['']
     return dict_meters
 
 def create_pos_syllables(pos_to_words, dict_meters):

@@ -194,7 +194,7 @@ class Sonnet_Gen():
         for i in range(1,15):
             if i in [1, 2, 5, 6, 9, 10, 13]:  # lines with a new rhyme
                 last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))] #NB ensure it doesnt pick the same as another one
-                if nltk.pos_tag(last_word_dict[i])[0][1] not in poss_pos or last_word_dict[i][0] in first_rhymes:
+                if nltk.pos_tag(last_word_dict[i])[0][1] not in poss_pos or last_word_dict[i][0] in first_rhymes or last_word_dict[i][0] not in self.dict_meters.keys():
                     i-=1
                     continue
                 first_rhymes.append(last_word_dict[i][0])
@@ -204,7 +204,7 @@ class Sonnet_Gen():
                 pair = last_word_dict[i-2][0]
                 if i == 14:
                     pair = last_word_dict[13][0]
-                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if nltk.pos_tag([word])[0][1] in poss_pos]
+                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if nltk.pos_tag([word])[0][1] in poss_pos and word in self.dict_meters.keys()]
         return last_word_dict
 
 
