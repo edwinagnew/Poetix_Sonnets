@@ -52,15 +52,15 @@ class Sonnet_Improve():
             return min() / goal
         return min(syllables%14, )
 
-    def get_bert_score(self,sentence):
+    def get_bert_score(self,lines):
         ret = []
-        for s in sentence:
-            print(s)
-            tokenize_input = self.BertTokenizer.tokenize(sentence)
-            tensor_input = torch.tensor([self.BertTokenizer.convert_tokens_to_ids(tokenize_input)])
-            predictions = self.BertMaskedLM(tensor_input)
-            loss_fct = torch.nn.CrossEntropyLoss()
-            loss = loss_fct(predictions.squeeze(), tensor_input.squeeze()).data
-            ret.append(s, (8 - loss) * 100/8) #analyse! look for consistency
+        for sentence in lines:
+                tokenize_input = self.BertTokenizer.tokenize(sentence)
+                tensor_input = torch.tensor([self.BertTokenizer.convert_tokens_to_ids(tokenize_input)])
+                predictions = self.BertMaskedLM(tensor_input)
+                loss_fct = torch.nn.CrossEntropyLoss()
+                loss = loss_fct(predictions.squeeze(), tensor_input.squeeze()).data
+                #ret.append([sentence, (8 - loss) * 100/8]) #analyse! look for consistency
+                ret.append([sentence, loss])
         return ret
 

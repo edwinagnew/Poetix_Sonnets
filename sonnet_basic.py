@@ -106,7 +106,7 @@ class Sonnet_Gen():
                 if sylls[-1] != prev_emph and syllables + len(sylls) <= 10 and helper.isIambic(sylls) and self.hasTemplate([self.words_to_pos[word][0]] + curr_template, threshold=1):
                     #print(word, sylls)
                     #print("accepted")
-                    if syllables + len(sylls) == 9: continue #try to prevent every line beginning with in
+                    if syllables + len(sylls) == 9: continue #try to prevent every line beginning with in. Isnt creating too many sylls
                     text = word + " " + text
                     syllables += len(sylls)
                     meter = sylls + meter
