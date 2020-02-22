@@ -12,7 +12,7 @@ class Sonnet_Gen():
     def __init__(self,postag_file='saved_objects/postag_dict_all.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  wv_file='saved_objects/word2vec/model.txt',
-                 top_file='saved_objects/top75.txt'):
+                 top_file='saved_objects/top_words.txt'):
         with open(postag_file, 'rb') as f:
             postag_dict = pickle.load(f)
         self.pos_to_words = postag_dict[1]
@@ -146,8 +146,8 @@ class Sonnet_Gen():
             print("we must go deeper")
             words = helper.get_similar_word_henry(theme, n_return=20, word_set=set(self.filtered_nouns_verbs))
             w_rhyme_dict = {w3: {word for word in helper.get_rhyming_words_one_step_henry(self.api_url, w3) if
-                                   word in self.poetic_vectors and word in self.dict_meters.keys() and word not in self.top_common_words} for #deleted: and self.filter_common_word_henry(word, fast=True)
-                              w3 in words if w3 not in self.top_common_words and w3 in self.dict_meters.keys()}
+                                   word in self.poetic_vectors and word in self.dict_meters.keys() and word not in self.top_common_words[:70]} for #deleted: and self.filter_common_word_henry(word, fast=True)
+                              w3 in words if w3 not in self.top_common_words[:70] and w3 in self.dict_meters.keys()}
 
             #if len(w_rhyme_dict) > 0:
             mydict[prompt][tone] = {k: v for k, v in w_rhyme_dict.items() if len(v) > 0}
