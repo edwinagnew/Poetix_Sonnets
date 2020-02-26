@@ -1,5 +1,8 @@
 import torch
+
 import nltk
+from nltk.stem.snowball import SnowballStemmer
+
 from PyDictionary import PyDictionary
 
 import sonnet_basic
@@ -91,10 +94,10 @@ class Sonnet_Improve():
                 print(probs[i][tensor_input[0][i]].item())
             sentence_score.append(probs[i][tensor_input[0][i]].item())
 
-        return sum(sentence_score)/len(sentence_score) #mean because otherwise initial improvement will be very difficult
+        return sum(sentence_score)/len(sentence_score) #mean because otherwise initial improvement will be very difficult?
         #return min(sentence_score)
 
-    def generate_metaphor(self, word, verbose=False):
+    def generate_metaphor(self, word, avg="median", verbose=False):
         """
         generates a word with metaphorical similarity to the given word by taking key words from dictionary definition, ~averaging~ them
         and returning the closest actual word
@@ -105,60 +108,86 @@ class Sonnet_Improve():
 
         Returns
         -------
-        a single word with metaphorical similarity
+        a single word with (my interpretation of) metaphorical similarity
         """
 
         definition = self.dictionary.meaning(word)
+        stemmer = SnowballStemmer("english")
+        meaning = ""
+        for pos in definition:
+            for sent in definition[pos]:
+                meaning += stemmer.stem(sent)
+
         if verbose:
             print(definition)
 
-        summary = word
-        for a in definition['Noun'][:min(3, len(definition['Noun']))]:  # update for more pos's?
-            words = a.split(" ")
-            i = 0
-            while words[i] in ["a", "the", word, "is"]: i += 1
-            summary += " " + words[i]
-            while words[-i] in ["a", "the", word, "is"]: i += 1
-            summary += " " + words[-i]
+        #summary = word
+        summary = ""
+        num = 2
+        for pos in definition:
+            for a in definition[pos][:min(num, len(definition[pos]))]:  # update for more pos's? maybe try with 2 not 3 definitions
+                num = max(1,num-1)
+                words = a.split(" ")
+                i = 0
+                while len(words[i]) <= 3 or words[i] in [word] or words[i] in summary: i += 1
+                summary += " " + words[i]
+                j = 1
+                while j < len(words) and len(words[-j]) <= 3 or words[-j] in [word] or words[-j] in summary: j += 1
+                if j != len(words): summary += " " + words[-j]
 
         if verbose:
-            print(summary)
+            print(summary) #summary is a list of key words from top definitions of prompt word
 
         tokens = self.tokenizer.tokenize(summary)
         input_ids = torch.tensor(self.tokenizer.encode(tokens)).unsqueeze(0)  # Batch size 1
         outputs = self.bert_model(input_ids)
-        predictions = outputs[0][0]
+        predictions = outputs[0][0] #predictions gives the probability for predicting each word in the entire vocab for each word in the summary
 
         if verbose:
             print(tokens)
             print(predictions.shape)
             print(predictions)
 
-        def is_good_word(str):
-            punctuation = ['-', ':', '+', ',', '～', '`', '!', '.', ',', '?', '*']
-            if str in punctuation or '#' in str:
+        def is_good_word(stri):
+            if verbose: print(stri)
+            punctuation = ['-', ':', '+', ',', '～', '`', '!', '.', ',', '?', '*', "\"", "/", "|"]
+            if stri in punctuation or '#' in stri:
                 return False
-            if str in self.top_common_words:
+            if stri == word or stri in summary:
                 return False
-            pos = nltk.pos_tag([str])[0][1]
-            if 'NN' in pos:  # or 'JJ' in pos or 'RB' in pos or 'VB' in pos: #if its a noun, adjective(? or adverb we good. just noun for now
+            if stemmer.stem(stri) in meaning:
+                return False
+            if stri in self.top_common_words:
+                return False
+            pos = nltk.pos_tag([stri])[0][1]
+            if 'NN' in pos or 'JJ' in pos:  # or 'RB' in pos or 'VB' in pos: #if its a noun, adjective(? or adverb we good just noun for now
                 return True
             return False #TODO - see if this word is actually similar to the prompt?
 
-        average = torch.mean(predictions[1:-1, 1:-1], axis=0)  ##improve this!!!
-        x = sorted(average)
+        if avg == "mean":
+            average = torch.mean(predictions[1:-1], 0)
+        elif avg == "median":
+            average = torch.median(predictions[1:-1], 0).values
+        elif avg == "max":
+            average = torch.max(predictions[1:-1], 0).values
+        elif avg == "lfidf":
+            #based off frequnecy of what database?
+            print("still working on it ...")
+            print(1/0)
+
+        sorted_average = sorted(average)
         k = 1
-        best = torch.argmax(average)
-        while not is_good_word(self.tokenizer.convert_ids_to_tokens(best.item())):
+        best = torch.argmax(average).item()
+        while not is_good_word(self.tokenizer.convert_ids_to_tokens(best)):
             k += 1
-            y = x[-k]
-            best = (average == y).nonzero().flatten() #best = indexOf(y)
+            y = sorted_average[-k]
+            best = ((average == y).nonzero().flatten()).item() #best = average.indexOf(y)
 
         if verbose:
             print(best)
-            print("The metaphor is", self.tokenizer.convert_ids_to_tokens(best.item()))
+            print("The metaphor is", self.tokenizer.convert_ids_to_tokens(best))
 
-        return self.tokenizer.convert_ids_to_tokens(best.item())
+        return self.tokenizer.convert_ids_to_tokens(best)
 
 
 

@@ -27,7 +27,7 @@ for i in range(0, len(lines) - 1, 2): #deal with punctuation?
     #couplets.append([k,v]) one day do this, but for now is kind of complicated or just broken
     couplets.append(k)
     couplets.append(v)
-    if i > 2130: print(i, v, lines[i+1])
+
 
     end_pos.add(k[-1])
     end_pos.add(v[-1])
