@@ -35,9 +35,11 @@ while word != "-1":
 
     rand = random.choice(poetic_vectors)
     print("r would be",  rand)
-    word = input("What is the next word? ")
+    try:
+        word = input("What is the next word? ")
+    except:
+        print("try again")
+        word = input("What is the next word?")
     if word == "r": word = rand
 
-
-
-print(scores)
+    print(scores)

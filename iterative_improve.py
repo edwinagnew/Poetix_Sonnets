@@ -150,7 +150,7 @@ class Sonnet_Improve():
 
         def is_good_word(stri):
             if verbose: print(stri)
-            punctuation = ['-', ':', '+', ',', '～', '`', '!', '.', ',', '?', '*', "\"", "/", "|"]
+            punctuation = ['-', ':', '+', ',', '～', '`', '!', '.', ',', '?', '*', "\"", "/", "|", "%"]
             if stri in punctuation or '#' in stri:
                 return False
             if stri == word or stri in summary:
