@@ -14,7 +14,7 @@ import sonnet_basic
 import helper
 
 
-from transformers import BertTokenizer,BertForMaskedLM
+from transformers import BertTokenizer, BertForMaskedLM
 
 import Line
 
@@ -69,7 +69,7 @@ class Sonnet_Improve:
         pop = heapq.heappop(pq)
         score = pop[0]
         line = pop[1]#.text
-        if depth < 0: return "(depth limit reached) " , line
+        if depth < 0: return "(depth limit reached) " , pop
         print("change: depth", depth, "line", line, "size", len(pq))
 
         if score >= self.goal: return line
@@ -117,7 +117,7 @@ class Sonnet_Improve:
         ----------
         line (string) - the text you want to evaluate
         verbose (bool) - prints information while calculating score
-        drop_min (bool) - whether or not to drop the lowest score before calculating the return value. To be investigated
+        drop_min_max (bool) - whether or not to drop the lowest score before calculating the return value. To be investigated
 
         Returns - the average probability of predicting each word in the text
         -------
@@ -167,8 +167,8 @@ class Sonnet_Improve:
             sentence_score = sorted(sentence_score)
             length = len(sentence_score)
             if length % 2 == 0:
-                #print(sentence_score[int(length/2)], "+" , sentence_score[1 + int(length/2)])
-                return (sentence_score[int(length/2)] + sentence_score[1 + int(length/2)])/2
+                #print(int(length/2 - 1), "+" , int(length/2))
+                return (sentence_score[int(length/2) - 1] + sentence_score[int(length/2)])/2
             else:
                 #print(math.ceil(length/2))
                 return sentence_score[math.ceil(length/2)]
@@ -219,6 +219,7 @@ class Sonnet_Improve:
         input_ids = torch.tensor(self.tokenizer.encode(tokens)).unsqueeze(0)  # Batch size 1
         outputs = self.bert_model(input_ids)
         predictions = outputs[0][0] #predictions gives the probability for predicting each word in the entire vocab for each word in the summary
+        #is shape n x 30522 (n=len summary, 30522=vocab size)
 
         if verbose:
             print(tokens)
@@ -237,10 +238,11 @@ class Sonnet_Improve:
             if stri in self.top_common_words:
                 return False
             pos = nltk.pos_tag([stri])[0][1]
-            if 'NN' in pos or 'JJ' in pos:  # or 'RB' in pos or 'VB' in pos: #if its a noun, adjective(? or adverb we good just noun for now
+            if 'JJ' in pos :#or 'NN' in pos:  # or 'RB' in pos or 'VB' in pos: #if its a noun, adjective(? or adverb we good just noun for now
                 return True
             return False #TODO - see if this word is actually similar to the prompt?
 
+        #creates an average with specified type of length 30522
         if avg == "mean":
             average = torch.mean(predictions[1:-1], 0)
         elif avg == "median":
@@ -251,6 +253,9 @@ class Sonnet_Improve:
             #based off frequnecy of what database?
             print("still working on it ...")
             print(1/0)
+
+        if verbose:
+            print("avg", average.shape)
 
         sorted_average = sorted(average)
         k = 1
