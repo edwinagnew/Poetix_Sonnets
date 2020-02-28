@@ -58,7 +58,7 @@ class Sonnet_Gen():
 
     def gen_poem_edwin(self, prompt, print_poem=True, search_space=5, retain_space=2, word_embedding_coefficient=0,stress=True, prob_threshold=-10):
         """
-        Generate poems with multiple templat es given a seed word (prompt) and GPT2
+        Generate poems with multiple templates given a seed word (prompt) and GPT2
         search space.
         Parameters
         ----------
@@ -92,7 +92,7 @@ class Sonnet_Gen():
         candidates = []
         for line in range(1,15):
             text = random.choice(list(last_word_dict[line])) #last word is decided
-            if text not in self.dict_meters.keys(): text = random.choice(list(last_word_dict[line])) #make a better fix than this
+            while text not in self.dict_meters.keys(): text = random.choice(list(last_word_dict[line]))
             meter = self.dict_meters[text][0]
             syllables = len(meter)
             prev_emph = meter[0]
@@ -115,7 +115,7 @@ class Sonnet_Gen():
                     #print(curr_template)
             #print(text, ":", syllables, ",",meter)
             #make a sentence object
-            candidates.append(text)
+            candidates.append(text) #make line object
         if print_poem:
             print("")
             print("   " , prompt, " - a computer \n")
