@@ -16,7 +16,9 @@ couplets = []
 end_pos = {"NN"}
 
 archaic = {"thou": "PRP", "thine":"NNS", "thy":"PRP$", "thee":"PRP"}
-for i in range(4, len(lines) - 1, 2): #deal with punctuation?
+
+begin = int(input("What line to start?"))
+for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
     if len(lines[i]) < 2:
         print(lines[i])
         continue
