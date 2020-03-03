@@ -193,3 +193,25 @@ def sylls_bounds(partial_template, pos_sylls_mode):
     sylls_up += 2
     sylls_lo += 1
     return sylls_up, sylls_lo
+
+def get_finer_pos_words():
+    return {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',
+     'AWAY', 'OF', 'COULD', 'WHOSOEVER', 'WHENEVER', 'SHALL', 'ALBEIT',
+     'FROM', 'BETWEEN', 'CAN', 'HOW', 'OUT', 'CANNOT',
+     'SO', 'BACK', 'ABOUT', 'LATER', 'IF', 'REGARD',
+     'MANY', 'TO', 'THERE', 'UNDER', 'APART',
+     'QUITE', 'LIKE', 'WHILE', 'AS', 'WHOSE',
+     'AROUND', 'NEITHER', 'WHOM', 'SINCE', 'ABOVE', 'THROUGH', 'ALL',
+     'AND', 'SOME', 'MAY', 'HALF', 'WHATEVER', 'BEHIND',
+     'BEYOND', 'WHERE', 'SUCH', 'YET', 'UNTO', 'BY', 'NEED',
+     'A', 'DURING', 'AT', 'AN', 'OUGHT', 'DARE',
+     'BUT', 'DESPITE', 'SHOULD', 'THOSE', 'FOR', 'WHEREVER', 'WHOLE', 'THESE',
+     'WHOEVER', 'WITH', 'TOWARD', 'WHICH',
+     'BECAUSE', 'WHETHER', 'ONWARD', 'UPON', 'JUST', 'ANY',
+     'NOR', 'THROUGHOUT', 'OFF', 'EVERY', 'UP', 'NEXT', 'THAT', 'WOULD',
+     'WHATSOEVER', 'AFTER', 'ONTO', 'BESIDE', 'ABOARD', 'OVER', 'BENEATH',
+     'INSIDE', 'WHEN', 'OR', 'MUST', 'AMONG', 'MIGHT', 'NEAR', 'PLUS', 'UNTIL',
+     'ALONG', 'INTO', 'BOTH', 'EITHER', 'ANOTHER', 'WILL', 'IN',
+     'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
+     'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
+     'ACROSS', 'THAN'}

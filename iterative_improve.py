@@ -1,5 +1,5 @@
 import torch
-
+import pickle
 import math
 import random
 
@@ -30,7 +30,6 @@ class Sonnet_Improve:
         self.bert_model.eval()
 
         self.gen_basic = sonnet_basic.Sonnet_Gen()
-
 
         with open(top_file) as tf:
             self.top_common_words = [line.strip() for line in tf.readlines()]
