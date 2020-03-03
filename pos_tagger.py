@@ -50,7 +50,7 @@ for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
 
     print("ok", k)
     print(lines[i])
-   """ write = input("write to text file?")
+    """ write = input("write to text file?")
     if write:
         print("writing")
         pos_file.write(str(k))"""
