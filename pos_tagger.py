@@ -31,10 +31,11 @@ for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
     print(lines[i])
     wds = lines[i].split()
     for k in range(len(wds)):
+        print(wds[k])
         if wds[k].upper() in s.special_words:
-            tags1[k][1] = s.get_word_pos(wds[k])[0]
-        if wds[k] in archaic:
-            tags1[k][1] = archaic[wds[k]]
+            tags1[k] = (wds[k].lower(), s.get_word_pos(wds[k].lower())[0])
+        if wds[k].lower() in archaic:
+            tags1[k] = (wds[k].lower(), archaic[wds[k].lower()])
 
 
 
@@ -56,9 +57,13 @@ for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
         pos_file.write(str(k))
     print("")
     print(lines[i+1])
-    for wo in lines[i+1].split():
-        if wo.upper() in s.special_words: print("warning", wo, "is a special word")
-
+    wds = lines[i+1].split()
+    for k in range(len(wds)):
+        print(wds[k])
+        if wds[k].upper() in s.special_words:
+            tags2[k] = (wds[k].lower(), s.get_word_pos(wds[k].lower())[0])
+        if wds[k].lower() in archaic:
+            tags2[k] = (wds[k].lower(), archaic[wds[k].lower()])
 
     if input(tags2) == "1":
         v = [t[1] for t in tags2]
@@ -72,10 +77,10 @@ for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
 
     print("ok", v)
     print(lines[i+1])
-    write = input("write to text file?")
+    """write = input("write to text file?")
     if write:
         print("writing")
-        pos_file.write(str(k))
+        pos_file.write(str(k))"""
     print("")
 
     #couplets.append([k,v]) one day do this, but for now is kind of complicated or just broken
