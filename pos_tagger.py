@@ -30,11 +30,11 @@ for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
     tags2 = nltk.pos_tag(line2)
     print(lines[i])
     wds = lines[i].split()
-    for k in range(len(wds)):
-        if wds[k].upper() in s.special_words:
-            tags1[k] = (wds[k].lower(), s.get_word_pos(wds[k].lower())[0])
-        if wds[k].lower() in archaic:
-            tags1[k] = (wds[k].lower(), archaic[wds[k].lower()])
+    for x in range(len(wds)):
+        if wds[x].upper() in s.special_words:
+            tags1[x] = (wds[x].lower(), s.get_word_pos(wds[x].lower())[0])
+        if wds[x].lower() in archaic:
+            tags1[x] = (wds[x].lower(), archaic[wds[x].lower()])
 
 
 
@@ -57,11 +57,11 @@ for i in range(begin, len(lines) - 1, 2): #deal with punctuation?
     print("")
     print(lines[i+1])
     wds = lines[i+1].split()
-    for k in range(len(wds)):
-        if wds[k].upper() in s.special_words:
-            tags2[k] = (wds[k].lower(), s.get_word_pos(wds[k].lower())[0])
-        if wds[k].lower() in archaic:
-            tags2[k] = (wds[k].lower(), archaic[wds[k].lower()])
+    for x in range(len(wds)):
+        if wds[x].upper() in s.special_words:
+            tags2[x] = (wds[x].lower(), s.get_word_pos(wds[x].lower())[0])
+        if wds[x].lower() in archaic:
+            tags2[x] = (wds[x].lower(), archaic[wds[x].lower()])
 
     if input(tags2) == "1":
         v = [t[1] for t in tags2]
