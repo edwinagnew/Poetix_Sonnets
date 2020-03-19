@@ -220,4 +220,4 @@ def get_finer_pos_words():
      'ALONG', 'INTO', 'BOTH', 'EITHER', 'WILL', 'IN',
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
-     'ACROSS', 'THAN'}
+     'ACROSS', 'THAN', 'WITHIN'}

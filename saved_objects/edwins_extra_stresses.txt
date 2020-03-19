@@ -46,3 +46,6 @@ she 0
 dost 0
 yet 0
 not 0
+what 0
+thee 0
+by 0
