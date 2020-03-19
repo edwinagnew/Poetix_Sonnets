@@ -16,7 +16,7 @@ import helper
 
 from transformers import BertTokenizer, BertForMaskedLM
 
-import Line
+import line
 
 
 """Implement a*  search based on the generated poem"""

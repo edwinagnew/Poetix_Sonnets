@@ -3,16 +3,18 @@ import pickle
 from collections import defaultdict
 import helper
 import random
-import nltk
+import line
+
 
 
 #Based off limericks.py
 
 class Sonnet_Gen():
-    def __init__(self,postag_file='saved_objects/postag_dict_all.p',
+    def __init__(self,postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  wv_file='saved_objects/word2vec/model.txt',
-                 top_file='saved_objects/top_words.txt' , prompt=False):
+                 top_file='saved_objects/top_words.txt' ,
+                 extra_stress_file='saved_objects/edwins_extra_stresses.txt',prompt=False):
         with open(postag_file, 'rb') as f:
             postag_dict = pickle.load(f)
         self.pos_to_words = postag_dict[1]
@@ -30,7 +32,7 @@ class Sonnet_Gen():
             self.filtered_nouns_verbs = [line.strip() for line in hf.readlines()]
             self.filtered_nouns_verbs += self.pos_to_words["IN"] + self.pos_to_words["PRP"]
 
-        self.dict_meters = helper.create_syll_dict(syllables_file)
+        self.dict_meters = helper.create_syll_dict(syllables_file, extra_stress_file)
         try:
             with open("saved_objects/w2v.p", "rb") as pickle_in:
                 self.poetic_vectors = pickle.load(pickle_in)
@@ -48,8 +50,12 @@ class Sonnet_Gen():
         #   self.templates = pickle.load(pickle_in)
             #print(len(self.templates))
 
-        with open("poems/end_pos.p", "rb") as pickin:
-            self.end_pos = pickle.load(pickin)
+        with open("poems/end_pos.txt", "r") as pickin:
+            list = pickin.readlines()
+            self.end_pos = {}
+            for l in list:
+                self.end_pos[l.split()[0]] = l.split()[1:]
+            #self.end_pos['NNP'] = []
 
         self.pos_syllables = helper.create_pos_syllables(self.pos_to_words, self.dict_meters)
 
@@ -59,8 +65,14 @@ class Sonnet_Gen():
         #with open("saved_objects/template_to_line.pickle", "rb") as pickle_in:
          #   self.templates = list(pickle.load(pickle_in).keys()) #update with sonnet ones one day
 
-        with open("saved_objects/template_no_punc.pickle", "rb") as pickle_in:
-            self.templates = pickle.load(pickle_in)
+        #with open("saved_objects/template_no_punc.pickle", "rb") as pickle_in:
+         #   self.templates = pickle.load(pickle_in)
+
+        with open("poems/shakespeare_templates.txt", "r") as templs:
+            self.templates = {}
+            lines = templs.readlines()
+            for line in lines:
+                self.templates[" ".join(line.split()[:-1])] = line.split()[-1].strip()
 
         if prompt:
             self.gen_poem_edwin(prompt)
@@ -95,95 +107,87 @@ class Sonnet_Gen():
         #    rhyme_dict[i] = self.getRhymes([prompt,j]) #one day pass [prompt, narr]
         for i in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
             rhyme_dict[i] = self.getRhymes([prompt])
-        last_word_dict = self.last_word_dict(rhyme_dict, self.end_pos)
-        #print(last_word_dict)
-
+        last_word_dict = self.last_word_dict(rhyme_dict)
         #candidates = self.gen_first_line_new(temp_name.lower(), search_space=5, strict=True, seed=prompt) #gonna need to think of strategy
         #for now we shall generate random words, but they will fit the meter, rhyme and templates
 
-        candidates = []
-        for line in range(1,15):
-            print("to here (many times)", line)
-            text = random.choice(list(last_word_dict[line])) #last word is decided
-            while text not in self.dict_meters.keys(): text = random.choice(list(last_word_dict[line]))
-            meter = self.dict_meters[text][0]
-            syllables = len(meter)
-            prev_emph = meter[0]
-            curr_template = self.get_word_pos(text)[0]
-            poss_templates = self.templates
-            while syllables < 10:
-                #word = self.filtered_nouns_verbs[random.randint(0,len(self.filtered_nouns_verbs) - 1)]
-                template = self.get_random_template(curr_template)
-                if not template: #what do if theres no templates although that shouldnt have happened
-                    print("no template: changing - ", text, sylls, syllables, meter, curr_template, prev_emph)
-                    first_word = text.split()[0]
-                    text = text[len(first_word) + 1:] #removes first word
-                    sylls = self.dict_meters[first_word][0]
-                    syllables -= len(sylls)
-                    meter = meter[len(sylls):]
-                    curr_template = curr_template[len(curr_template.split()[0]) + 1:]
-                    prev_emph = self.dict_meters[text.split()[0]][0][0] #first syllable of new first word (hopefully)
-                    print("no template: changed - ", text, sylls, syllables, meter, curr_template, prev_emph)
-                    continue #sometimes getting badly stuck
-
-                print(curr_template, "== ", template, curr_template == template)
-                if curr_template == template:
+        candidates = ["         ----" + prompt.upper() + "----"]
+        for line_number in range(1,15):
+            first_word = random.choice(list(last_word_dict[line_number]))  # last word is decided
+            while first_word not in self.dict_meters.keys():
+                first_word = random.choice(list(last_word_dict[line_number]))
+            in_template = self.get_word_pos(first_word)[0]
+            curr_line = line.Line(first_word, self.dict_meters, template=in_template)
+            curr_line.update()
+            curr_line.print_info()
+            template = None
+            while curr_line.syllables < 10:
+                reset = False
+                if not template: template = self.get_random_template(curr_line.template)
+                while not template:
+                    print(curr_line.template)
+                    print(1/0)
+                """while not template:
+                    print("no template : \'",curr_line.template, "\'")
+                    curr_line.print_info()
+                    print("resetting")
+                    curr_line.reset()
+                    curr_line.print_info()
+                    reset = True"""
+                """if curr_line.template == template:
                     first_pos = template.split()[0]
-                    if (first_pos in self.special_words and syllables + len(self.dict_meters[first_pos.lower()][0]) < 10) or (first_pos not in self.special_words and syllables + max(self.pos_syllables[first_pos]) < 10):
-                        line -= 1 #cant make it to 10 syllables with template
-                        print("going from here", text, template)
-                        break
+                    if (first_pos in self.special_words and curr_line.syllables + len(self.dict_meters[first_pos.lower()][0]) < 10) or (first_pos not in self.special_words and curr_line.syllables + max(self.pos_syllables[first_pos]) < 10):
+                        print("not gonna make it")
+                        curr_line.print_info()
+                        print("resetting")
+                        curr_line.reset()
+                        curr_line.print_info()
+                        reset = True
                     else:
-                        template = first_pos + " " + template #cheeky fix
-                        print(template, curr_template)
-                random_pos = template.split()[-len(curr_template.split()) - 1]
-                print(random_pos)
-                word = random.choice(self.get_pos_words(random_pos))
-                if word not in self.dict_meters:
-                    print(word, "not in dict_meters")
+                        template = first_pos + " " + template #cheeky fix"""
+                if template == curr_line.template:
+                    curr_line.syllables = 100
                     continue
-                sylls = self.dict_meters[word]
-                br = False
-                if len(sylls) > 1:
-                    #multiple possible emphases, choose first one that helps with pre_emph. one day allow for all possible ones
-                    for sy in sylls:
-                        if sy[-1] != prev_emph:
-                            sylls = sy
-                            br = True
-                if len(sylls) == 1 or not br:
-                    sylls = random.choice(sylls)
-                if random_pos in self.special_words:
-                    print("we specialing", random_pos, word, sylls, syllables, text, prev_emph)
+                next_pos = template.split()[-len(curr_line.template.split()) - 1]
+                next_meter = self.templates[template].split("_")[-len(curr_line.template.split()) - 1]
+                next_word = random.choice(self.get_pos_words(next_pos))
+                while next_word not in self.dict_meters or next_meter not in self.dict_meters[next_word]:
+                    next_word = random.choice(self.get_pos_words(next_pos))
+                """if curr_line.syllables > 2 and random_pos in self.special_words:
                     viable = False
-                    for stress in self.dict_meters[word]:
-                        if stress != prev_emph: viable = True
+                    for stress in self.dict_meters[next_word]:
+                        if stress != curr_line.first_syll: viable = True
                     if not viable:
-                        line -= 1
-                        break
+                        print("not happening cant make meter", random_pos)
+                        print("I should make syllable explicit templates")
+                        curr_line.print_info()
+                        print("resetting")
+                        curr_line.reset()
+                        curr_line.print_info()
+                        reset = True"""
 
-                if sylls[-1] != prev_emph and syllables + len(sylls) <= 10 and helper.isIambic(sylls) :#and self.hasTemplate([self.words_to_pos[word][0]] + curr_template, threshold=1):
-                    #if syllables + len(sylls) == 9: continue #try to prevent every line beginning with in. Isnt creating too many sylls
-                    text = word + " " + text
-                    syllables += len(sylls)
-                    meter = sylls + meter
-                    prev_emph = sylls[0]
-                    word_pos = self.get_word_pos(word)
-                    if len(word_pos) > 1:
-                        for poss_pos in word_pos:
-                            print("hi", poss_pos, ":", template, "t", curr_template)
-                            if poss_pos == template.split(curr_template)[0].split()[-1]:
-                                curr_template = poss_pos + " " + curr_template
-                    else:
-                        curr_template = word_pos[0] + " " + curr_template
-                    #print(curr_template)
-            #print(text, ":", syllables, ",",meter)
-            #make a sentence object
-            candidates.append(text) #make line object
+                #if sylls[-1] != curr_line.first_syll and curr_line.syllables + len(sylls) <= 10 and helper.isIambic(sylls) and not reset:
+                curr_line.add_word(next_word, next_meter)
+                word_pos = self.get_word_pos(next_word)
+                if len(word_pos) > 1:
+                    for poss_pos in word_pos:
+                        #print(template.split(curr_line.template)[-2].split()[-1])
+                        if poss_pos == template.split(curr_line.template)[-2].split()[-1]:
+                            curr_line.template = poss_pos + " " + curr_line.template
+                            break #?
+                else:
+                    curr_line.template = word_pos[0] + " " + curr_line.template
+
+
+            print("adding line")
+            curr_line.print_info()
+            candidates.append(curr_line)
         if print_poem:
             print("")
-            print("   " , prompt, " - a computer \n")
+            print(candidates[0])
+            del candidates[0]
             for cand in range(len(candidates)):
-                print(candidates[cand])
+                print(candidates[cand].text, ": ", candidates[cand].meter)
                 if( (cand + 1) % 4 == 0): print("")
         return candidates
 
@@ -191,6 +195,13 @@ class Sonnet_Gen():
         """
         Get the set of POS category of a word. If we are unable to get the category, return None.
         """
+        """ if "'" in word:
+            if "'s" in word:
+                return self.get_word_pos(word.split("'")[0]) + " " + self.get_word_pos("'")
+            else:
+                print("".join(word.split("'")))
+                return self.get_word_pos("".join(word.split("'")))"""
+
         if word not in self.words_to_pos:
             return None
         # Special case
@@ -241,7 +252,7 @@ class Sonnet_Gen():
             pickle.dump(mydict, pickle_in)
         return mydict[prompt][tone]
 
-    def last_word_dict(self, rhyme_dict, poss_pos):
+    def last_word_dict(self, rhyme_dict):
         """
         Given the rhyme sets, extract all possible last words from the rhyme set
         dictionaries.
@@ -280,9 +291,8 @@ class Sonnet_Gen():
         for i in range(1,15):
             if i in [1, 2, 5, 6, 9, 10, 13]:  # lines with a new rhyme
                 last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))] #NB ensure it doesnt pick the same as another one
-                if nltk.pos_tag(last_word_dict[i])[0][1] not in poss_pos or last_word_dict[i][0] in first_rhymes:
-                    i-=1
-                    continue
+                while not self.suitable_last_word(last_word_dict[i][0]) or last_word_dict[i][0] in first_rhymes:
+                    last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
                 first_rhymes.append(last_word_dict[i][0])
             if i in [3, 4, 7, 8, 11, 12, 14]:  # lines with an old line
                 #last_word_dict[i] = rhyme_dict[scheme[i]][rand_keys[scheme[i]]]
@@ -290,9 +300,11 @@ class Sonnet_Gen():
                 pair = last_word_dict[i-2][0]
                 if i == 14:
                     pair = last_word_dict[13][0]
-                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if nltk.pos_tag([word])[0][1] in poss_pos]
+                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word)]
         return last_word_dict
 
+    def suitable_last_word(self, word): #checks pos is in self.end_pos and has correct number of syllables
+        return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in end for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos for end in self.end_pos[pos])
 
     def hasTemplate(self, stem, threshold=1):
         #TODO - webscrape https://www.poetryfoundation.org/poems/browse#page=1&sort_by=recently_added&forms=263 to get more templates
@@ -304,7 +316,7 @@ class Sonnet_Gen():
         #return True
 
     def get_random_template(self, curr_template):
-        poss_templates = [item for item in self.templates if item[-len(curr_template):] == curr_template]
+        poss_templates = [item for item in self.templates.keys() if item[-len(curr_template):] == curr_template]
         if len(poss_templates) == 0: return False
         return random.choice(poss_templates)
 

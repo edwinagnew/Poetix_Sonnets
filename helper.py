@@ -7,7 +7,7 @@ import re
 import spacy
 spacy_nlp = spacy.load('en_core_web_lg')
 
-def create_syll_dict(fname):
+def create_syll_dict(fname, extra_file):
     """
     Using the cmudict file, returns a dictionary mapping words to their
     intonations (represented by 1's and 0's). Assumed to be larger than the
@@ -45,6 +45,12 @@ def create_syll_dict(fname):
                 dict_meters[newLine[0]] += [chars]
     dict_meters[','] = ['']
     dict_meters['.'] = ['']
+    dict_meters["'s"] = ['']
+
+    with open(extra_file, "r") as file:
+        extras = file.readlines()
+    for extra in extras:
+        dict_meters[extra.split()[0]].append(extra.split()[1])
     return dict_meters
 
 def create_pos_syllables(pos_to_words, dict_meters):
@@ -211,7 +217,7 @@ def get_finer_pos_words():
      'NOR', 'THROUGHOUT', 'OFF', 'EVERY', 'UP', 'NEXT', 'THAT', 'WOULD',
      'WHATSOEVER', 'AFTER', 'ONTO', 'BESIDE', 'ABOARD', 'OVER', 'BENEATH',
      'INSIDE', 'WHEN', 'OR', 'MUST', 'AMONG', 'MIGHT', 'NEAR', 'PLUS', 'UNTIL',
-     'ALONG', 'INTO', 'BOTH', 'EITHER', 'ANOTHER', 'WILL', 'IN',
+     'ALONG', 'INTO', 'BOTH', 'EITHER', 'WILL', 'IN',
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
      'ACROSS', 'THAN'}
