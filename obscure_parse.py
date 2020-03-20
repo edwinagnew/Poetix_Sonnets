@@ -22,7 +22,7 @@ def interpret(line):
     #gets and asks me to interpret one syllable words
     word = line.split()[0]
     sylls = bp.phonize(word)
-    if len(re.split('[012]', sylls)) > 1:
+    if bp.count_syllables(word) > 1:
         print(word, "too long")
         return word + " NONE"
     else:
