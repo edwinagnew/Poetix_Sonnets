@@ -47,10 +47,11 @@ def create_syll_dict(fname, extra_file):
     dict_meters['.'] = ['']
     dict_meters["'s"] = ['']
 
-    with open(extra_file, "r") as file:
-        extras = file.readlines()
-    for extra in extras:
-        dict_meters[extra.split()[0]].append(extra.split()[1])
+    if extra_file:
+        with open(extra_file, "r") as file:
+            extras = file.readlines()
+            for extra in extras:
+                dict_meters[extra.split()[0]].append(extra.split()[1])
     return dict_meters
 
 def create_pos_syllables(pos_to_words, dict_meters):

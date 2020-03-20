@@ -109,7 +109,7 @@ class Sonnet_Gen():
         #for i,j in zip(['A', 'B', 'C', 'D', 'E', 'F', 'G'], tone):
         #    rhyme_dict[i] = self.getRhymes([prompt,j]) #one day pass [prompt, narr]
         for i in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
-            rhyme_dict[i] = self.getRhymes([prompt])
+            rhyme_dict[i] = self.getRhymes([prompt], words=self.filtered_nouns_verbs)
         last_word_dict = self.last_word_dict(rhyme_dict)
         #candidates = self.gen_first_line_new(temp_name.lower(), search_space=5, strict=True, seed=prompt) #gonna need to think of strategy
         #for now we shall generate random words, but they will fit the meter, rhyme and templates
@@ -173,10 +173,10 @@ class Sonnet_Gen():
                     #print("looping here", j)
                     j+=1
                     if j > self.max_loop * 1.5:
-                        if "__" in template: print("HMMMMMM", 1/0)
                         print("resetting")
                         curr_line.print_info()
                         print("template: ", template, "next_pos:", next_pos, "next_meter:", next_meter)
+                        print(1/0)
                         curr_line.reset()
                         reset = True
                         break
@@ -226,6 +226,99 @@ class Sonnet_Gen():
                 if( (cand + 1) % 4 == 0): print("")
         return candidates
 
+    def gen_poem_jabber(self, prompt='jabber', syll_file="saved_objects/ob_syll_dict.txt"):
+        ob_dict_meters = helper.create_syll_dict(syll_file, None)
+        for word in ob_dict_meters:
+            self.dict_meters[word] = ob_dict_meters[word]
+
+
+
+        with open("saved_objects/ob_postag_dict.p", "rb") as pick_in:
+            postag_dict = pickle.load(pick_in)
+            ob_pos_to_words = postag_dict[0]
+            for pos in ob_pos_to_words:
+                self.pos_to_words[pos] = ob_pos_to_words[pos]
+            ob_word_to_pos = postag_dict[1]
+            for word in ob_word_to_pos:
+                self.words_to_pos[word] = ob_word_to_pos[word]
+
+
+        rhyme_dict = {}
+        for i in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
+            #rhyme_dict[i] = self.getRhymes([prompt], words=ob_pos_to_words['NN'])
+            rhyme_dict[i] = self.get_ob_rhymes(syll_file)
+        last_word_dict = self.last_word_dict(rhyme_dict)
+
+        candidates = ["         ----" + prompt.upper() + "----"]
+        for line_number in range(1, 15):
+            first_word = random.choice(list(last_word_dict[line_number]))  # last word is decided
+            while first_word not in self.dict_meters.keys() or not self.suitable_last_word(first_word):
+                first_word = random.choice(list(last_word_dict[line_number]))
+            print(first_word, "not always actually suitable?")
+            in_template = self.get_word_pos(first_word)[0]
+            in_meter = [poss_meter for poss_meter in self.dict_meters[first_word] if poss_meter in self.end_pos[in_template]][0]
+            curr_line = line.Line(first_word, self.dict_meters, pos_template=in_template)
+            curr_line.meter = in_meter
+            curr_line.syllables = len(in_meter)
+            curr_line.print_info()
+            template = False
+            reset = False
+            while curr_line.syllables < 10:
+                if reset: print("HI", curr_line.text)
+                if not template:
+                    template = self.get_random_template(curr_line.pos_template, curr_line.meter)
+                while not template:
+                    print("no template", curr_line.pos_template, curr_line.text)
+                    first_w = curr_line.text.split()[0]
+                    first_pos = self.get_word_pos(first_w)
+                    if len(first_pos) > 1:
+                        curr_line.pos_template = random.choice(first_pos) + curr_line.pos_template[
+                                                                            len(curr_line.pos_template.split()[0]):]
+                        template = self.get_random_template(curr_line.pos_template, curr_line.meter)
+                    else:
+                        print("unfixable")
+                        print(1 / 0)
+
+                if template == curr_line.pos_template:
+                    # NOT GREAT
+                    curr_line.syllables = 100
+                    continue
+                next_pos = template.split()[-len(curr_line.pos_template.split()) - 1]
+                next_meter = self.templates[template].split("_")[-len(curr_line.pos_template.split()) - 1]
+                next_word = random.choice(self.get_pos_words(next_pos))
+                j = 0
+                reset = False
+                while next_word not in self.dict_meters or next_meter not in self.dict_meters[next_word]:
+                    next_word = random.choice(self.get_pos_words(next_pos))
+                    # print("looping here", j)
+                    j += 1
+                    if j > self.max_loop * 3:
+                        curr_line.print_info()
+                        print("template: ", template, "next_pos:", next_pos, "next_meter:", next_meter)
+                        print("resetting", 1 / 0)
+                        curr_line.reset()
+                        reset = True
+                        break
+                if not reset:
+                    curr_line.add_word(next_word, next_meter)
+                    curr_line.pos_template = next_pos + " " + curr_line.pos_template
+                    template = False  # make a parameter?
+
+            print("adding line", line_number)
+            curr_line.print_info()
+            candidates.append(curr_line)
+
+        print("")
+        print(candidates[0])
+        del candidates[0]
+        for cand in range(len(candidates)):
+            print(candidates[cand].text, ": ", candidates[cand].meter)
+            if ((cand + 1) % 4 == 0): print("")
+        return candidates
+
+
+
+
     def get_word_pos(self, word):
         """
         Get the set of POS category of a word. If we are unable to get the category, return None.
@@ -252,7 +345,7 @@ class Sonnet_Gen():
             return None
         return self.pos_to_words[pos]
 
-    def getRhymes(self, theme):
+    def getRhymes(self, theme, words):
         """
         :param theme: an array of either [prompt] or [prompt, line_theme] to find similar words to. JUST PROMPT FOR NOW
         :return: all words which rhyme with similar words to the theme in format {similar word: [rhyming words], similar word: [rhyming words], etc.}
@@ -275,7 +368,7 @@ class Sonnet_Gen():
             mydict[prompt] = {}
         if tone not in mydict[prompt].keys():
             print("we must go deeper")
-            words = helper.get_similar_word_henry(theme, n_return=20, word_set=set(self.filtered_nouns_verbs))
+            words = helper.get_similar_word_henry(theme, n_return=20, word_set=set(words))
             w_rhyme_dict = {w3: {word for word in helper.get_rhyming_words_one_step_henry(self.api_url, w3) if
                                    word in self.poetic_vectors and word in self.dict_meters.keys() and word not in self.top_common_words[:70]} for #deleted: and self.filter_common_word_henry(word, fast=True)
                               w3 in words if w3 not in self.top_common_words[:70] and w3 in self.dict_meters.keys()}
@@ -286,6 +379,35 @@ class Sonnet_Gen():
         with open("saved_objects/saved_rhymes", "wb") as pickle_in:
             pickle.dump(mydict, pickle_in)
         return mydict[prompt][tone]
+
+    def get_ob_rhymes(self, syll_file):
+        try:
+            with open("saved_objects/ob_saved_rhymes", "rb") as pickle_in:
+                rhymes = pickle.load(pickle_in)
+        except:
+            print("loading rhymes....")
+            with open(syll_file, encoding='UTF-8') as f:
+                lines = [line.rstrip("\n").split() for line in f if (";;;" not in line)]
+
+            rhymes = {}
+            # go through all lines
+            for l in lines:
+                word = l[0].lower()
+                if word in self.words_to_pos and self.suitable_last_word(word):
+                    print("here", word)
+                    rhys = []
+                    for l2 in lines:
+                        if l != l2 and l[-2:] == l2[-2:]: #for now if and only if last 2 syllables
+                            rhys.append(l2[0].lower())
+                    if len(rhys) > 0:
+                        rhymes[word] = rhys
+            with open("saved_objects/ob_saved_rhymes", "wb") as pickle_in:
+                pickle.dump(rhymes, pickle_in)
+                print("loaded")
+        return rhymes
+
+
+
 
     def last_word_dict(self, rhyme_dict):
         """
@@ -326,7 +448,7 @@ class Sonnet_Gen():
         for i in range(1,15):
             if i in [1, 2, 5, 6, 9, 10, 13]:  # lines with a new rhyme
                 last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))] #NB ensure it doesnt pick the same as another one
-                while not self.suitable_last_word(last_word_dict[i][0]) or last_word_dict[i][0] in first_rhymes:
+                while not self.suitable_last_word(last_word_dict[i][0]) or last_word_dict[i][0] in first_rhymes or any(rhyme_dict['A'][last_word_dict[i][0]] in rhyme_dict['A'][word] for word in first_rhymes):
                     last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
                 first_rhymes.append(last_word_dict[i][0])
             if i in [3, 4, 7, 8, 11, 12, 14]:  # lines with an old line
@@ -338,7 +460,7 @@ class Sonnet_Gen():
                 last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word)]
         return last_word_dict
 
-    def suitable_last_word(self, word): #checks pos is in self.end_pos and has correct number of syllables
+    def suitable_last_word(self, word): #checks pos is in self.end_pos and has correct possible meters
         return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in end for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos for end in self.end_pos[pos])
 
     def hasTemplate(self, stem, threshold=1):
