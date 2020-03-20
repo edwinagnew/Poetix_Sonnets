@@ -8,7 +8,9 @@ word_file = open("saved_objects/rare_words_phrontristery.txt", "r")
 lines = word_file.readlines()
 word_file.close()
 
-syll_file = open("saved_objects/ob_syll_dict.txt", "w+")
+syll_file = open("saved_objects/ob_syll_dict.txt", "a")
+
+one_syll_file = open("saved_objects/words/one_syll_wonders.txt", "a")
 
 postag_dict = pickle.load(open("saved_objects/ob_postag_dict.p", "rb"))
 
@@ -21,12 +23,16 @@ type_to_pos = {'v':"VB", 'adj':"JJ", 'n':"NN", 'npl':"NNS", 'vz':"VBZ", 'vd':"VB
 def interpret(line):
     #gets and asks me to interpret one syllable words
     word = line.split()[0]
-    sylls = bp.phonize(word)
+    if len(word) > 5: return word + " NONE" #assume anything longer than 5 letters cant be 1 syll
+    #sylls = bp.phonize(word)
     if bp.count_syllables(word) > 1:
         print(word, "too long")
         return word + " NONE"
     else:
-        return word + " " + input(line)
+        st = word + " " + input(line)
+        if st.split()[1] in type_to_pos:
+            one_syll_file.write(st + "\n")
+        return st
 
 for line in lines:
     if len(line.split()) > 2: line = interpret(line)
