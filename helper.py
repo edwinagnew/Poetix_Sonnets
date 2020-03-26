@@ -1,4 +1,3 @@
-from collections import defaultdict
 import requests
 import nltk
 from nltk.corpus import wordnet as wn
@@ -7,7 +6,7 @@ import re
 import spacy
 spacy_nlp = spacy.load('en_core_web_lg')
 
-def create_syll_dict(fname, extra_file):
+def create_syll_dict(fnames, extra_file):
     """
     Using the cmudict file, returns a dictionary mapping words to their
     intonations (represented by 1's and 0's). Assumed to be larger than the
@@ -15,34 +14,35 @@ def create_syll_dict(fname, extra_file):
 
     Parameters
     ----------
-    fname : str
-        The name of the file containing the mapping of words to their
+    fname : [str]
+        The names of the files containing the mapping of words to their
         intonations.
     """
-    with open(fname, encoding='UTF-8') as f:
-        lines = [line.rstrip("\n").split() for line in f if (";;;" not in line)]
-
     dict_meters = {}
-    for i in range(len(lines)):
-        line = lines[i]
-        newLine = [line[0].lower()]
-        if ("(" in newLine[0] and ")" in newLine[0]):
-            newLine[0] = newLine[0][:-3]
-        chars = ""
-        for word in line[1:]:
-            for ch in word:
-                if (ch in "012"):
-                    if (ch == "2"):
-                        chars += "1"
-                    else:
-                        chars += ch
-        newLine += [chars]
-        lines[i] = newLine
-        if (newLine[0] not in dict_meters):  # THIS IF STATEMENT ALLOWS FOR MULTIPLE PRONUNCIATIONS OF A WORD
-            dict_meters[newLine[0]] = [chars]
-        else:
-            if (chars not in dict_meters[newLine[0]]):
-                dict_meters[newLine[0]] += [chars]
+    for file in fnames:
+        with open(file, encoding='UTF-8') as f:
+            lines = [line.rstrip("\n").split() for line in f if (";;;" not in line)]
+
+        for i in range(len(lines)):
+            line = lines[i]
+            newLine = [line[0].lower()]
+            if ("(" in newLine[0] and ")" in newLine[0]):
+                newLine[0] = newLine[0][:-3]
+            chars = ""
+            for word in line[1:]:
+                for ch in word:
+                    if (ch in "012"):
+                        if (ch == "2"):
+                            chars += "1"
+                        else:
+                            chars += ch
+            newLine += [chars]
+            lines[i] = newLine
+            if (newLine[0] not in dict_meters):  # THIS IF STATEMENT ALLOWS FOR MULTIPLE PRONUNCIATIONS OF A WORD
+                dict_meters[newLine[0]] = [chars]
+            else:
+                if (chars not in dict_meters[newLine[0]]):
+                    dict_meters[newLine[0]] += [chars]
     dict_meters[','] = ['']
     dict_meters['.'] = ['']
     dict_meters["'s"] = ['']
