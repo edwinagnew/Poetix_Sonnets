@@ -82,7 +82,7 @@ for i in range(begin, len(lines)): #deal with punctuation?
 
 
     end_pos.add(k[-1] + " " + str(meter[-1]))
-    print("end_pos ", k[-1] , " " , len(meter.split("_")[-2]))
+    print("end_pos ", k[-1] , " " , meter.split("_")[-1])
 
     print("")
 

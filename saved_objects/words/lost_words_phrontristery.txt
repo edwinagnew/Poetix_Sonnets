@@ -180,7 +180,7 @@ locupletative	adj
 logarithmotechny	n	
 lubency	n	
 lugent	adj	
-Lutherolatry	n	
+lutherolatry	n
 macellarious	adj	
 magastromancy	n	
 magistricide	n	

@@ -13,7 +13,7 @@ class Sonnet_Gen():
     def __init__(self,postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  wv_file='saved_objects/word2vec/model.txt',
-                 top_file='saved_objects/top_words.txt' ,
+                 top_file='saved_objects/words/top_words.txt' ,
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',prompt=False):
         with open(postag_file, 'rb') as f:
             postag_dict = pickle.load(f)
@@ -74,8 +74,8 @@ class Sonnet_Gen():
             for line in lines:
                 self.templates[" ".join(line.split()[:-1])] = line.split()[-1].strip()
 
-        with open("saved_objects/loop_counts.txt", "r") as l_c:
-            self.max_loop = int(l_c.readlines()[-1])
+        """with open("saved_objects/loop_counts.txt", "r") as l_c:
+            self.max_loop = int(l_c.readlines()[-1])"""
 
         if prompt:
             self.gen_poem_edwin(prompt)
@@ -115,14 +115,18 @@ class Sonnet_Gen():
         #for now we shall generate random words, but they will fit the meter, rhyme and templates
 
         candidates = ["         ----" + prompt.upper() + "----"]
+        used_templates = []
         for line_number in range(1,15):
             first_word = random.choice(list(last_word_dict[line_number]))  # last word is decided
             while first_word not in self.dict_meters.keys() or not self.suitable_last_word(first_word):
                 first_word = random.choice(list(last_word_dict[line_number]))
             in_template = self.get_word_pos(first_word)[0]
+            while in_template not in self.end_pos or not any(pos in self.end_pos[in_template] for pos in self.dict_meters[first_word]):
+                in_template = random.choice(self.get_word_pos(first_word))
             in_meter = [poss_meter for poss_meter in self.dict_meters[first_word] if poss_meter in self.end_pos[in_template]]
             if len(in_meter) < 1:
                 print(first_word, in_meter)
+                print(1/0)
             in_meter = in_meter[0]
             curr_line = line.Line(first_word, self.dict_meters, pos_template=in_template)
             curr_line.meter = in_meter
@@ -143,32 +147,20 @@ class Sonnet_Gen():
                     else:
                         print("unfixable")
                         print(1/0)
-                """while not template:
-                    print("no template : \'",curr_line.template, "\'")
-                    curr_line.print_info()
-                    print("resetting")
-                    curr_line.reset()
-                    curr_line.print_info()
-                    reset = True"""
-                """if curr_line.template == template:
-                    first_pos = template.split()[0]
-                    if (first_pos in self.special_words and curr_line.syllables + len(self.dict_meters[first_pos.lower()][0]) < 10) or (first_pos not in self.special_words and curr_line.syllables + max(self.pos_syllables[first_pos]) < 10):
-                        print("not gonna make it")
-                        curr_line.print_info()
-                        print("resetting")
-                        curr_line.reset()
-                        curr_line.print_info()
-                        reset = True
-                    else:
-                        template = first_pos + " " + template #cheeky fix"""
                 if template == curr_line.pos_template:
                     #NOT GREAT
                     curr_line.syllables = 100
                     continue
+                while template in used_templates:
+                    template = self.get_random_template(curr_line.pos_template, curr_line.meter)
                 next_pos = template.split()[-len(curr_line.pos_template.split()) - 1]
                 next_meter = self.templates[template].split("_")[-len(curr_line.pos_template.split()) - 1]
-                next_word = random.choice(self.get_pos_words(next_pos))
-                j = 0
+                poss_words = self.get_pos_words(next_pos, meter=next_meter)
+                if not poss_words:
+                    print("no words", next_pos, next_meter, template)
+                    print(1/0)
+                next_word = random.choice(poss_words)
+                """j = 0
                 reset = False
                 while next_word not in self.dict_meters or next_meter not in self.dict_meters[next_word]:
                     next_word = random.choice(self.get_pos_words(next_pos))
@@ -187,46 +179,28 @@ class Sonnet_Gen():
                         loop_count = open("saved_objects/loop_counts.txt", "a")
                         loop_count.write(str(j) + '\n')
                         self.max_loop = j
-                        loop_count.close()
-                    """if curr_line.syllables > 2 and random_pos in self.special_words:
-                        viable = False
-                        for stress in self.dict_meters[next_word]:
-                            if stress != curr_line.first_syll: viable = True
-                        if not viable:
-                            print("not happening cant make meter", random_pos)
-                            print("I should make syllable explicit templates")
-                            curr_line.print_info()
-                            print("resetting")
-                            curr_line.reset()
-                            curr_line.print_info()
-                            reset = True"""
+                        loop_count.close()"""
 
-                    #if sylls[-1] != curr_line.first_syll and curr_line.syllables + len(sylls) <= 10 and helper.isIambic(sylls) and not reset:
-                    curr_line.add_word(next_word, next_meter)
-                    curr_line.pos_template = next_pos + " " + curr_line.pos_template
-                    template = False #make a parameter?
-                """word_pos = self.get_word_pos(next_word)
-                if len(word_pos) > 1:
-                    for poss_pos in word_pos:
-                        #print(template.split(curr_line.template)[-2].split()[-1])
-                        if poss_pos == template.split(curr_line.template)[-2].split()[-1]:
-                            curr_line.pos_template = poss_pos + " " + curr_line.template
-                            break #?
-                else:
-                    curr_line.pos_template = word_pos[0] + " " + curr_line.template"""
+
+                #if sylls[-1] != curr_line.first_syll and curr_line.syllables + len(sylls) <= 10 and helper.isIambic(sylls) and not reset:
+                curr_line.add_word(next_word, next_meter)
+                curr_line.pos_template = next_pos + " " + curr_line.pos_template
+                template = False #make a parameter?
+
 
 
             print("adding line", line_number)
             curr_line.print_info()
             candidates.append(curr_line)
+            used_templates.append(curr_line.pos_template)
         if print_poem:
             print("")
             print(candidates[0])
             del candidates[0]
             for cand in range(len(candidates)):
-                print(candidates[cand].text, ": ", candidates[cand].meter)
+                print(candidates[cand].text)#, ": ", candidates[cand].meter)
                 if( (cand + 1) % 4 == 0): print("")
-        return candidates
+        #return candidates
 
 
     def get_word_pos(self, word):
@@ -246,12 +220,17 @@ class Sonnet_Gen():
             return None
         return self.words_to_pos[word]
 
-    def get_pos_words(self,pos):
+    def get_pos_words(self,pos, meter=None):
 
         if pos in self.special_words:
             return [pos.lower()]
         if pos not in self.pos_to_words:
             return None
+        if meter:
+            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
+            if len(ret) == 0:
+                return False
+            return ret
         return self.pos_to_words[pos]
 
     def getRhymes(self, theme, words):

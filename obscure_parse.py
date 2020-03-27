@@ -3,8 +3,8 @@ import random
 import pickle
 bp = BigPhoney()
 
-#word_file = open("saved_objects/lost_words_phrontristery.txt", "r")
-word_file = open("saved_objects/words/rare_words_phrontristery.txt", "r")
+word_file = open("saved_objects/words/lost_words_phrontristery.txt", "r")
+#word_file = open("saved_objects/words/rare_words_phrontristery.txt", "r")
 #word_file = open("saved_objects/words/one_syll_wonders.txt", "r")
 lines = word_file.readlines()
 word_file.close()
@@ -56,7 +56,7 @@ if input("reset postag?") == "y":
 
 
 
-type_to_pos = {'v':"VB", 'adj':"JJ", 'n':"NN", 'npl':"NNS", 'vz':"VBZ", 'vd':"VBD", 'ving':"VBG", 'vbp':"VBP"}
+type_to_pos = {'v':"VB", 'adj':"JJ", 'n':"NN", 'npl':"NNS", 'vz':"VBZ", 'vd':"VBD", 'ving':"VBG", 'vbp':"VBP", "adv":"RB"}
 
 def interpret(line):
     #gets and asks me to interpret one syllable words
@@ -74,9 +74,9 @@ def interpret(line):
             one_syll_file.write("\n" + st)
         return st
 
-#for line in lines:
-while True:
-    line = random.choice(lines)
+for line in lines:
+#while True:
+#    line = random.choice(lines)
     if line.split()[0] in ob_word_to_pos: continue
     if len(line.split()) > 2:
         line = interpret(line)
@@ -85,8 +85,10 @@ while True:
             break
     word, type = line.split()
     if type not in type_to_pos: continue
+    if word in ob_word_to_pos: continue
     pos = type_to_pos[type]
 
+    if pos not in ob_pos_to_words: ob_pos_to_words[pos] = []
     ob_pos_to_words[pos].append(word)
     ob_word_to_pos[word] = [pos]
     sylls = bp.phonize(word)
