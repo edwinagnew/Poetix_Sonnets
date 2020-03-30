@@ -3,7 +3,8 @@ import random
 import pickle
 bp = BigPhoney()
 
-word_file = open("saved_objects/words/lost_words_phrontristery.txt", "r")
+word_file = open("saved_objects/words/fict_words.txt", "r")
+#word_file = open("saved_objects/words/lost_words_phrontristery.txt", "r")
 #word_file = open("saved_objects/words/rare_words_phrontristery.txt", "r")
 #word_file = open("saved_objects/words/one_syll_wonders.txt", "r")
 lines = word_file.readlines()
@@ -85,7 +86,6 @@ for line in lines:
             break
     word, type = line.split()
     if type not in type_to_pos: continue
-    if word in ob_word_to_pos: continue
     pos = type_to_pos[type]
 
     if pos not in ob_pos_to_words: ob_pos_to_words[pos] = []

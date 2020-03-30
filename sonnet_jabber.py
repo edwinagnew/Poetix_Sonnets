@@ -2,6 +2,15 @@ import pickle
 import helper
 import random
 import line
+import math
+
+from string import punctuation
+from nltk.corpus import stopwords
+from nltk import word_tokenize
+
+from gensim.models import TfidfModel
+from gensim.corpora import Dictionary
+
 
 class Sonnet_Gen():
     def __init__(self,postag_file='saved_objects/postag_dict_all+VBN.p',
@@ -43,8 +52,12 @@ class Sonnet_Gen():
             for line in lines:
                 self.templates[" ".join(line.split()[:-1])] = line.split()[-1].strip()
 
+        self.tf_idf_dict = pickle.load(open("saved_objects/tf_idf_dict.p", "rb"))
+        self.tf_idf_model = pickle.load(open("saved_objects/tf_idf_model.p", "rb"))
 
-        self.max_loop = 1500
+        with open("booksummaries/booksummaries.txt", "r") as f:
+            self.summaries = f.readlines()
+
 
     def gen_poem_jabber(self):
 
@@ -242,5 +255,27 @@ class Sonnet_Gen():
                 pair = last_word_dict[i - 2][0]
                 if i == 14:
                     pair = last_word_dict[13][0]
-                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word)]
+                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if word in self.words_to_pos and self.suitable_last_word(word)]
         return last_word_dict
+
+    def tokenize(self, text, stop_words):
+        words = word_tokenize(text)
+        words = [w.lower() for w in words]
+        return [w for w in words if w not in stop_words and not w.isdigit()]
+
+    def insert_theme(self, poem, n_sum, verbose=False):
+        summary = self.summaries[n_sum].split("}")[-1].strip().split(". ")
+        n = len(summary)
+        sub_n = math.floor(n / 5)
+        sections = []
+        for i in range(sub_n, n, sub_n):
+            sections.append(summary[i - sub_n: i])
+        sections[-1] += summary[sub_n * 5 - n:]
+        if verbose: print(sections)
+
+        stop_words = stopwords.words('english') + list(punctuation)
+        keys = list(self.tf_idf_dict.token2id.keys())
+
+        for s in sections:
+            vals = dict(self.tf_idf_model[self.tf_idf_model.doc2bow(self.tokenize(s, stop_words))])
+

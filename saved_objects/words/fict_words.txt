@@ -55,3 +55,4 @@ prolveness adj
 denisals npl
 pers npl
 lently adv
+mell adv
