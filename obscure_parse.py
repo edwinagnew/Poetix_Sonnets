@@ -3,9 +3,9 @@ import random
 import pickle
 bp = BigPhoney()
 
-word_file = open("saved_objects/words/fict_words.txt", "r")
+#word_file = open("saved_objects/words/fict_words.txt", "r")
 #word_file = open("saved_objects/words/lost_words_phrontristery.txt", "r")
-#word_file = open("saved_objects/words/rare_words_phrontristery.txt", "r")
+word_file = open("saved_objects/words/rare_words_phrontristery.txt", "r")
 #word_file = open("saved_objects/words/one_syll_wonders.txt", "r")
 lines = word_file.readlines()
 word_file.close()
@@ -14,50 +14,17 @@ syll_file = open("saved_objects/ob_syll_dict.txt", "a")
 
 one_syll_file = open("saved_objects/words/two_syll_wonders.txt", "a")
 
+type_to_pos = {'v':"VB", 'adj':"JJ", 'n':"NN", 'npl':"NNS", 'vz':"VBZ", 'vd':"VBD", 'ving':"VBG", 'vbp':"VBP", "adv":"RB"}
+
+
+
 postag_dict = pickle.load(open("saved_objects/ob_postag_dict.p", "rb"))
 
 ob_pos_to_words = postag_dict[0]
 ob_word_to_pos = postag_dict[1]
 
-rejects = ["geist"]
-def reset_postag():
-    slines = open("saved_objects/ob_syll_dict.txt", "r").readlines()
-    sylls = [s.split()[0].lower() for s in slines]
-    ob_pos_to_words = {}
-    ob_word_to_pos = {}
-    words = []
-    for f in ["saved_objects/words/lost_words_phrontristery.txt", "saved_objects/words/one_syll_wonders.txt", "saved_objects/words/two_syll_wonders.txt"]:
-        file = open(f, "r")
-        words += file.readlines()
-        file.close()
-    print(words)
-    for l in words:
-        word, pos = l.split()
-        if word in sylls and word not in rejects:
-            if pos not in ob_pos_to_words: ob_pos_to_words[pos] = []
-            ob_pos_to_words[pos].append(word)
-            ob_word_to_pos[word] = [pos]
-
-            if pos == 'v' and word[-1] == 'e':
-                lines.append(word + 'vbp')
-                lines.append(word + 's vz')
-                lines.append(word + 'd vd')
-                lines.append(word[:-1] + 'ing ving')
-            elif pos == 'n' and word[-1] in ['n', 'r', 'm', 't']:  # common regular noun endings
-                lines.append(word + 's' + "  npl")
-        else:
-            print(word, "not in sylls")
-
-if input("reset postag?") == "y":
-    reset_postag()
-    print(ob_word_to_pos)
-    print(ob_pos_to_words)
-    if input("save?") == "y": pickle.dump([ob_pos_to_words, ob_word_to_pos], open("saved_objects/ob_postag_dict.p", "wb+"))
 
 
-
-
-type_to_pos = {'v':"VB", 'adj':"JJ", 'n':"NN", 'npl':"NNS", 'vz':"VBZ", 'vd':"VBD", 'ving':"VBG", 'vbp':"VBP", "adv":"RB"}
 
 def interpret(line):
     #gets and asks me to interpret one syllable words

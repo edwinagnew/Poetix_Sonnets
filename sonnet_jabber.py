@@ -2,14 +2,7 @@ import pickle
 import helper
 import random
 import line
-import math
 
-from string import punctuation
-from nltk.corpus import stopwords
-from nltk import word_tokenize
-
-from gensim.models import TfidfModel
-from gensim.corpora import Dictionary
 
 
 class Sonnet_Gen():
@@ -31,6 +24,7 @@ class Sonnet_Gen():
         for word in postag_dict[2]:
             if any(po not in self.pos_to_words for po in postag_dict[2][word]):
                 print(word, "hi")
+                print(1/0)
                 self.words_to_pos[word] = postag_dict[2][word]
 
         self.special_words = helper.get_finer_pos_words()
@@ -52,11 +46,6 @@ class Sonnet_Gen():
             for line in lines:
                 self.templates[" ".join(line.split()[:-1])] = line.split()[-1].strip()
 
-        self.tf_idf_dict = pickle.load(open("saved_objects/tf_idf_dict.p", "rb"))
-        self.tf_idf_model = pickle.load(open("saved_objects/tf_idf_model.p", "rb"))
-
-        with open("booksummaries/booksummaries.txt", "r") as f:
-            self.summaries = f.readlines()
 
 
     def gen_poem_jabber(self):
@@ -118,7 +107,7 @@ class Sonnet_Gen():
                 next_meter = self.templates[template].split("_")[-len(curr_line.pos_template.split()) - 1]
                 poss_words = self.get_pos_words(next_pos, meter=next_meter)
                 reset = False
-                if not poss_words:
+                while not poss_words:
                     if next_meter == "0":
                         print("0 fix", next_pos)
                         poss_words = self.get_pos_words(next_pos, meter="1") #cheeky fix
@@ -132,6 +121,7 @@ class Sonnet_Gen():
                         curr_line.reset()
                         reset = True
                         print("goodbye", curr_line.text)
+                        break
                 if not reset:
                     next_word = random.choice(poss_words)
                     curr_line.add_word(next_word, next_meter)
@@ -149,16 +139,16 @@ class Sonnet_Gen():
         for cand in range(len(candidates)):
             print(candidates[cand].text)
             if ((cand + 1) % 4 == 0): print("")
-        #return candidates
+        return candidates
 
-    def get_ob_rhymes(self, syll_file="saved_objects/ob_syll_dict.txt"):
+    def get_ob_rhymes(self, syll_file="saved_objects/ob_syll_dict.txt", rhyme_file="saved_objects/saved_rhymes_jabb"):
         try:
-            with open("saved_objects/jabb_saved_rhymes", "rb") as pickle_in:
+            with open(rhyme_file, "rb") as pickle_in:
                 rhymes = pickle.load(pickle_in)
         except:
             print("loading rhymes....")
-            with open(syll_file, encoding='UTF-8') as f:
-                lines = [line.rstrip("\n").split() for line in f if (";;;" not in line)]
+            with open(syll_file, "r") as f:
+                lines = [lin.split() for lin in f.readlines() if (";;;" not in lin)]
 
             rhymes = {}
             # go through all lines
@@ -167,11 +157,12 @@ class Sonnet_Gen():
                 if word in self.words_to_pos and self.suitable_last_word(word):
                     rhys = []
                     for l2 in lines:
-                        if l != l2 and l[-2:] == l2[-2:]: #for now if and only if last 2 syllables
+                        if l[-2:] == l2[-2:] and l != l2: #for now if and only if last 2 syllables
                             rhys.append(l2[0].lower())
                     if len(rhys) > 0:
+                        print(word, rhys)
                         rhymes[word] = rhys
-            with open("saved_objects/jabb_saved_rhymes", "wb") as pickle_in:
+            with open(rhyme_file, "wb") as pickle_in:
                 pickle.dump(rhymes, pickle_in)
                 print("loaded")
         return rhymes
@@ -243,10 +234,9 @@ class Sonnet_Gen():
         first_rhymes = []
         for i in range(1, 15):
             if i in [1, 2, 5, 6, 9, 10, 13]:  # lines with a new rhyme
-                last_word_dict[i] = [random.choice(
-                    list(rhyme_dict[scheme[i]].keys()))]  # NB ensure it doesnt pick the same as another one
-                while not self.suitable_last_word(last_word_dict[i][0]) or last_word_dict[i][0] in first_rhymes or any(
-                        rhyme_dict['A'][last_word_dict[i][0]] in rhyme_dict['A'][word] for word in first_rhymes):
+                last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
+                while len(last_word_dict[i]) < 1 or not self.suitable_last_word(last_word_dict[i][0]) or last_word_dict[i][0] in first_rhymes or any(
+                        w in rhyme_dict['A'][word] for word in first_rhymes for w in rhyme_dict['A'][last_word_dict[i][0]]):
                     last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
                 first_rhymes.append(last_word_dict[i][0])
             if i in [3, 4, 7, 8, 11, 12, 14]:  # lines with an old line
@@ -256,26 +246,14 @@ class Sonnet_Gen():
                 if i == 14:
                     pair = last_word_dict[13][0]
                 last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if word in self.words_to_pos and self.suitable_last_word(word)]
+                if len(last_word_dict[i]) < 1:
+                    print("help: ", i, last_word_dict[i])
+                    print(1/0)
         return last_word_dict
 
-    def tokenize(self, text, stop_words):
-        words = word_tokenize(text)
-        words = [w.lower() for w in words]
-        return [w for w in words if w not in stop_words and not w.isdigit()]
 
-    def insert_theme(self, poem, n_sum, verbose=False):
-        summary = self.summaries[n_sum].split("}")[-1].strip().split(". ")
-        n = len(summary)
-        sub_n = math.floor(n / 5)
-        sections = []
-        for i in range(sub_n, n, sub_n):
-            sections.append(summary[i - sub_n: i])
-        sections[-1] += summary[sub_n * 5 - n:]
-        if verbose: print(sections)
 
-        stop_words = stopwords.words('english') + list(punctuation)
-        keys = list(self.tf_idf_dict.token2id.keys())
 
-        for s in sections:
-            vals = dict(self.tf_idf_model[self.tf_idf_model.doc2bow(self.tokenize(s, stop_words))])
+
+
 

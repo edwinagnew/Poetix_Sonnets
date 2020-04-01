@@ -404,7 +404,7 @@ volgivagant	adj
 vultuous	adj	
 weequashing	n	
 welmish	adj	
-woundikins	int	
+woundikins	npl	
 xenization	n	
 yelve	n	
 zygostatical	adj	
