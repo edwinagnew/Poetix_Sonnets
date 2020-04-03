@@ -49,8 +49,8 @@ class Sonnet_Improve:
         #scores = self.get_bert_score(self.poem)
         #print([s for s in scores])
 
-        self.tf_idf_dict = pickle.load(open("saved_objects/tf_idf_dict.p", "rb"))
-        self.tf_idf_model = pickle.load(open("saved_objects/tf_idf_model.p", "rb"))
+        #self.tf_idf_dict = pickle.load(open("saved_objects/tf_idf_dict.p", "rb"))
+        #self.tf_idf_model = pickle.load(open("saved_objects/tf_idf_model.p", "rb"))
 
         with open("booksummaries/booksummaries.txt", "r") as f:
             self.summaries = f.readlines()
@@ -292,39 +292,60 @@ class Sonnet_Improve:
 
 
 
-    def insert_theme(self, poem, n_sum, verbose=False):
+    def insert_theme(self, poem, n_sum, verbose=False, threshold=0.115):
         summary = self.summaries[n_sum].split("}")[-1].strip().split(". ")
-        n = len(summary)
-        sub_n = math.floor(n / 5)
+        n = len(summary) - 2
+        sub_n = math.floor(n / 3)
         sections = []
         for i in range(sub_n, n, sub_n):
             sections.append(summary[i - sub_n: i])
-        sections[-1] += summary[sub_n * 5 - n:]
+        sections.append(summary[sub_n * 3 - n-2:])
         if verbose: print(sections)
 
         stop_words = stopwords.words('english') + list(punctuation)
-        keys = list(self.tf_idf_dict.token2id.keys())
+
+
+        documents = [self.tokenize(t, stop_words) for t in summary]
+        dictionary = Dictionary(documents)
+        tfidf_model = TfidfModel([dictionary.doc2bow(d) for d in documents], id2word=dictionary)
+
+        keys = list(dictionary.token2id.keys())
+
 
         vals = {}
 
         for s in range(len(sections)):
             text = " ".join(str(x) for x in sections[s])
-            d = dict(self.tf_idf_model[self.tf_idf_dict.doc2bow(self.tokenize(text, stop_words))])
-            vals[s] = {keys[k]: v for k, v in sorted(d.items(), key=lambda item: -item[1])}
+            d = dict(tfidf_model[dictionary.doc2bow(self.tokenize(text, stop_words))])
+            vals[s] = {keys[k]: v for k, v in sorted(d.items(), key=lambda item: -item[1]) if v > threshold}
 
+        added = {}
         if verbose: print("vals: ", vals)
         for i in range(len(poem)):
-            print("line ", i, " therefore stanza ", int(i/5))
-            sum_words = vals[int(i/5)]
+            print("line ", i, " therefore stanza ", int(i/4))
+            sum_words = vals[int(i/4)]
             text = poem[i].text
             meter = poem[i].meter
             template = poem[i].pos_template.split()[:-1]
-            for word in list(sum_words.keys()):
+            if int(i / 4) not in added: added[int(i / 4)] = []
+            for word in list(sum_words.keys())[:10]:
                 pos = self.gen_basic.get_word_pos(word)
                 if pos and any(p in template for p in pos):
                     for j in range(len(template)):
-                        if template[j] in pos and meter.split("_")[j] in self.gen_basic.dict_meters[word] and text.split()[j] not in sum_words:
-                            print("swap ", word, "into ", text, "at ", text.split()[j])
+                        if template[j] in pos and meter.split("_")[j] in self.gen_basic.dict_meters[word] and text.split()[j] not in sum_words and word not in added[int(i/4)]:
+                            if verbose: print("swapping ", word, "and ", text.split()[j])
+                            new_text = text.split()
+                            new_text[j] = word
+                            new_text = " ".join(new_text)
+                            text = new_text
+                            poem[i].text = new_text
+                            added[int(i/4)].append(word)
+                            if verbose: print("--> ", new_text)
+        if verbose:
+            for cand in range(len(poem)):
+                print(poem[cand].text)
+                if ((cand + 1) % 4 == 0): print("")
+        return poem
 
 
 
