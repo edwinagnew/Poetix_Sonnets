@@ -75,7 +75,7 @@ def create_pos_syllables(pos_to_words, dict_meters):
 
 
 
-def get_rhyming_words_one_step_henry(api_url, word, max_syllables=2):
+def get_rhyming_words_one_step_henry(api_url, word, max_syllables=4):
     """
     get the rhyming words of <arg> word returned from datamuse api
     <args>:

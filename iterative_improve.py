@@ -19,13 +19,6 @@ from transformers import BertTokenizer, BertForMaskedLM
 import line
 
 
-from string import punctuation
-from nltk.corpus import stopwords
-from nltk import word_tokenize
-
-from gensim.models import TfidfModel
-from gensim.corpora import Dictionary
-
 
 """Implement a*  search based on the generated poem"""
 class Sonnet_Improve:
@@ -52,8 +45,6 @@ class Sonnet_Improve:
         #self.tf_idf_dict = pickle.load(open("saved_objects/tf_idf_dict.p", "rb"))
         #self.tf_idf_model = pickle.load(open("saved_objects/tf_idf_model.p", "rb"))
 
-        with open("booksummaries/booksummaries.txt", "r") as f:
-            self.summaries = f.readlines()
 
     def gen_poem(self, prompt, print_poem=False):
         self.poem = self.gen_basic.gen_poem_edwin(prompt, print_poem=print_poem)
@@ -285,67 +276,6 @@ class Sonnet_Improve:
         return self.tokenizer.convert_ids_to_tokens(best)
 
 
-    def tokenize(self, text, stop_words):
-        words = word_tokenize(text)
-        words = [w.lower() for w in words]
-        return [w for w in words if w not in stop_words and not w.isdigit()]
-
-
-
-    def insert_theme(self, poem, n_sum, verbose=False, threshold=0.115):
-        summary = self.summaries[n_sum].split("}")[-1].strip().split(". ")
-        n = len(summary) - 2
-        sub_n = math.floor(n / 3)
-        sections = []
-        for i in range(sub_n, n, sub_n):
-            sections.append(summary[i - sub_n: i])
-        sections.append(summary[sub_n * 3 - n-2:])
-        if verbose: print(sections)
-
-        stop_words = stopwords.words('english') + list(punctuation)
-
-
-        documents = [self.tokenize(t, stop_words) for t in summary]
-        dictionary = Dictionary(documents)
-        tfidf_model = TfidfModel([dictionary.doc2bow(d) for d in documents], id2word=dictionary)
-
-        keys = list(dictionary.token2id.keys())
-
-
-        vals = {}
-
-        for s in range(len(sections)):
-            text = " ".join(str(x) for x in sections[s])
-            d = dict(tfidf_model[dictionary.doc2bow(self.tokenize(text, stop_words))])
-            vals[s] = {keys[k]: v for k, v in sorted(d.items(), key=lambda item: -item[1]) if v > threshold}
-
-        added = {}
-        if verbose: print("vals: ", vals)
-        for i in range(len(poem)):
-            print("line ", i, " therefore stanza ", int(i/4))
-            sum_words = vals[int(i/4)]
-            text = poem[i].text
-            meter = poem[i].meter
-            template = poem[i].pos_template.split()[:-1]
-            if int(i / 4) not in added: added[int(i / 4)] = []
-            for word in list(sum_words.keys())[:10]:
-                pos = self.gen_basic.get_word_pos(word)
-                if pos and any(p in template for p in pos):
-                    for j in range(len(template)):
-                        if template[j] in pos and meter.split("_")[j] in self.gen_basic.dict_meters[word] and text.split()[j] not in sum_words and word not in added[int(i/4)]:
-                            if verbose: print("swapping ", word, "and ", text.split()[j])
-                            new_text = text.split()
-                            new_text[j] = word
-                            new_text = " ".join(new_text)
-                            text = new_text
-                            poem[i].text = new_text
-                            added[int(i/4)].append(word)
-                            if verbose: print("--> ", new_text)
-        if verbose:
-            for cand in range(len(poem)):
-                print(poem[cand].text)
-                if ((cand + 1) % 4 == 0): print("")
-        return poem
 
 
 
