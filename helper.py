@@ -75,7 +75,7 @@ def create_pos_syllables(pos_to_words, dict_meters):
 
 
 
-def get_rhyming_words_one_step_henry(api_url, word, max_syllables=4):
+def get_rhyming_words_one_step_henry(api_url, word, max_syllables=5):
     """
     get the rhyming words of <arg> word returned from datamuse api
     <args>:
@@ -211,7 +211,7 @@ def get_finer_pos_words():
      'AROUND', 'NEITHER', 'WHOM', 'SINCE', 'ABOVE', 'THROUGH', 'ALL',
      'AND', 'SOME', 'MAY', 'HALF', 'WHATEVER', 'BEHIND',
      'BEYOND', 'WHERE', 'SUCH', 'YET', 'UNTO', 'BY', 'NEED',
-     'A', 'DURING', 'AT', 'AN', 'OUGHT', 'DARE',
+     'A', 'DURING', 'AT', 'AN', 'OUGHT',
      'BUT', 'DESPITE', 'SHOULD', 'THOSE', 'FOR', 'WHEREVER', 'WHOLE', 'THESE',
      'WHOEVER', 'WITH', 'TOWARD', 'WHICH',
      'BECAUSE', 'WHETHER', 'ONWARD', 'UPON', 'JUST', 'ANY',

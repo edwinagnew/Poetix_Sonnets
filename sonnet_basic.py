@@ -82,25 +82,23 @@ class Sonnet_Gen():
 
 
 
-    def gen_poem_edwin(self, prompt, print_poem=True, search_space=5, retain_space=2, word_embedding_coefficient=0,stress=True, prob_threshold=-10):
+    def gen_poem_edwin(self, prompt, print_poem=True):
         """
-        Generate poems with multiple templates given a seed word (prompt) and GPT2
-        search space.
+
         Parameters
         ----------
-        prompt: str
-            A seed word used to kickstart poetry generation.
-        search_space : int
-            Search space of the sentence finding algorithm.
-            The larger the search space, the more sentences the network runs
-            in parallel to find the best one with the highest score.
-        retain_space : int
-            How many sentences per template to keep.
-        stress: bool
-            Whether we enforce stress.
-        prob_threshold: float
-            If the probability of a word is lower than this threshold we will not consider
-            this word. Set it to None to get rid of it.
+        prompt - the word the base the poem on
+        print_poem - optional parameter to print output
+
+        Returns - a sonnet
+        -------
+        1. generate a rhyme set
+        2. For every line pick a random word from the set:
+            a. Get a random template which ends with the POS and meter of that word
+            b. Get a random word which fits the POS and meter of the next word (working backwards)
+            c. Repeat until template finished
+        3. Repeat for 14 lines
+
         """
         #Get rhyming words
         #at some point implement narrative trajectory stuff
@@ -132,11 +130,13 @@ class Sonnet_Gen():
             curr_line.meter = in_meter
             curr_line.syllables = len(in_meter)
             template = False
-            reset = False
             while curr_line.syllables < 10:
-                if reset: print("HI", curr_line.text)
+                #if reset: print("HI", curr_line.text)
                 if not template:
                     template = self.get_random_template(curr_line.pos_template, curr_line.meter)
+                if (line_number-1)%2 == 0 and template.split()[0] in ['AND']:
+                    print("oi oi", template, line_number)
+                    template = self.get_random_template(curr_line.pos_template, curr_line.meter, exclude=["AND"])
                 while not template:
                     print("no template", curr_line.pos_template, curr_line.text)
                     first_w = curr_line.text.split()[0]
@@ -160,34 +160,11 @@ class Sonnet_Gen():
                     print("no words", next_pos, next_meter, template)
                     print(1/0)
                 next_word = random.choice(poss_words)
-                """j = 0
-                reset = False
-                while next_word not in self.dict_meters or next_meter not in self.dict_meters[next_word]:
-                    next_word = random.choice(self.get_pos_words(next_pos))
-                    #print("looping here", j)
-                    j+=1
-                    if j > self.max_loop * 1.5:
-                        print("resetting")
-                        curr_line.print_info()
-                        print("template: ", template, "next_pos:", next_pos, "next_meter:", next_meter)
-                        print(1/0)
-                        curr_line.reset()
-                        reset = True
-                        break
-                if not reset:
-                    if j > self.max_loop:
-                        loop_count = open("saved_objects/loop_counts.txt", "a")
-                        loop_count.write(str(j) + '\n')
-                        self.max_loop = j
-                        loop_count.close()"""
-
 
                 #if sylls[-1] != curr_line.first_syll and curr_line.syllables + len(sylls) <= 10 and helper.isIambic(sylls) and not reset:
                 curr_line.add_word(next_word, next_meter)
                 curr_line.pos_template = next_pos + " " + curr_line.pos_template
-                template = False #make a parameter?
-
-
+                #template = False #make a parameter?
 
             print("adding line", line_number)
             curr_line.print_info()
@@ -322,17 +299,10 @@ class Sonnet_Gen():
     def suitable_last_word(self, word): #checks pos is in self.end_pos and has correct possible meters
         return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
-    """ def hasTemplate(self, stem, threshold=1):
-        #TODO - webscrape https://www.poetryfoundation.org/poems/browse#page=1&sort_by=recently_added&forms=263 to get more templates
-        #consider choosing from remaining availabe templates rather than hoping to randomly stumble across one?
-        #sub_templates = [item[-len(stem):] for item in self.templates]
-        sub_templates = [item for item in self.templates if item[-len(stem):] == stem]
-        print("has template", stem, sub_templates, len(sub_templates))
-        return len(sub_templates) > threshold
-        #return True"""
 
-    def get_random_template(self, curr_template, curr_meter):
+    def get_random_template(self, curr_template, curr_meter, exclude=None):
         poss_templates = [item for item in self.templates.keys() if item[-len(curr_template):] == curr_template and self.templates[item].split('_')[-len(curr_meter.split('_')):] == curr_meter.split('_')]
+        if exclude: poss_templates = [x for x in poss_templates if x.split()[0] not in exclude]
         if len(poss_templates) == 0: return False
         return random.choice(poss_templates)
 

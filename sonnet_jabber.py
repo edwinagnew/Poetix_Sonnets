@@ -4,6 +4,7 @@ import random
 import line
 
 import math
+import numpy as np
 
 from string import punctuation
 from nltk.corpus import stopwords
@@ -20,7 +21,7 @@ from nltk.corpus import wordnet as wn
 class Sonnet_Gen():
     def __init__(self,postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_files=['saved_objects/cmudict-0.7b.txt', 'saved_objects/ob_syll_dict.txt'],
-                 extra_stress_file='saved_objects/edwins_extra_stresses.txt', lines=16):
+                 extra_stress_file='saved_objects/edwins_extra_stresses.txt', lines=24):
 
 
         with open("saved_objects/ob_postag_dict.p", "rb") as pick_in:
@@ -66,13 +67,23 @@ class Sonnet_Gen():
 
 
 
-    def gen_poem_jabber(self):
+    def gen_poem_jabber(self, scenery=True):
+        """
+
+        Parameters
+        ----------
+        scenery - optional parameters which makes the first stanza have templates with more adjectives and less prepositions
+
+        Returns
+        -------
+
+        """
 
         rhyme_dict = {}
         if self.lines == 14:
             rhymes = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-        elif self.lines == 16:
-            rhymes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        elif self.lines == 24:
+            rhymes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
         for i in rhymes:
             # rhyme_dict[i] = self.getRhymes([prompt], words=ob_pos_to_words['NN'])
             rhyme_dict[i] = self.get_ob_rhymes()
@@ -102,8 +113,14 @@ class Sonnet_Gen():
                 if reset:
                     print("HI", curr_line.text, curr_line.pos_template)
                     template = False
+                    reset = False
                 if not template:
-                    template = self.get_random_template(curr_line.pos_template, curr_line.meter)
+                    preffered_pos = None
+                    if line_number <= 4 and scenery: preffered_pos = {"JJ": 1, "WHERE": 1, "WHEN": 1, "PRP":-1, "PRP$":-1, "VBD":-1}
+                    template = self.get_random_template(curr_line.pos_template, curr_line.meter, pref_pos=preffered_pos)
+                if (line_number - 1) % 2 == 0 and template.split()[0] in ['AND']:
+                    print("oi oi", template, line_number)
+                    template = self.get_random_template(curr_line.pos_template, curr_line.meter, exclude=["AND"])
                 while not template:
                     print("no template", curr_line.pos_template, curr_line.text, curr_line.meter)
                     print(1/0)
@@ -149,13 +166,17 @@ class Sonnet_Gen():
                     next_word = random.choice(poss_words)
                     curr_line.add_word(next_word, next_meter)
                     curr_line.pos_template = next_pos + " " + curr_line.pos_template
-                    template = False  # make a parameter?
+                    #template = False  # make a parameter?
 
             print("adding line", line_number)
             curr_line.print_info()
             candidates.append(curr_line)
             used_templates.append(curr_line.pos_template)
 
+        if self.lines == 24:
+            print(len(candidates))
+            print(len(candidates) - 1 != 20 and 1/0)
+            candidates += candidates[1:5]
         print("")
         print(candidates[0])
         del candidates[0]
@@ -224,9 +245,26 @@ class Sonnet_Gen():
             return ret
         return self.pos_to_words[pos]
 
-    def get_random_template(self, curr_template, curr_meter):
+    def get_random_template(self, curr_template, curr_meter, pref_pos=None, exclude=None):
         poss_templates = [item for item in self.templates.keys() if item[-len(curr_template):] == curr_template and self.templates[item].split('_')[-len(curr_meter.split('_')):] == curr_meter.split('_')]
+        if exclude: poss_templates = [x for x in poss_templates if x.split()[0] not in exclude]
         if len(poss_templates) == 0: return False
+        if pref_pos:
+            n = len(poss_templates)
+            template_scores = np.zeros(n)
+            for i in range(n):
+                score = 0
+                for pos in poss_templates[i].split():
+                    if pos in pref_pos: score += pref_pos[pos]
+                template_scores[i] = score
+                #print("template", poss_templates[i], " has score", score)
+
+            #to normalize make all values non negative
+            template_scores += abs(min(template_scores)) + 1
+            #then ensure sums to 1
+            template_scores /= sum(template_scores)
+            #print("dist = ", template_scores)
+            return np.random.choice(poss_templates, p=template_scores) #Very nifty function which chooses from a list with a custom distribution
         return random.choice(poss_templates)
 
     def last_word_dict(self, rhyme_dict):
@@ -250,14 +288,13 @@ class Sonnet_Gen():
             scheme = {1: 'A', 2: 'B', 3: 'A', 4: 'B', 5: 'C', 6: 'D', 7: 'C', 8: 'D', 9: 'E', 10: 'F', 11: 'E', 12: 'F', 13: 'G', 14: 'G'}
             new_rhymes = [1,2,5,6,9,10,13]
             old_rhymes = [3,4,7,8,11,12,14]
-        elif self.lines == 16:
+        elif self.lines == 24:
             scheme = {1: 'A', 2: 'B', 3: 'A', 4: 'B', 5: 'C', 6: 'D', 7: 'C', 8: 'D', 9: 'E', 10: 'F', 11: 'E', 12: 'F',
-                      13: 'G', 14: 'H', 15: 'G', 16: 'H'}
-            new_rhymes = [1,2,5,6,9,10,13,14]
-            old_rhymes = [3,4,7,8,11,12,15,16]
+                      13: 'G', 14: 'H', 15: 'G', 16: 'H', 17:'I', 18:'J', 19:'I', 20:'J'}
+            new_rhymes = [1,2,5,6,9,10,13,14,17,18]
+            old_rhymes = [3,4,7,8,11,12,15,16,19,20]
         last_word_dict = {}
 
-        rand_keys = {}
         first_rhymes = []
         for i in range(1, len(scheme.keys()) + 1):
             if i in new_rhymes:  # lines with a new rhyme
@@ -274,7 +311,8 @@ class Sonnet_Gen():
                     pair = last_word_dict[13][0]
                 last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if word in self.words_to_pos and self.suitable_last_word(word)]
                 if len(last_word_dict[i]) < 1:
-                    input("help: ", i, last_word_dict[i], rhyme_dict[letter][pair], letter, pair)
+                    print("help: ", i, last_word_dict[i], rhyme_dict[letter][pair], letter, pair)
+                    input("ok?")
                     #print(1/0) just try again...
                     return self.last_word_dict(rhyme_dict)
         return last_word_dict
@@ -312,21 +350,40 @@ class Sonnet_Gen():
         if verbose: print("vals: ", vals)
         self.insert_theme(poem, vals, verbose=verbose)
 
-    def get_heros_theme(self, poem, verbose=False, size=40):
-        vals = {}
-        archetype = {1:["leaving", "ordinary"], 2:["challenge", "quest"], 2.5: ['victory'], 3:["return", "freedom"], 4: repeat first}
-        for t in archetype:
-            vals[t] = {}
-            for word in archetype[t]:
-                syn = wn.synsets(word)
-                names = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
-                for name in names:
-                    if name not in vals[t]:
-                        scores = [helper.get_spacy_similarity(w1, name) for w1 in archetype[t]]
-                        if verbose: print(name, scores, "from ", word)
-                        if min(scores) > 0.15 or max(scores) > 0.5:
-                            vals[t][name] = sum(scores)/len(scores)
-                            if verbose: print("adding", t, name)
+    def get_heros_theme(self, poem, verbose=False, size=40, theme_file='saved_objects/heros_journey_words.p'):
+        """
+
+        Parameters
+        ----------
+        poem - the poem you're going to update
+        verbose - whether or not to print to output as you go
+        size - miniumum number of words to store for each stanza
+        theme_file - where to load from (if not store) generated synsets
+
+        -------
+        This function iteratively finds synonyms of each word pair from the hero's journey archetype, then finds synonyms
+        of synonyms and so on until size constraint is reached. Synonyms are weighted by mean similarity between both words
+        in the original archetype pair
+        """
+        try:
+            with open(theme_file, "rb") as pickle_in:
+                vals = pickle.load(pickle_in)
+        except:
+            print("loading rhymes....")
+            vals = {}
+            archetype = {1:["leaving", "ordinary"], 2:["challenge", "quest"], 3: ['victory', 'celebration'], 4:["return", "freedom"]}
+            for t in archetype:
+                vals[t] = {}
+                for word in archetype[t]:
+                    syn = wn.synsets(word)
+                    names = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
+                    for name in names:
+                        if name not in vals[t]:
+                            scores = [helper.get_spacy_similarity(w1, name) for w1 in archetype[t]]
+                            if verbose: print(name, scores, "from ", word)
+                            if min(scores) > 0.15 or max(scores) > 0.5:
+                                vals[t][name] = sum(scores)/len(scores)
+                                if verbose: print("adding", t, name)
 
         for v in vals:
             while len(vals[v]) < size:
@@ -342,6 +399,9 @@ class Sonnet_Gen():
                             vals[v][name] = sum(scores)/len(scores)
                             if verbose: print("adding2", v, name, "from ", word)
 
+        with open(theme_file, "wb") as pickle_in:
+            pickle.dump(vals, pickle_in)
+
         self.insert_theme(poem, vals, verbose=verbose)
 
 
@@ -354,7 +414,7 @@ class Sonnet_Gen():
         added = {}
         for i in range(len(poem)):
             if int(i/4) not in vals: continue
-            print("line ", i, " therefore stanza ", int(i / 4))
+            #print("line ", i, " therefore stanza ", int(i / 4))
             sum_words = vals[int(i / 4)]
             text = poem[i].text
             meter = poem[i].meter
