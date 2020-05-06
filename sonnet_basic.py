@@ -1,9 +1,9 @@
 import numpy as np
 import pickle
 from collections import defaultdict
-import helper
+from py_files import helper
 import random
-import line
+from py_files import line
 
 
 
