@@ -1,7 +1,7 @@
 import pickle
-import helper
+from py_files import helper
 import random
-import line
+from py_files import line
 
 import math
 import numpy as np
@@ -174,7 +174,7 @@ class Sonnet_Gen():
         #poem generation is over
         if self.lines == 24:
             print(len(candidates))
-            print(len(candidates) - 1 != 20 and 1/0)
+            print(len(candidates[1:]) != 20 and 1/0)
             candidates += candidates[1:5]
         print("")
         print(candidates[0])
@@ -482,10 +482,10 @@ class Sonnet_Gen():
                             poem[i].text = new_text
                             added[int(i / 4)].append(word)
                             if verbose: print("--> ", new_text)
-        if verbose:
-            for cand in range(len(poem)):
-                print(poem[cand].text)
-                if ((cand + 1) % 4 == 0): print("")
+
+        for cand in range(len(poem)):
+            print(poem[cand].text)
+            if ((cand + 1) % 4 == 0): print("")
         return poem
 
 
