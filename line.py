@@ -1,29 +1,23 @@
 
 class Line:
 
-    def __init__(self, text, dict_meters, pos_template=None):
-        self.text = text
+    def __init__(self, text, meter, pos_template=None):
+        self.text = ""
         #self.score = score
         self.pos_template = pos_template
-        #self.met_template = met_template
-        self.dict_meters = dict_meters
         self.meter = ""
         self.syllables = 0
+        self.add_word(text, meter)
         #self.update()
 
 
-    """def update(self):
-        self.meter = ""
-        self.syllables = 0
-        words = self.text.split()
-        for i in range(len(words)):
-            meter = [poss_meter for poss_meter in self.dict_meters[words[i]] if poss_meter in METER TEMPLATE AT RIGHT POSITION]
-            self.syllables += len(meter)
-            self.meter += meter"""
-
     def add_word(self, new_word, sylls):
-        self.text = new_word + " " + self.text
-        self.meter = sylls + "_" + self.meter
+        if self.syllables == 0:
+            self.text = new_word
+            self.meter = sylls
+        else:
+            self.text = new_word + " " + self.text
+            self.meter = sylls + "_" + self.meter
         self.syllables += len(sylls)
 
 

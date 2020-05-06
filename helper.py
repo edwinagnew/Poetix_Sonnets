@@ -124,7 +124,7 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
             score += max(get_spacy_similarity(word, syn), 0) ** 0.5 * weight
         return score / sum(weights)
 
-    syn_score_list = [(syn, cal_score(words, weights, syn)) for syn in word_set if ps.stem(syn) not in seen_words_set]
+    syn_score_list = [(syn, cal_score(words, weights, syn)) for syn in word_set if ps.stem(syn) not in seen_words_set and syn in spacy_nlp.vocab]
     syn_score_list.sort(key=lambda x: x[1], reverse=True)
 
     return [e[0] for e in syn_score_list[:n_return]]
