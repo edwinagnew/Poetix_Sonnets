@@ -33,7 +33,7 @@ class Sonnet_Gen():
             self.filtered_nouns_verbs += self.pos_to_words["IN"] + self.pos_to_words["PRP"]
 
         self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
-        try:
+        """try:
             with open("saved_objects/w2v.p", "rb") as pickle_in:
                 self.poetic_vectors = pickle.load(pickle_in)
         except:
@@ -42,7 +42,7 @@ class Sonnet_Gen():
                 #self.poetic_vectors = KeyedVectors.load_word2vec_format(wv_file, binary=False)
                 self.poetic_vectors = self.filtered_nouns_verbs
                 pickle.dump(self.poetic_vectors, pickle_in)
-                print("loaded")
+                print("loaded")"""
 
         #print(self.poetic_vectors.shape)
 
@@ -243,7 +243,7 @@ class Sonnet_Gen():
             print(" (ignore the warnings) ")
             words = helper.get_similar_word_henry(theme, n_return=20, word_set=set(words))
             w_rhyme_dict = {w3: {word for word in helper.get_rhyming_words_one_step_henry(self.api_url, w3) if
-                                   word in self.poetic_vectors and word in self.dict_meters.keys() and word not in self.top_common_words[:70]} for #deleted: and self.filter_common_word_henry(word, fast=True)
+                                   word in self.filtered_nouns_verbs and word in self.dict_meters.keys() and word not in self.top_common_words[:70]} for #deleted: and self.filter_common_word_henry(word, fast=True)
                               w3 in words if w3 not in self.top_common_words[:70] and w3 in self.dict_meters.keys()}
 
             #if len(w_rhyme_dict) > 0:
