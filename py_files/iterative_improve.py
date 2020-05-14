@@ -11,12 +11,12 @@ from nltk.stem.snowball import SnowballStemmer
 from PyDictionary import PyDictionary
 
 import sonnet_basic
-import helper
+from py_files import helper
 
 
 from transformers import BertTokenizer, BertForMaskedLM
 
-import line
+from py_files import line
 
 
 
