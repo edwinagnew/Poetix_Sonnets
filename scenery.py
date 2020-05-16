@@ -1,21 +1,34 @@
 import pickle
 import random
 import torch
+import json
 import numpy as np
+import pandas as pd
 
 from py_files import helper
 
 from transformers import BertTokenizer, BertForMaskedLM
+from transformers import RobertaTokenizer, RobertaForMaskedLM
+
+import pronouncing
+
+from nltk.corpus import wordnet as wn
+
 
 
 class Scenery_Gen():
-    def __init__(self, postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self, model="roberta", postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
-                 extra_stress_file='saved_objects/edwins_extra_stresses.txt'):
-        self.templates = [("FROM JJS NNS PRP VBP NN" , "0_10_10_1_01_01"),
-                          ("THAT RB NN POS VBD MIGHT RB VB", "0_10_10__1_0_10_1"),
-                          ("WHERE ALL THE NN OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
-                          ("AND THAT JJ WHICH RB VBZ VB", "0_1_01_0_10_1_01")]
+                 extra_stress_file='saved_objects/edwins_extra_stresses.txt',
+                 top_file='saved_objects/words/top_words.txt'):
+        #self.templates = [("FROM JJS NNS PRP VBP NN", "0_10_10_1_01_01"),
+         #                 ("THAT RB NN POS VBD MIGHT RB VB", "0_10_10__1_0_10_1"),
+          #                ("WHERE ALL THE NN OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
+           #               ("AND THAT JJ WHICH RB VBZ VB", "0_1_01_0_10_1_01")]
+        self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
+                          ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
+                          ("WHERE ALL THE scNNS OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
+                          ("AND THAT JJ WHICH RB VBZ NN", "0_1_01_0_10_1_01")]
         with open(postag_file, 'rb') as f:
             postag_dict = pickle.load(f)
         self.pos_to_words = postag_dict[1]
@@ -25,12 +38,31 @@ class Scenery_Gen():
 
         self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
 
-        self.bert_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        if model == "bert":
+            self.lang_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+            self.lang_vocab = list(self.tokenizer.vocab.keys())
+            self.lang_model.eval()
 
-        self.bert_model.eval()
+        elif model == "roberta":
+            self.lang_model = RobertaForMaskedLM.from_pretrained('roberta-large') # 'roberta-base'
+            self.tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
+            with open("saved_objects/roberta/vocab.json") as json_file:
+                j = json.load(json_file)
+            self.lang_vocab = list(j.keys())
+            self.lang_model.eval()
 
-        self.bert_vocab = list(self.tokenizer.vocab.keys())
+
+
+
+        self.poems = pd.read_csv('poems/kaggle_poem_dataset.csv')['Content']
+
+        with open(top_file) as tf:
+            self.top_common_words = [line.strip() for line in tf.readlines()][:125]
+
+
+
+
 
     def get_word_pos(self, word):
         """
@@ -62,50 +94,145 @@ class Scenery_Gen():
             return ret
         return self.pos_to_words[pos]
 
-    def write_stanza(self, theme="forest"):
+    def write_stanza(self, theme="forest", verbose=True):
         """
         Possible approach :
         1. Write a preliminary line
             a. fits template and meter randomly and make sure end word has at least 20(?) rhyming words
             b. inserts thematic words where possible(?)
-        2. Use bert to change every word (several times?) with weighted probabilities it gives, filtered for meter and template and perhaps relevant words boosted?
-        Returns
+        2. Use bert (or roberta) to change every word (several times?) with weighted probabilities it gives, filtered for meter and template and perhaps relevant words boosted?
+
+        Forest:
+        1. forest (or synonyms)
+        2. branches
+        3. roots
+        4. leaves
         -------
 
         """
-        theme_words = [] #TODO
+        theme_words = self.get_theme_words(theme)
+        print(theme_words)
         lines = []
+        rhymes = []
         for template, meter in self.templates:
             template = template.split()
             meter = meter.split("_")
             line = ""
-            for i in range(len(template)):
-                line += random.choice(self.get_pos_words(template[i], meter=meter[i])) + " "
+            for i in range(len(template) - 1):
+                new_words = []
+                scores = []
+                if "sc" in template[i]:
+                    pos = template[i].split("sc")[-1]
+                    for thematic in theme_words:
+                        if theme_words[thematic] > 1 and meter[i] in self.dict_meters[thematic] and pos in self.get_word_pos(thematic) :
+                            new_words.append(thematic)
+                            scores.append(theme_words[thematic])
+                            if verbose: print("found ", thematic, theme_words[thematic], "for ", meter[i], template[i])
+
+                if len(new_words) == 0: new_word = random.choice(self.get_pos_words(template[i], meter=meter[i]))
+                else:
+                    dist = helper.softmax(scores)
+                    new_word = np.random.choice(new_words, p=dist)
+                    theme_words[new_word] = 0 #don't choose same word twice
+                    print(new_word, " chosen with prob", dist[new_words.index(new_word)])
+                line += new_word + " "
+            if len(lines) < 2:
+                word = None
+                #high_score = 0
+                rhyme_pos = self.templates[len(lines) + 2][0].split()[-1]
+                rhyme_met = self.templates[len(lines) + 2][1].split("_")[-1]
+                """for thematic in theme_words:
+                    if theme_words[thematic] > high_score and meter[-1] in self.dict_meters[thematic] and template[-1] in self.get_word_pos(thematic):
+                        if any(r in self.get_pos_words(rhyme_pos, meter=rhyme_met) for r in pronouncing.rhymes(thematic)):
+                            word = thematic
+                            high_score = theme_words[thematic]"""
+
+                while not word or not any(r in self.get_pos_words(rhyme_pos, meter=rhyme_met) for r in pronouncing.rhymes(word)):
+                    word = random.choice(self.get_pos_words(template[-1], meter=meter[-1]))
+                line += word
+                rhymes.append(word)
+            else:
+                line += random.choice([rhyme for rhyme in self.get_pos_words(template[-1], meter=meter[-1]) if self.rhymes(rhyme, lines[-2].split()[-1])])
             print("line initially ", line)
-            line = self.update_bert(line.strip().split(), meter, template, 3, verbose=True)
+            rhyme_set = []
+            for r in rhymes:
+                rhyme_set += pronouncing.rhymes(r)
+            print("rhyme_set length: ", len(rhyme_set))
+            #line = self.update_bert(line.strip().split(), meter, template, len(template), rhyme_words=rhyme_set, filter_meter=True, verbose=True)
             print("line after ", line)
             lines.append(line)
-            break
+            #break
+        print(lines)
 
-    def update_bert(self, line, meter, template, iterations, theme_words=[], verbose=False):
-        if iterations == 0: return line #base case
-
+    def update_bert(self, line, meter, template, iterations, theme_words=[], rhyme_words = [], filter_meter=True, verbose=False):
+        if iterations == 0: return " ".join(line) #base case
+        #TODO deal with tags like ### (which are responsible for actually cool words)
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=False)).unsqueeze(0) #tokenizes
-        outputs = self.bert_model(input_ids)[0][0] #masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
+        loss, outputs = self.lang_model(input_ids, masked_lm_labels=input_ids) #masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
+        if verbose: print("loss = ", loss)
         softmax = torch.nn.Softmax(dim=1) #normalizes the probabilites to be between 0 and 1
-        outputs = softmax(outputs)
-        for word_number in range(0,len(line)-1): #ignore  last word to keep rhyme
-            if len(self.get_pos_words(template[word_number])) > 1:
-                outputs[word_number] += abs(min(outputs[word_number])) #all values are non-negative
-                predictions = outputs[word_number].detach().numpy() * [int(word in self.words_to_pos and template[word_number] in self.get_word_pos(word) and word in self.dict_meters and meter[word_number] in self.dict_meters[word]) for word in self.bert_vocab] #filters non-words and words which dont fit meter and template
-                #TODO add theme relevance weighting. add internal rhyme and poetic device weighting
+        outputs = softmax(outputs[0])
+        #for word_number in range(0,len(line)-1): #ignore  last word to keep rhyme
+        word_number = random.choice(np.arange(len(line)-1))
+        if len(self.get_pos_words(template[word_number])) > 1 and template[word_number] not in ['PRP', 'PRP$']: #only change one word each time?
+            filt = np.array([int(word in self.words_to_pos and template[word_number] in self.get_word_pos(word)) for word in self.lang_vocab])
+            if filter_meter: filt *= np.array([int(word in self.dict_meters and meter[word_number] in self.dict_meters[word]) for word in self.lang_vocab])
+            predictions = outputs[word_number].detach().numpy() * filt #filters non-words and words which dont fit meter and template
+            #TODO add theme relevance weighting. add internal rhyme and poetic device weighting
+            for p in range(len(predictions)):
+                if predictions[p] > 0.001 and self.lang_vocab[p] in rhyme_words:
+                    if verbose: print("weighting internal rhyme '", self.lang_vocab[p], "', orig: ", predictions[p])
+                    predictions[p] *= 2
+            predictions /= sum(predictions)
+            if verbose: print("min: ", min(predictions), " max: ", max(predictions), "sum: ", sum(predictions), ", ", sorted([self.lang_vocab[p] for p in range(len(predictions)) if predictions[p] > 0], reverse=True))
+            if iterations > 1:
+                line[word_number] = np.random.choice(self.lang_vocab, p=predictions)
+            else: #greedy for last iteration
+                line[word_number] = self.lang_vocab[np.argmax(predictions)]
+            if verbose: print("word now ", line[word_number], "prob: ", predictions[self.lang_vocab.index(line[word_number])])
 
-                predictions /= sum(predictions)
-                if verbose: print("min: ", min(predictions), " max: ", max(predictions), "sum: ", sum(predictions), ", ", predictions)
-                line[word_number] = np.random.choice(self.bert_vocab, p=predictions)
-                if verbose: print("word now ", line[word_number])
+            if verbose: print("line now", line)
+        else:
+            iterations += 1
+        return self.update_bert(line, meter, template, iterations-1, theme_words=theme_words, rhyme_words=rhyme_words, verbose=verbose)
 
-        if verbose: print("line now", line)
-        return self.update_bert(line, meter, template, iterations-1, theme_words=theme_words, verbose=verbose)
+    def rhymes(self, word1, word2):
+        return word1 in pronouncing.rhymes(word2) or word2 in pronouncing.rhymes(word1)
+
+    def get_theme_words(self, theme, k=1):
+        syn = wn.synsets(theme)
+        theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
+        cases = []
+        for poem in self.poems: #find poems which have theme syns
+            if any(word in poem for word in theme_syns):
+                for line in poem.split("\n"): #find lines which have theme syns
+                    if any(word in line for word in theme_syns):
+                        cases.append(line)
+        print(theme_syns)
+        print(cases)
+        theme_words = {}
+        for case in cases:
+            words = case.split()
+            for i in range(len(words)):
+                if words[i] in theme_syns:
+                    good_pos = ['JJ', 'JJS', 'NN', 'NNS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG']
+                    punct = [".", ",", "?", "-", "!"]
+                    left = i - 1
+                    while left >= max(0, i-k):
+                        if words[left] in punct: left = max(0, left-1)
+                        if words[left] in self.words_to_pos and words[left] in self.dict_meters and words[left] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[left])):
+                            if words[left] not in theme_words: theme_words[words[left]] = 0
+                            theme_words[words[left]] += 1
+                        left -=1
+                    right = i + 1
+                    while right <= min(len(words) -1, i+k):
+                        if words[right] in punct: right = max(len(words) - 1, right + 1)
+                        if words[right] in self.words_to_pos and words[right] in self.dict_meters and words[right] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[right])):
+                            if words[right] not in theme_words: theme_words[words[right]] = 0
+                            theme_words[words[right]] += 1
+                        right += 1
+
+        #keep only the ones that come up as synonyms for at least two?
+        return theme_words
 
 

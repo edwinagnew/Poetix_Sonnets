@@ -4,6 +4,7 @@ from nltk.corpus import wordnet as wn
 from gensim.parsing.preprocessing import remove_stopwords
 import re
 import spacy
+import numpy as np
 spacy_nlp = spacy.load('en_core_web_lg')
 
 def create_syll_dict(fnames, extra_file):
@@ -200,6 +201,11 @@ def sylls_bounds(partial_template, pos_sylls_mode):
     sylls_up += 2
     sylls_lo += 1
     return sylls_up, sylls_lo
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0) # only difference
 
 def get_finer_pos_words():
     return {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',
