@@ -64,6 +64,7 @@ class Scenery_Gen():
         with open(top_file) as tf:
             self.top_common_words = [line.strip() for line in tf.readlines()][:125]
 
+        self.stemmer = PorterStemmer()
 
 
 
@@ -133,12 +134,14 @@ class Scenery_Gen():
                             new_words.append(thematic)
                             scores.append(theme_words[thematic])
                             #if verbose: print("found ", thematic, theme_words[thematic], "for ", meter[i], template[i])
-                print(new_words, meter[i], pos)
+               #print(new_words, meter[i], pos)
                 if len(new_words) == 0: new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
                 else:
                     dist = helper.softmax(scores)
                     new_word = np.random.choice(new_words, p=dist)
                     theme_words[new_word] = 0 #don't choose same word twice
+                    theme_words[self.stemmer.stem(new_word)] = 0
+                    theme_words[pluralize(new_word)] = 0
                     print(new_word, " chosen with prob", dist[new_words.index(new_word)])
                 line += new_word + " "
             if len(lines) < 2:
@@ -158,13 +161,13 @@ class Scenery_Gen():
                 rhymes.append(word)
             else:
                 line += random.choice([rhyme for rhyme in self.get_pos_words(template[-1], meter=meter[-1]) if self.rhymes(rhyme, lines[-2].split()[-1])])
-            print("line initially ", line)
+            #print("line initially ", line)
             rhyme_set = []
             for r in rhymes:
                 rhyme_set += pronouncing.rhymes(r)
-            print("rhyme_set length: ", len(rhyme_set))
+            #print("rhyme_set length: ", len(rhyme_set))
             #line = self.update_bert(line.strip().split(), meter, template, len(template), rhyme_words=rhyme_set, filter_meter=True, verbose=True)
-            print("line after ", line)
+            #print("line after ", line)
             lines.append(line)
             #break
         print(lines)
@@ -205,64 +208,77 @@ class Scenery_Gen():
         return word1 in pronouncing.rhymes(word2) or word2 in pronouncing.rhymes(word1)
 
     def get_theme_words(self, theme, k=1, verbose=True, theme_file="saved_objects/theme_words.p"):
-        """try:
+        try:
             with open(theme_file, "rb") as pickle_in:
+                print("loading from file")
                 theme_word_dict = pickle.load(pickle_in)
-        except: """
-        stemmer = PorterStemmer()
-        syn = wn.synsets(theme)
-        theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
-        cases = []
-        for poem in self.poems: #find poems which have theme syns
-            if any(word in poem for word in theme_syns):
-                for line in poem.split("\n"): #find lines which have theme syns
-                    if any(word in line for word in theme_syns):
-                        cases.append(line)
-        print("theme_syns" , theme_syns)
-        print(cases)
-        theme_words = {}
-        for case in cases:
-            words = case.split()
-            for i in range(len(words)):
-                if words[i] in theme_syns:
-                    good_pos = ['JJ', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS']
-                    punct = [".", ",", "?", "-", "!"]
-                    new_words = [words[i]]
-                    left = i - 1
-                    while left >= max(0, i-k):
-                        if words[left] in punct: left = max(0, left-1)
-                        if words[left] in self.words_to_pos and words[left] in self.dict_meters and words[left] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[left])):
-                            new_words.append(words[left])
-                        left -=1
-                    right = i + 1
-                    while right <= min(len(words) -1, i+k):
-                        if words[right] in punct: right = max(len(words) - 1, right + 1)
-                        if words[right] in self.words_to_pos and words[right] in self.dict_meters and words[right] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[right])):
-                            new_words.append(words[right])
-                        right += 1
-                    for w in new_words:
-                        if not self.get_word_pos(w) or w not in self.dict_meters: continue
-                        if w not in theme_words: theme_words[w] = 0
-                        theme_words[w] = min(theme_words[w] + 1, 20)
-                        if "JJ" in self.get_word_pos(w):
-                            new_words.append(comparative(w))
-                            self.words_to_pos[comparative(w)] = ["JJR"]
-                            new_words.append(superlative(w))
-                            self.words_to_pos[superlative(w)] = ["JJS"]
-                            #print("adding ", new_words[-2:])
-                        elif "NN" in self.get_word_pos(w):
-                            if pluralize(w) != w:
-                                new_words.append(pluralize(w))
-                                #print("adding ", new_words[-1])
-                        else:
-                            st = stemmer.stem(w)
-                            if st not in new_words:
-                                new_words.append(st)
-                                #print("adding ", new_words[-1])
+
+        except:
+            with open(theme_file, "wb") as pickle_in:
+                theme_word_dict = {}
+                pickle.dump(theme_word_dict, pickle_in)
+        if theme not in theme_word_dict:
+            print(theme, "not in file. Generating...")
+
+            syn = wn.synsets(theme)
+            theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
+            cases = []
+            for poem in self.poems: #find poems which have theme syns
+                if any(word in poem for word in theme_syns):
+                    for line in poem.split("\n"): #find lines which have theme syns
+                        if any(word in line for word in theme_syns):
+                            cases.append(line)
+            print("theme_syns" , theme_syns)
+            print(cases)
+            theme_words = {}
+            for case in cases:
+                words = case.split()
+                for i in range(len(words)):
+                    if words[i] in theme_syns:
+                        good_pos = ['JJ', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS']
+                        punct = [".", ",", "?", "-", "!"]
+                        new_words = [words[i]]
+                        left = i - 1
+                        while left >= max(0, i-k):
+                            if words[left] in punct: left = max(0, left-1)
+                            if words[left] in self.words_to_pos and words[left] in self.dict_meters and words[left] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[left])):
+                                new_words.append(words[left])
+                            left -=1
+                        right = i + 1
+                        while right <= min(len(words) -1, i+k):
+                            if words[right] in punct: right = max(len(words) - 1, right + 1)
+                            if words[right] in self.words_to_pos and words[right] in self.dict_meters and words[right] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[right])):
+                                new_words.append(words[right])
+                            right += 1
+                        for w in new_words:
+                            if not self.get_word_pos(w) or w not in self.dict_meters: continue
+                            if w not in theme_words: theme_words[w] = 0
+                            theme_words[w] = min(theme_words[w] + 1, 20)
+                            if "JJ" in self.get_word_pos(w):
+                                new_words.append(comparative(w))
+                                self.words_to_pos[comparative(w)] = ["JJR"]
+                                new_words.append(superlative(w))
+                                self.words_to_pos[superlative(w)] = ["JJS"]
+                                #print("adding ", new_words[-2:])
+                            elif "NN" in self.get_word_pos(w):
+                                if pluralize(w) != w:
+                                    new_words.append(pluralize(w))
+                                    #print("adding ", new_words[-1])
+                            else:
+                                st = self.stemmer.stem(w)
+                                if st not in new_words:
+                                    new_words.append(st)
+                                    #print("adding ", new_words[-1])
 
 
-        #keep only the ones that come up as synonyms for at least two?
-        theme_words["purple"] = 0 # comes up weirdly often
-        return theme_words
+            #keep only the ones that come up as synonyms for at least two?
+            theme_words["purple"] = 0 # comes up weirdly often
+            theme_word_dict[theme] = theme_words
+            for w in theme_word_dict[theme]:
+                theme_word_dict[theme][w] *= abs(helper.get_spacy_similarity(theme, w))
+        with open(theme_file, "wb") as pickle_in:
+            pickle.dump(theme_word_dict, pickle_in)
+
+        return theme_word_dict[theme]
 
 
