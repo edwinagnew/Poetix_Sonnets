@@ -13,11 +13,15 @@ from transformers import RobertaTokenizer, RobertaForMaskedLM
 import pronouncing
 
 from nltk.corpus import wordnet as wn
+from nltk import PorterStemmer
+
+
+from pattern.en import comparative, superlative, pluralize
 
 
 
 class Scenery_Gen():
-    def __init__(self, model="roberta", postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt'):
@@ -110,7 +114,7 @@ class Scenery_Gen():
         -------
 
         """
-        theme_words = self.get_theme_words(theme)
+        theme_words = self.get_theme_words(theme, verbose=False)
         print(theme_words)
         lines = []
         rhymes = []
@@ -121,15 +125,16 @@ class Scenery_Gen():
             for i in range(len(template) - 1):
                 new_words = []
                 scores = []
+                pos = template[i]
                 if "sc" in template[i]:
                     pos = template[i].split("sc")[-1]
                     for thematic in theme_words:
                         if theme_words[thematic] > 1 and meter[i] in self.dict_meters[thematic] and pos in self.get_word_pos(thematic) :
                             new_words.append(thematic)
                             scores.append(theme_words[thematic])
-                            if verbose: print("found ", thematic, theme_words[thematic], "for ", meter[i], template[i])
-
-                if len(new_words) == 0: new_word = random.choice(self.get_pos_words(template[i], meter=meter[i]))
+                            #if verbose: print("found ", thematic, theme_words[thematic], "for ", meter[i], template[i])
+                print(new_words, meter[i], pos)
+                if len(new_words) == 0: new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
                 else:
                     dist = helper.softmax(scores)
                     new_word = np.random.choice(new_words, p=dist)
@@ -199,7 +204,12 @@ class Scenery_Gen():
     def rhymes(self, word1, word2):
         return word1 in pronouncing.rhymes(word2) or word2 in pronouncing.rhymes(word1)
 
-    def get_theme_words(self, theme, k=1):
+    def get_theme_words(self, theme, k=1, verbose=True, theme_file="saved_objects/theme_words.p"):
+        """try:
+            with open(theme_file, "rb") as pickle_in:
+                theme_word_dict = pickle.load(pickle_in)
+        except: """
+        stemmer = PorterStemmer()
         syn = wn.synsets(theme)
         theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
         cases = []
@@ -208,31 +218,51 @@ class Scenery_Gen():
                 for line in poem.split("\n"): #find lines which have theme syns
                     if any(word in line for word in theme_syns):
                         cases.append(line)
-        print(theme_syns)
+        print("theme_syns" , theme_syns)
         print(cases)
         theme_words = {}
         for case in cases:
             words = case.split()
             for i in range(len(words)):
                 if words[i] in theme_syns:
-                    good_pos = ['JJ', 'JJS', 'NN', 'NNS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG']
+                    good_pos = ['JJ', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS']
                     punct = [".", ",", "?", "-", "!"]
+                    new_words = [words[i]]
                     left = i - 1
                     while left >= max(0, i-k):
                         if words[left] in punct: left = max(0, left-1)
                         if words[left] in self.words_to_pos and words[left] in self.dict_meters and words[left] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[left])):
-                            if words[left] not in theme_words: theme_words[words[left]] = 0
-                            theme_words[words[left]] += 1
+                            new_words.append(words[left])
                         left -=1
                     right = i + 1
                     while right <= min(len(words) -1, i+k):
                         if words[right] in punct: right = max(len(words) - 1, right + 1)
                         if words[right] in self.words_to_pos and words[right] in self.dict_meters and words[right] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[right])):
-                            if words[right] not in theme_words: theme_words[words[right]] = 0
-                            theme_words[words[right]] += 1
+                            new_words.append(words[right])
                         right += 1
+                    for w in new_words:
+                        if not self.get_word_pos(w) or w not in self.dict_meters: continue
+                        if w not in theme_words: theme_words[w] = 0
+                        theme_words[w] = min(theme_words[w] + 1, 20)
+                        if "JJ" in self.get_word_pos(w):
+                            new_words.append(comparative(w))
+                            self.words_to_pos[comparative(w)] = ["JJR"]
+                            new_words.append(superlative(w))
+                            self.words_to_pos[superlative(w)] = ["JJS"]
+                            #print("adding ", new_words[-2:])
+                        elif "NN" in self.get_word_pos(w):
+                            if pluralize(w) != w:
+                                new_words.append(pluralize(w))
+                                #print("adding ", new_words[-1])
+                        else:
+                            st = stemmer.stem(w)
+                            if st not in new_words:
+                                new_words.append(st)
+                                #print("adding ", new_words[-1])
+
 
         #keep only the ones that come up as synonyms for at least two?
+        theme_words["purple"] = 0 # comes up weirdly often
         return theme_words
 
 
