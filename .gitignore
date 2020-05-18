@@ -1,4 +1,5 @@
 __pycache__/
+py_files/__pycache__/
 *.pyc
 saved_rhyme*
 pp_maker.py
@@ -6,3 +7,4 @@ heros_journey_words.p
 *.DS_Store
 .idea/
 theme_words.p
+extra_adjs.p
