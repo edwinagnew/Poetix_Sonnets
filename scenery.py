@@ -25,7 +25,8 @@ class Scenery_Gen():
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 templates_file='poems/scenery_templates.txt'):
+                 templates_file='poems/scenery_templates.txt',
+                 mistakes_file='saved_objects/mistakes.txt'):
 
         #self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
          #                 ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
@@ -35,8 +36,8 @@ class Scenery_Gen():
             self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines()]
         with open(postag_file, 'rb') as f:
             self.postag_dict = pickle.load(f)
-        self.pos_to_words = self.postag_dict[1]
-        self.words_to_pos = self.postag_dict[2]
+        self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+
 
         self.special_words = helper.get_finer_pos_words()
 
@@ -214,8 +215,8 @@ class Scenery_Gen():
         theme_words = self.get_theme_words(theme, verbose=False)
         print(theme_words)
         lines = []
-        rhymes = []
         for line_number, (template, meter) in enumerate(self.templates):
+            if line_number % 4 == 0: rhymes = []
             template = template.split()
             meter = meter.split("_")
             line = ""
@@ -226,48 +227,54 @@ class Scenery_Gen():
                 if "sc" in template[i]:
                     pos = template[i].split("sc")[-1]
                     for thematic in theme_words:
-                        print(thematic)
+                        #print(thematic)
                         if theme_words[thematic] > 1 and meter[i] in self.dict_meters[thematic] and pos in self.get_word_pos(thematic) :
                             new_words.append(thematic)
                             scores.append(theme_words[thematic])
                             #if verbose: print("found ", thematic, theme_words[thematic], "for ", meter[i], template[i])
                #print(new_words, meter[i], pos)
-                if len(new_words) == 0: new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
+                if len(new_words) == 0:
+                    new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
                 else:
                     dist = helper.softmax(scores)
                     new_word = np.random.choice(new_words, p=dist)
-                    theme_words[new_word] = 0 #don't choose same word twice
+                    theme_words[new_word] /= 2 #don't choose same word twice
                     theme_words[self.stemmer.stem(new_word)] = 0
-                    theme_words[pluralize(new_word)] = 0
+                    if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0
                     print(new_word, " chosen with prob", dist[new_words.index(new_word)])
                 line += new_word + " "
 
             if line_number % 4 < 2:
                 word = None
                 #high_score = 0
-                rhyme_pos = self.templates[min(13, line_number + 2)][0].split()[-1]
+                rhyme_pos = self.templates[min(13, line_number + 2)][0].split()[-1].split("sc")[-1]
                 rhyme_met = self.templates[min(13, line_number + 2)][1].split("_")[-1]
                 while not word or not any(r in self.get_pos_words(rhyme_pos, meter=rhyme_met) for r in pronouncing.rhymes(word)):
-                    word = random.choice(self.get_pos_words(template[-1], meter=meter[-1]))
+                    word = random.choice(self.get_pos_words(template[-1].split("sc")[-1], meter=meter[-1]))
                 line += word
                 rhymes.append(word)
             else:
                 n = -2
                 if line_number == 13: n = -1
-                line += random.choice([rhyme for rhyme in self.get_pos_words(template[-1], meter=meter[-1]) if self.rhymes(rhyme, lines[n].split()[-1])])
+                line += random.choice([rhyme for rhyme in self.get_pos_words(template[-1].split("sc")[-1], meter=meter[-1]) if self.rhymes(rhyme, lines[n].split()[-1])])
             #line += random.choice(last_word_dict[line_number])
-            print("line initially ", line)
-            rhyme_set = []
-            for r in rhymes:
-                rhyme_set += pronouncing.rhymes(r)
-            print("rhyme_set length: ", len(rhyme_set))
-            if self.lang_model: line = self.update_bert(line.strip().split(), meter, template, len(template), theme_words=theme_words, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
-            print("line after ", line)
+            if self.lang_model:
+                print("line initially ", line)
+                rhyme_set = []
+                for r in rhymes:
+                    rhyme_set += pronouncing.rhymes(r)
+                print("rhyme_set length: ", len(rhyme_set))
+                line = self.update_bert(line.strip().split(), meter, template, len(template), theme_words=theme_words, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
+            print("line now ", line)
             lines.append(line)
             #break
-        print(lines)
+        print("")
+        print("         ---", theme.upper(), "---       ")
+        for cand in range(len(lines)):
+            print(lines[cand])  # , ": ", candidates[cand].meter)
+            if ((cand + 1) % 4 == 0): print("")
 
-    def update_bert(self, line, meter, template, iterations, theme_words=[], rhyme_words = [], filter_meter=True, verbose=False):
+    def update_bert(self, line, meter, template, iterations, theme_words=[], rhyme_words=[], filter_meter=True, verbose=False):
         if iterations == 0: return " ".join(line) #base case
         #TODO deal with tags like ### (which are responsible for actually cool words)
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=False)).unsqueeze(0) #tokenizes
@@ -313,18 +320,18 @@ class Scenery_Gen():
             with open(theme_file, "rb") as pickle_in:
                 print("loading from file")
                 theme_word_dict = pickle.load(pickle_in)
+            with open(extras_file, "rb") as p_in:
+                extras = pickle.load(p_in)
 
         except:
+            print("either file not found")
             with open(theme_file, "wb") as pickle_in:
                 theme_word_dict = {}
                 pickle.dump(theme_word_dict, pickle_in)
-        try:
-            with open(extras_file, "rb") as p_in:
-                extras = pickle.load(p_in)
-        except:
             with open(extras_file, "wb") as p_in:
                 extras = {}
                 pickle.dump(extras, p_in)
+
         if theme not in theme_word_dict:
             print(theme, "not in file. Generating...")
 
@@ -375,8 +382,10 @@ class Scenery_Gen():
 
                                 #print("adding ", new_words[-2:])
                             elif "NN" in self.get_word_pos(w):
-                                if pluralize(w) != w:
+                                #if "valley" in w: print(w, pluralize(w), w[-1] == "s", self.get_word_pos(w))
+                                if pluralize(w) != w and w[-1] != 's':
                                     new_words.append(pluralize(w))
+                                    extras[pluralize(w)] = ["NNS"]
                                     #print("adding ", new_words[-1])
                             else:
                                 st = self.stemmer.stem(w)
