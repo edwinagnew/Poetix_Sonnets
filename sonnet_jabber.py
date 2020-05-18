@@ -21,13 +21,12 @@ from nltk.corpus import wordnet as wn
 class Sonnet_Gen():
     def __init__(self,postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_files=['saved_objects/cmudict-0.7b.txt', 'saved_objects/ob_syll_dict.txt'],
-                 extra_stress_file='saved_objects/edwins_extra_stresses.txt', lines=24):
+                 extra_stress_file='saved_objects/edwins_extra_stresses.txt',
+                 mistakes_file='saved_objects/mistakes.txt',lines=24):
 
 
-        with open("saved_objects/ob_postag_dict.p", "rb") as pick_in:
-            ob_postag_dict = pickle.load(pick_in)
-            self.pos_to_words = ob_postag_dict[0]
-            self.words_to_pos = ob_postag_dict[1]
+        self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+
 
         with open(postag_file, 'rb') as f:
             postag_dict = pickle.load(f)

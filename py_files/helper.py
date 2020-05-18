@@ -3,6 +3,7 @@ import nltk
 from nltk.corpus import wordnet as wn
 from gensim.parsing.preprocessing import remove_stopwords
 import re
+import pickle
 import spacy
 import numpy as np
 spacy_nlp = spacy.load('en_core_web_lg')
@@ -206,6 +207,23 @@ def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0) # only difference
+
+def get_pos_dict(postag_file, mistakes_file=None):
+    with open(postag_file, 'rb') as f:
+        postag_dict = pickle.load(f)
+    pos_to_words = postag_dict[1]
+    words_to_pos = postag_dict[2]
+    if mistakes_file:
+        with open(mistakes_file, "r") as pickin:
+            list = {l.split()[0]: l.split()[1:] for l in pickin.readlines()}
+            for word in list:
+                words_to_pos[word] = list[word]
+                for pos in pos_to_words:
+                    if word in pos_to_words[pos]:
+                        pos_to_words[pos].remove(word)
+                    if pos in list[word]:
+                        pos_to_words[pos].append(word)
+    return pos_to_words, words_to_pos
 
 def get_finer_pos_words():
     return {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',

@@ -14,11 +14,10 @@ class Sonnet_Gen():
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  wv_file='saved_objects/word2vec/model.txt',
                  top_file='saved_objects/words/top_words.txt' ,
-                 extra_stress_file='saved_objects/edwins_extra_stresses.txt',prompt=False):
-        with open(postag_file, 'rb') as f:
-            postag_dict = pickle.load(f)
-        self.pos_to_words = postag_dict[1]
-        self.words_to_pos = postag_dict[2]
+                 extra_stress_file='saved_objects/edwins_extra_stresses.txt',
+                 mistakes_file='saved_objects/mistakes.txt',prompt=False):
+        self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+
 
         self.special_words = helper.get_finer_pos_words()
 
