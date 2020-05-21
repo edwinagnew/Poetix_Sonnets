@@ -72,6 +72,8 @@ class Scenery_Gen():
 
         self.api_url = 'https://api.datamuse.com/words'
 
+        self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
+
 
 
     def get_word_pos(self, word):
@@ -82,7 +84,7 @@ class Scenery_Gen():
         if word.upper() in self.special_words:
             return [word.upper()]
         if word not in self.words_to_pos:
-            return None
+            return []
         return self.words_to_pos[word]
 
     def get_pos_words(self,pos, meter=None):
@@ -95,6 +97,10 @@ class Scenery_Gen():
         """
         if pos in self.special_words:
             return [pos.lower()]
+        if "PRP" in pos:
+            ret = [p for p in self.pos_to_words[pos] if p in self.gender]
+            if len(ret) == 0: input(pos + meter + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))
+            return ret
         if pos not in self.pos_to_words:
             return None
         if meter:
@@ -103,6 +109,10 @@ class Scenery_Gen():
                 return False
             return ret
         return self.pos_to_words[pos]
+
+    def get_meter(self, word):
+        if word not in self.dict_meters: return []
+        return self.dict_meters[word]
 
     def getRhymes(self, theme, words):
         """
@@ -215,6 +225,7 @@ class Scenery_Gen():
         theme_words = self.get_theme_words(theme, verbose=False)
         print(theme_words)
         lines = []
+        orig_lines = []
         for line_number, (template, meter) in enumerate(self.templates):
             if line_number % 4 == 0: rhymes = []
             template = template.split()
@@ -232,7 +243,6 @@ class Scenery_Gen():
                             new_words.append(thematic)
                             scores.append(theme_words[thematic])
                             #if verbose: print("found ", thematic, theme_words[thematic], "for ", meter[i], template[i])
-               #print(new_words, meter[i], pos)
                 if len(new_words) == 0:
                     new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
                 else:
@@ -260,62 +270,116 @@ class Scenery_Gen():
             #line += random.choice(last_word_dict[line_number])
             if self.lang_model:
                 print("line initially ", line)
+                orig_lines.append(line)
                 rhyme_set = []
                 for r in rhymes:
                     rhyme_set += pronouncing.rhymes(r)
                 print("rhyme_set length: ", len(rhyme_set))
-                line = self.update_bert(line.strip().split(), meter, template, len(template), theme_words=theme_words, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
+                line = self.update_bert(line.strip().split(), meter, template, len(template)/2, theme_words=theme_words, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
             print("line now ", line)
             lines.append(line)
             #break
         print("")
+        [print(orig_lines[i]) for i in range(len(orig_lines))]
+        print("")
         print("         ---", theme.upper(), "---       ")
         for cand in range(len(lines)):
-            print(lines[cand])  # , ": ", candidates[cand].meter)
+            print(lines[cand])
             if ((cand + 1) % 4 == 0): print("")
 
-    def update_bert(self, line, meter, template, iterations, theme_words=[], rhyme_words=[], filter_meter=True, verbose=False):
-        if iterations == 0: return " ".join(line) #base case
+    def update_bert(self, line, meter, template, iterations, theme_words=[], rhyme_words=[], filter_meter=True, verbose=False, choice = "min"):
+        if iterations <= 0: return " ".join(line) #base case
         #TODO deal with tags like ### (which are responsible for actually cool words)
-        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=False)).unsqueeze(0) #tokenizes
+        input_ids = torch.tensor(self.tokenizer.encode(" ".join(line), add_special_tokens=False)).unsqueeze(0) #tokenizes
+        tokens = [self.lang_vocab[x] for x in input_ids[0]]
         loss, outputs = self.lang_model(input_ids, masked_lm_labels=input_ids) #masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
         if verbose: print("loss = ", loss)
         softmax = torch.nn.Softmax(dim=1) #normalizes the probabilites to be between 0 and 1
         outputs = softmax(outputs[0])
+        extra_token = ""
         #for word_number in range(0,len(line)-1): #ignore  last word to keep rhyme
-        #word_number = random.choice(np.arange(len(line)-1))
-        word_number = np.argmin(np.array([outputs[i][self.vocab_to_num[line[i]]] for i in range(len(line)) ]))
+        k = tokens.index(self.tokenizer.tokenize(line[-1])[0])  # where the last word begins
+
+        if choice == "rand":
+            word_number = out_number = random.choice(np.arange(k))
+
+        elif choice == "min":
+            probs = np.array([outputs[i][self.vocab_to_num[tokens[i]]] for i in range(k)])
+            word_number = out_number = np.argmin(probs)
+            while tokens[out_number].upper() in self.special_words or any(x in self.get_word_pos(tokens[out_number]) for x in ["PRP", "PRP$"]):
+                if verbose: print("least likely is unchangable ", tokens, out_number, outputs[out_number][input_ids[0][out_number]])
+                probs[out_number] *= 10
+                word_number = out_number = np.argmin(probs)
+
+        if len(outputs) > len(line):
+            if verbose: print("before: predicting", self.lang_vocab[input_ids[0][out_number]], tokens)
+            if tokens[out_number] in line:
+                word_number = line.index(tokens[out_number])
+                t = 1
+                while "##" in self.lang_vocab[input_ids[0][out_number + t]]:
+                    extra_token += self.lang_vocab[input_ids[0][out_number + 1]].split("#")[-1]
+                    t += 1
+                    if out_number + t >= len(input_ids[0]):
+                        if verbose: print("last word chosen --> restarting", 1/0)
+                        return self.update_bert(line, meter, template, iterations, theme_words=theme_words, rhyme_words=rhyme_words, verbose=verbose)
+            else:
+                sub_tokens = [self.tokenizer.tokenize(w)[0] for w in line]
+                while self.lang_vocab[input_ids[0][out_number]] not in sub_tokens: out_number -= 1
+                word_number = sub_tokens.index(self.lang_vocab[input_ids[0][out_number]])
+                t = 1
+                while "##" in self.lang_vocab[input_ids[0][out_number + t]]:
+                    extra_token += self.lang_vocab[input_ids[0][word_number + t]].split("#")[-1]
+                    t += 1
+                    if out_number + t >= len(input_ids[0]):
+                        if verbose: print("last word chosen --> restarting", 1/0)
+                        return self.update_bert(line, meter, template, iterations, theme_words=theme_words, rhyme_words=rhyme_words, verbose=verbose)
+
+            if verbose: print("after: ", out_number, word_number, line, " '", extra_token, "' ")
+
+        #if verbose: print("word number ", word_number, line[word_number], template[word_number], "outnumber:", out_number)
+
         temp = template[word_number].split("sc")[-1]
         if len(self.get_pos_words(temp)) > 1 and temp not in ['PRP', 'PRP$']: #only change one word each time?
-            filt = np.array([int(word in self.words_to_pos and temp in self.get_word_pos(word)) for word in self.lang_vocab])
-            if filter_meter: filt *= np.array([int(word in self.dict_meters and meter[word_number] in self.dict_meters[word]) for word in self.lang_vocab])
-            predictions = outputs[word_number].detach().numpy() * filt #filters non-words and words which dont fit meter and template
-            #TODO add theme relevance weighting. add internal rhyme and poetic device weighting
+            filt = np.array([int( temp in self.get_word_pos(word) or temp in self.get_word_pos(word + extra_token)) for word in self.lang_vocab])
+            if filter_meter and meter: filt *= np.array([int(meter[word_number] in self.get_meter(word) or meter[word_number] in self.get_meter(word + extra_token)) for word in self.lang_vocab])
+            predictions = outputs[out_number].detach().numpy() * filt #filters non-words and words which dont fit meter and template
+
             for p in range(len(predictions)):
                 if predictions[p] > 0.001 and self.lang_vocab[p] in rhyme_words:
-                    if verbose: print("weighting internal rhyme '", self.lang_vocab[p], "', orig: ", predictions[p])
-                    predictions[p] *= 2
+                    print("weighting internal rhyme '", self.lang_vocab[p], "', orig: ", predictions[p], ", now: ", predictions[p]*5/sum(predictions))
+                    predictions[p] *= 5
                 if predictions[p] > 0.001 and self.lang_vocab[p] in theme_words and "sc" in template[word_number]:
-                    predictions[p] *= (1 + theme_words[self.lang_vocab[p]])
-                    if verbose: print("weighting thematic '", self.lang_vocab[p], "', now: ", predictions[p])
+                    b = predictions[p]
+                    predictions[p] *= theme_words[self.lang_vocab[p]]**2
+                    if verbose: print("weighting thematic '", self.lang_vocab[p], "' by ", theme_words[self.lang_vocab[p]], ", now: ", predictions[p]/sum(predictions), ", was: ", b)
 
             predictions /= sum(predictions)
-            if verbose: print("min: ", min(predictions), " max: ", max(predictions), "sum: ", sum(predictions), ", ", sorted([self.lang_vocab[p] for p in range(len(predictions)) if predictions[p] > 0], reverse=True))
+            if verbose: print("predicting a ", template[word_number], meter[word_number], " for ", word_number, ". min: ", min(predictions), " max: ", max(predictions), "sum: ", sum(predictions), ", ", {self.lang_vocab[p]: predictions[p] for p in range(len(predictions)) if predictions[p] > 0})
+
             if iterations > 1:
                 line[word_number] = np.random.choice(self.lang_vocab, p=predictions)
             else: #greedy for last iteration
                 line[word_number] = self.lang_vocab[np.argmax(predictions)]
-            if verbose: print("word now ", line[word_number], "prob: ", predictions[self.lang_vocab.index(line[word_number])])
+
+            print("word now ", line[word_number], "prob: ", predictions[self.lang_vocab.index(line[word_number])])
+
+            if temp not in self.get_word_pos(line[word_number]):
+                line[word_number] += extra_token
+                if temp not in self.get_word_pos(line[word_number]): #still not valid
+                    print("Extra token didnt help ", template[word_number], line[word_number], extra_token)
+                    print(1/0)
+
 
             if verbose: print("line now", line)
         else:
+            if verbose: print("picked ", line[word_number], "which is bad word")
             iterations += 1
         return self.update_bert(line, meter, template, iterations-1, theme_words=theme_words, rhyme_words=rhyme_words, verbose=verbose)
 
     def rhymes(self, word1, word2):
         return word1 in pronouncing.rhymes(word2) or word2 in pronouncing.rhymes(word1)
 
-    def get_theme_words(self, theme, k=1, verbose=True, theme_file="saved_objects/theme_words.p", extras_file='saved_objects/extra_adjs.p'):
+    def get_theme_words(self, theme, k=1, verbose=True, max_val=20, theme_file="saved_objects/theme_words.p", extras_file='saved_objects/extra_adjs.p'):
         try:
             with open(theme_file, "rb") as pickle_in:
                 print("loading from file")
@@ -361,14 +425,14 @@ class Scenery_Gen():
                             left -=1
                         right = i + 1
                         while right <= min(len(words) -1, i+k):
-                            if words[right] in punct: right = max(len(words) - 1, right + 1)
+                            if words[right] in punct: right = min(len(words) - 1, right + 1)
                             if words[right] in self.words_to_pos and words[right] in self.dict_meters and words[right] not in self.top_common_words and any(pos in good_pos for pos in self.get_word_pos(words[right])):
                                 new_words.append(words[right])
                             right += 1
                         for w in new_words:
                             if not self.get_word_pos(w) or w not in self.dict_meters: continue
                             if w not in theme_words: theme_words[w] = 0
-                            theme_words[w] = min(theme_words[w] + 1, 20)
+                            theme_words[w] = min(theme_words[w] + 1, max_val)
                             if "JJ" in self.get_word_pos(w):
                                 new_words.append(comparative(w))
                                 #self.words_to_pos[comparative(w)] = ["JJR"]
@@ -398,7 +462,7 @@ class Scenery_Gen():
             theme_words["purple"] = 0 # comes up weirdly often
             theme_word_dict[theme] = theme_words
             for w in theme_word_dict[theme]:
-                theme_word_dict[theme][w] *= abs(helper.get_spacy_similarity(theme, w))
+                theme_word_dict[theme][w] *= abs(helper.get_spacy_similarity(theme, w))#/max_val
             with open(extras_file, 'wb') as f:
                 pickle.dump(extras, f)
         with open(theme_file, "wb") as pickle_in:
