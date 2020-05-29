@@ -100,10 +100,8 @@ class Sonnet_Gen():
                 self.tempnums[count] = " ".join(line.split()[:-1])
                 count += 1
 
-        """with open("saved_objects/loop_counts.txt", "r") as l_c:
-            self.max_loop = int(l_c.readlines()[-1])"""
 
-        self.character = self.gen_character("father", "male", "good")
+        self.character = self.gen_character("sun", "male", "radiant")
 
         self.pos_to_words["chNN"] = self.character.char_words
         self.pos_to_words["chPRP"] = [pronoun for pronoun in self.pos_to_words["PRP"] if pronoun in self.character.pronouns]
@@ -217,6 +215,8 @@ class Sonnet_Gen():
                     print(1/0) #if there arent, die
 
                 next_word = random.choice(poss_words) #pick word randomly
+                while next_word not in self.dict_meters.keys():
+                    next_word = random.choice(poss_words)
 
                 curr_line = next_word + " " + curr_line #updates line
                 #template = False #make a parameter?
@@ -337,6 +337,7 @@ class Sonnet_Gen():
         first_rhymes = []
         for i in range(1,5):
             if i in [1, 2]:  # lines with a new rhyme -> pick a random key
+                tried = set([])
                 last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))] #NB ensure it doesnt pick the same as another one
                 while not self.suitable_last_word(last_word_dict[i][0], self.tempnums[i]) or last_word_dict[i][0] in first_rhymes or any(rhyme_dict['A'][last_word_dict[i][0]] in rhyme_dict['A'][word] for word in first_rhymes):
                     last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
@@ -359,7 +360,6 @@ class Sonnet_Gen():
         if not pronouns:
             pronouns = random.choice("male", "female")
 
-        reference = self.dict_meters.keys()
-        new_character = character_gen.Character(word, pronouns, alignment, reference)
+        new_character = character_gen.Character(word, pronouns, alignment)
 
         return new_character
