@@ -1,3 +1,5 @@
 thou PRP
 geese NNS
 manifest JJ
+long JJ
+close JJ
