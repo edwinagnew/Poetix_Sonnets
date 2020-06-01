@@ -73,9 +73,9 @@ class Sonnet_Gen():
             #print(len(self.templates))
 
         with open("poems/end_pos.txt", "r") as pickin:
-            list = pickin.readlines()
+            list_pos = pickin.readlines()
             self.end_pos = {}
-            for l in list:
+            for l in list_pos:
                 self.end_pos[l.split()[0]] = l.split()[1:]
             #self.end_pos['NNP'] = []
 
@@ -104,10 +104,10 @@ class Sonnet_Gen():
         #self.character = self.gen_character("sun", "male", "radiant")
         self.character = self.gen_character("emperor", "male", "cruel")
 
-        self.pos_to_words["chNN"] = self.character.char_words
-        self.pos_to_words["chPRP"] = [pronoun for pronoun in self.pos_to_words["PRP"] if pronoun in self.character.pronouns]
-        self.pos_to_words["chPRP$"] = [pronoun for pronoun in self.pos_to_words["PRP$"] if pronoun in self.character.pronouns]
-        self.pos_to_words["chJJ"] = self.character.char_adj
+        self.pos_to_words["chNN"] = list(self.character.char_words)
+        self.pos_to_words["chPRP"] = [pronoun for pronoun in self.pos_to_words["PRP"] if pronoun in list(self.character.pronouns)]
+        self.pos_to_words["chPRP$"] = [pronoun for pronoun in self.pos_to_words["PRP$"] if pronoun in list(self.character.pronouns)]
+        self.pos_to_words["chJJ"] = list(self.character.char_adj)
 
         for item in self.pos_to_words["chNN"]: #we need to update the pos_to_words dictionary for each word
             if item not in self.words_to_pos.keys():
