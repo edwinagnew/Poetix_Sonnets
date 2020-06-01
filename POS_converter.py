@@ -3,7 +3,7 @@ from difflib import SequenceMatcher
 
 class POS_changer():
 
-    def __init__(self, glove_filename = 'saved_objects/glove-word2vec.6B.100d.txt'):
+    def __init__(self, glove_filename = 'glove-word2vec.6B.100d.txt'):
         self.model = KeyedVectors.load_word2vec_format(glove_filename, binary=False)
 
     def close_adv(self, input, num=5, model_topn=50):
