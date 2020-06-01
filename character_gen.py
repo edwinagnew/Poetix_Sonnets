@@ -3,7 +3,7 @@ from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
 class Character():
-    def __init__(self, type, gender, special_adj, score_function):
+    def __init__(self, type, gender, special_adj, score_function = lambda x: 1):
         """
         Create a character, with pronouns and adjectives, that can thus be set to a role in a story and described consistently.
         It takes a list of reference words in case we need to have access to some other kind of info about the words we choose.
