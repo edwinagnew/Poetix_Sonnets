@@ -101,7 +101,8 @@ class Sonnet_Gen():
                 count += 1
 
 
-        self.character = self.gen_character("sun", "male", "radiant")
+        #self.character = self.gen_character("sun", "male", "radiant")
+        self.character = self.gen_character("emperor", "male", "cruel")
 
         self.pos_to_words["chNN"] = self.character.char_words
         self.pos_to_words["chPRP"] = [pronoun for pronoun in self.pos_to_words["PRP"] if pronoun in self.character.pronouns]
@@ -129,7 +130,6 @@ class Sonnet_Gen():
                 self.words_to_pos[item] = ["chJJ"]
             else:
                 self.words_to_pos[item].append("chJJ")
-
 
         if prompt:
             self.gen_poem_scenic(prompt)
