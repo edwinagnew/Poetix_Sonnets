@@ -133,6 +133,7 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
 
 
 def get_spacy_similarity(word1, word2):
+    if word1 not in spacy_nlp.vocab or word2 not in spacy_nlp.vocab: return 0
     return spacy_nlp(word1).similarity(spacy_nlp(word2))
 
 def isIambic(word):
@@ -245,4 +246,4 @@ def get_finer_pos_words():
      'ALONG', 'INTO', 'BOTH', 'EITHER', 'WILL', 'IN',
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
-     'ACROSS', 'THAN', 'WITHIN', 'NOT'}
+     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS"}
