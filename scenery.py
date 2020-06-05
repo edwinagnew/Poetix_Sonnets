@@ -19,7 +19,7 @@ from nltk import PorterStemmer
 
 
 class Scenery_Gen():
-    def __init__(self, model="bert", postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
@@ -32,7 +32,9 @@ class Scenery_Gen():
           #                ("WHERE ALL THE scNNS OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
            #               ("AND THAT JJ WHICH RB VBZ NN", "0_1_01_0_10_1_01")]
         with open(templates_file) as tf:
-            self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines()]
+            #lines = tf.read()
+                #self.templates = {dev.split()[0]: [(" ".join(t.split()[:-1]), t.split()[-1] for t in dev[1:].split("\n"))] for dev in lines.split("#") if len(dev) > 0}
+            self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
         with open(postag_file, 'rb') as f:
             self.postag_dict = pickle.load(f)
         self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
@@ -228,22 +230,27 @@ class Scenery_Gen():
         for i in ['A', 'B']:
             rhyme_dict[i] = self.getRhymes([theme], words=self.words_to_pos)
         last_word_dict = self.last_word_dict(rhyme_dict)"""
+        print("a")
         theme_gen = theme_word_file.Theme()
         theme_words = theme_gen.get_theme_words(theme, verbose=False)
         print(theme_words)
         lines = []
         orig_lines = []
         for line_number, (template, meter) in enumerate(self.templates):
+            print("b")
             if line_number % 4 == 0: rhymes = []
             template = template.split()
             meter = meter.split("_")
+            print("c", line_number)
             line = self.write_line(line_number, template, meter, rhymes=rhymes, theme_words=theme_words)
+            print("d", line_number)
             if line_number % 4 < 2:
                 rhymes.append(line.split()[-1])
             #line += random.choice(last_word_dict[line_number])
             #checks = ["RB", "NNS"]
             for check in checks:
                 if check in template:
+                    print("e")
                     adv = template.index(check)
                     line_arr = line.split()
                     #phrase = []
@@ -268,6 +275,7 @@ class Scenery_Gen():
                         print(check, " updated, line now ", " ".join(line_arr))
                     line = " ".join(line_arr)
             if self.lang_model:
+                print("f")
                 print("line initially ", line)
                 orig_lines.append(line)
                 rhyme_set = []
@@ -287,14 +295,17 @@ class Scenery_Gen():
             if ((cand + 1) % 4 == 0): print("")
 
     def write_line(self, n, template, meter, rhymes=[], theme_words=[], numbers = {}, verbose=True):
+        numbers = {}
         line = ""
         for i in range(len(template) - 1):
             new_words = []
             scores = []
             pos = template[i]
             num = -1
+            letter = ""
             if "_" in pos:
-                num = int(pos.split("_")[1])
+                try: num = int(pos.split("_")[1])
+                except: letter = pos.split("_")[1]
                 pos = pos.split("_")[0]
             if "sc" in pos:
                 pos = pos.split("sc")[-1]
@@ -314,6 +325,8 @@ class Scenery_Gen():
                     dist = [helper.get_spacy_similarity(numbers[num], w) for w in poss]
                     new_word = np.random.choice(poss, p=helper.softmax(dist))
                     if verbose: print("weighted choice of ", new_word, ", related to ", numbers[num], "with prob ", dist[poss.index(new_word)])
+                elif letter in numbers:
+                    new_word = numbers[letter]
                 else:
                     new_word = random.choice(poss)
             else:
@@ -324,16 +337,37 @@ class Scenery_Gen():
                 #if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0
                 if verbose: print(new_word, " chosen with prob", dist[new_words.index(new_word)], "now: ", theme_words[pos][new_word])
             line += new_word + " "
-            if num > - 1 and num not in numbers:
+            if num > -1 and num not in numbers:
                 numbers[num] = str(new_word)
                 if verbose: print("numbers now ", numbers)
-        if n % 4 < 2:
+            elif letter != "" and letter not in numbers:
+                numbers[letter] = new_word
+                if verbose: print("numbers now ", numbers)
+        if n == -1:
+            word = None
+            pos = template[-1].split("sc")[-1]
+            num = -1
+            letter = ""
+            if "_" in pos:
+                try: num = int(pos.split("_")[1])
+                except: letter = pos.split("_")[1]
+                pos = pos.split("_")[0]
+            if num in numbers:
+                word = numbers[num]
+            elif letter in numbers:
+                word = numbers[letter]
+            else:
+                word = random.choice(self.get_pos_words(pos, meter=meter[-1]))
+
+        elif n % 4 < 2:
             word = None
             # high_score = 0
             pos = template[-1].split("sc")[-1]
             num = -1
+            letter = ""
             if "_" in pos:
-                num = int(pos.split("_")[1])
+                try: num = int(pos.split("_")[1])
+                except: letter = pos.split("_")[1]
                 pos = pos.split("_")[0]
 
             rhyme_pos = self.templates[min(13, n + 2)][0].split()[-1].split("sc")[-1]
@@ -345,14 +379,15 @@ class Scenery_Gen():
                     dist = [helper.get_spacy_similarity(numbers[num], w) for w in poss]
                     word = np.random.choice(poss, p=helper.softmax(dist))
                     if verbose: print("rhyme - weighted choice of ", word, ", related to ", numbers[num], "with prob ", dist[poss.index(word)])
+                elif letter in numbers:
+                    word = numbers[letter]
                 else:
-                    word = random.choice(poss)
-
-            line += word
+                    word = random.choice(poss) #could get stuck here !!
         else:
             r = (n % 4) - 2
             if n == 13: r = 0
-            line += random.choice([rhyme for rhyme in self.get_pos_words(template[-1].split("sc")[-1], meter=meter[-1]) if self.rhymes(rhyme, rhymes[r])])
+            word = random.choice([rhyme for rhyme in self.get_pos_words(template[-1].split("sc")[-1], meter=meter[-1]) if self.rhymes(rhyme, rhymes[r])])
+        line += word
         return line
 
     def update_bert(self, line, meter, template, iterations, theme_words=[], rhyme_words=[], filter_meter=True, verbose=False, choice = "min"):

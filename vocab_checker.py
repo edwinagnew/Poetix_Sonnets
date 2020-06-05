@@ -1,4 +1,4 @@
-print("loading...")
+"""print("loading...")
 import pickle
 special_words = {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',
      'AWAY', 'OF', 'COULD', 'WHOSOEVER', 'WHENEVER', 'SHALL', 'ALBEIT',
@@ -45,9 +45,7 @@ k = 10
 
 
 def get_word_pos(word):
-    """
-    Get the set of POS category of a word. If we are unable to get the category, return None.
-    """
+
     # Special case
     if word.upper() in special_words:
         return [word.upper()]
@@ -96,3 +94,82 @@ for pos in pos_to_words:
 print("saving and quitting")
 checked_file.close()
 deleted_file.close()
+"""
+import os
+import string
+import pickle
+
+translator = str.maketrans(string.punctuation, ' ' * len(string.punctuation))
+
+word_set = set()
+for folder in os.listdir(os.getcwd() + "/word_corpus"):
+    if folder == "wikipedia": continue
+    for file in os.listdir(os.getcwd() + "/word_corpus/" + folder):
+        f = open(os.getcwd() + "/word_corpus/" + folder + "/" + file)
+        print("reading ", f.name)
+        text = f.read()
+        word_set.update(text.translate(translator).lower().split())
+
+#print(word_set)
+print(len(word_set))
+
+postag_file='saved_objects/postag_dict_all+VBN.p'
+with open(postag_file, 'rb') as f:
+    postag_dict = pickle.load(f)
+pos_to_words = postag_dict[1]
+words_to_pos = postag_dict[2]
+
+word_set.update(words_to_pos.keys())
+print(len(word_set))
+#tag wikipedia + dickens and store in histograms
+import numpy as np
+
+import nltk
+import progressbar
+
+from lxml.html import parse
+
+tree = parse("word_corpus/wikipedia/enwiki-20181001-corpus.xml")
+root = tree.getroot()
+wiki_text = root.text_content()
+
+dick_text = ""
+for file in os.listdir(os.getcwd() + "/word_corpus/dickens"):
+    f = open(os.getcwd() + "/word_corpus/dickens/" + file)
+    dick_text += f.read()
+
+sentences = (wiki_text + " . " + dick_text).replace("' ", " ").split(".")
+#sentences = wiki_text.split(".")
+print("evaluating ", len(sentences), " sentences")
+tagged_words = {}
+for sentence in progressbar.progressbar(sentences):
+    tags = nltk.pos_tag(sentence.split())
+    for tag in tags:
+        word = tag[0]
+        pos = tag[1]
+        if word in word_set:
+            if word not in tagged_words: tagged_words[word] = {}
+            if pos not in tagged_words[word]: tagged_words[word][pos] = 0
+            tagged_words[word][pos] += 1
+print(tagged_words)
+
+for word in list(tagged_words):
+    total = sum(tagged_words[word].values(), 0.0)
+    if total < 3:
+        print(word, "not found enough -- deleted")
+        del tagged_words[word]
+    elif total <= 10 and len(tagged_words[word]) != 1:
+        print(word, tagged_words[word], "not consistent enough --deleted")
+        del tagged_words[word]
+    else:
+        tagged_words[word] = {k: v / total for k, v in tagged_words[word].items()}
+        while min(tagged_words[word].values()) < 0.1:
+            print("\nbefore: ", word, tagged_words[word])
+            val, mindex = min((tagged_words[word][val], val) for (idx, val) in enumerate(tagged_words[word]))
+            print("deleted ", tagged_words[word][mindex], "from ", word)
+            del tagged_words[word][mindex]
+            print("after:", word, tagged_words[word] , "\n")
+#input("ready?")
+print(tagged_words)
+
+pickle.dump(tagged_words, open("saved_objects/tagged_words.p", "w"))
