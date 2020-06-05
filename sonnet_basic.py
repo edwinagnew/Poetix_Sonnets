@@ -15,6 +15,7 @@ class Sonnet_Gen():
                  wv_file='saved_objects/word2vec/model.txt',
                  top_file='saved_objects/words/top_words.txt' ,
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
+                 template_file = 'poems/shakespeare_templates.txt',
                  mistakes_file='saved_objects/mistakes.txt',prompt=False):
         self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
 
@@ -67,7 +68,7 @@ class Sonnet_Gen():
         #with open("saved_objects/template_no_punc.pickle", "rb") as pickle_in:
          #   self.templates = pickle.load(pickle_in)
 
-        with open("poems/shakespeare_templates.txt", "r") as templs:
+        with open(template_file, "r") as templs:
             self.templates = {}
             lines = templs.readlines()
             for line in lines:
