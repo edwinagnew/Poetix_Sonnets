@@ -17,7 +17,8 @@ class Sonnet_Gen():
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  template_file = 'poems/shakespeare_templates.txt',
                  mistakes_file='saved_objects/mistakes.txt',prompt=False):
-        self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+        #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict("saved_objects/tagged_words.p")
 
 
         self.special_words = helper.get_finer_pos_words()
@@ -107,7 +108,7 @@ class Sonnet_Gen():
         #for i,j in zip(['A', 'B', 'C', 'D', 'E', 'F', 'G'], tone):
         #    rhyme_dict[i] = self.getRhymes([prompt,j]) #one day pass [prompt, narr]
         for i in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
-            rhyme_dict[i] = self.getRhymes([prompt], words=self.filtered_nouns_verbs)
+            rhyme_dict[i] = self.getRhymes([prompt], words=self.words_to_pos.keys())
         last_word_dict = self.last_word_dict(rhyme_dict)
         #for now we shall generate random words, but they will fit the meter, rhyme and templates
 
@@ -195,7 +196,7 @@ class Sonnet_Gen():
         if word.upper() in self.special_words:
             return [word.upper()]
         if word not in self.words_to_pos:
-            return None
+            return []
         return self.words_to_pos[word]
 
     def get_pos_words(self,pos, meter=None):
@@ -209,7 +210,7 @@ class Sonnet_Gen():
         if pos in self.special_words:
             return [pos.lower()]
         if pos not in self.pos_to_words:
-            return None
+            return []
         if meter:
             ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
             if len(ret) == 0:
@@ -284,6 +285,7 @@ class Sonnet_Gen():
                     temp += rhyme_dict[scheme[i]][k]
             #last_word_dict[i]=[*{*temp}]
             last_word_dict[i] = temp"""
+        print(rhyme_dict)
         first_rhymes = []
         for i in range(1,15):
             if i in [1, 2, 5, 6, 9, 10, 13]:  # lines with a new rhyme -> pick a random key
@@ -296,6 +298,7 @@ class Sonnet_Gen():
                 pair = last_word_dict[i-2][0]
                 if i == 14:
                     pair = last_word_dict[13][0]
+                print(i, letter, pair, rhyme_dict[letter][pair])
                 last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word)]
         return last_word_dict
 

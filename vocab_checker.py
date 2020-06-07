@@ -99,11 +99,19 @@ import os
 import string
 import pickle
 
+import numpy as np
+
+import nltk
+import progressbar
+
+from lxml.html import parse
+
+
 translator = str.maketrans(string.punctuation, ' ' * len(string.punctuation))
 
 word_set = set()
 for folder in os.listdir(os.getcwd() + "/word_corpus"):
-    if folder == "wikipedia": continue
+    if "wiki" in folder or ".DS" in folder: continue
     for file in os.listdir(os.getcwd() + "/word_corpus/" + folder):
         f = open(os.getcwd() + "/word_corpus/" + folder + "/" + file)
         print("reading ", f.name)
@@ -122,12 +130,6 @@ words_to_pos = postag_dict[2]
 word_set.update(words_to_pos.keys())
 print(len(word_set))
 #tag wikipedia + dickens and store in histograms
-import numpy as np
-
-import nltk
-import progressbar
-
-from lxml.html import parse
 
 tree = parse("word_corpus/wikipedia/enwiki-20181001-corpus.xml")
 root = tree.getroot()
@@ -172,4 +174,4 @@ for word in list(tagged_words):
 #input("ready?")
 print(tagged_words)
 
-pickle.dump(tagged_words, open("saved_objects/tagged_words.p", "w"))
+pickle.dump(tagged_words, open("saved_objects/tagged_words.p", "wb"))

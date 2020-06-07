@@ -37,8 +37,8 @@ class Scenery_Gen():
             self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
         with open(postag_file, 'rb') as f:
             self.postag_dict = pickle.load(f)
-        self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
-
+        #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict("saved_objects/tagged_words.p")
 
         self.special_words = helper.get_finer_pos_words()
 

@@ -226,6 +226,21 @@ def get_pos_dict(postag_file, mistakes_file=None):
                         pos_to_words[pos].append(word)
     return pos_to_words, words_to_pos
 
+def get_new_pos_dict(file):
+    dict = pickle.load(open(file, "rb"))
+    words_to_pos = {}
+    pos_to_words = {}
+    for word in dict:
+        pos = list(dict[word])
+        words_to_pos[word] = pos
+        for p in pos:
+            if p not in pos_to_words: pos_to_words[p] = []
+            pos_to_words[p].append(word)
+    pos_to_words["POS"] = ["'s"]
+    return pos_to_words, words_to_pos
+
+
+
 def get_finer_pos_words():
     return {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',
      'AWAY', 'OF', 'COULD', 'WHOSOEVER', 'WHENEVER', 'SHALL', 'ALBEIT',
