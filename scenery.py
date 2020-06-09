@@ -17,8 +17,9 @@ import pronouncing
 from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
+import poem_core
 
-class Scenery_Gen():
+class Scenery_Gen(poem_core.Poem):
     def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
@@ -31,19 +32,9 @@ class Scenery_Gen():
          #                 ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
           #                ("WHERE ALL THE scNNS OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
            #               ("AND THAT JJ WHICH RB VBZ NN", "0_1_01_0_10_1_01")]
-        with open(templates_file) as tf:
-            #lines = tf.read()
-                #self.templates = {dev.split()[0]: [(" ".join(t.split()[:-1]), t.split()[-1] for t in dev[1:].split("\n"))] for dev in lines.split("#") if len(dev) > 0}
-            self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
-        with open(postag_file, 'rb') as f:
-            self.postag_dict = pickle.load(f)
-        #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
-        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict("saved_objects/tagged_words.p")
 
-        self.special_words = helper.get_finer_pos_words()
-
-        self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
-
+        poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=templates_file,
+                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file)
         if model == "bert":
             self.lang_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -69,28 +60,9 @@ class Scenery_Gen():
         self.poems = list(pd.read_csv('poems/kaggle_poem_dataset.csv')['Content'])
         self.surrounding_words = {}
 
-        with open(top_file) as tf:
-            self.top_common_words = [line.strip() for line in tf.readlines()][:125]
-
-        self.stemmer = PorterStemmer()
-
-        self.api_url = 'https://api.datamuse.com/words'
-
         self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
 
-
-
-    def get_word_pos(self, word):
-        """
-        Get the set of POS category of a word. If we are unable to get the category, return None.
-        """
-        # Special case
-        if word.upper() in self.special_words:
-            return [word.upper()]
-        if word not in self.words_to_pos:
-            return []
-        return self.words_to_pos[word]
-
+    #override
     def get_pos_words(self,pos, meter=None, phrase=()):
         """
         Gets all the words of a given POS
@@ -123,46 +95,8 @@ class Scenery_Gen():
             return ret
         return self.pos_to_words[pos]
 
-    def get_meter(self, word):
-        if word not in self.dict_meters: return []
-        return self.dict_meters[word]
 
-    def getRhymes(self, theme, words):
-        """
-        :param theme: an array of either [prompt] or [prompt, line_theme] to find similar words to. JUST PROMPT FOR NOW
-        :return: all words which rhyme with similar words to the theme in format {similar word: [rhyming words], similar word: [rhyming words], etc.}
-        """
-        if len(theme) > 1:
-            prompt = theme[0]
-            tone = theme[1:]
-        else:
-            prompt = theme[0]
-            tone = "NONE"
-        try:
-            with open("saved_objects/saved_rhymes", "rb") as pickle_in:
-                mydict = pickle.load(pickle_in)
-
-        except:
-            with open("saved_objects/saved_rhymes", "wb") as pickle_in:
-                mydict = {}
-                pickle.dump(mydict, pickle_in)
-        if prompt not in mydict.keys():
-            mydict[prompt] = {}
-        if tone not in mydict[prompt].keys():
-            print("havent stored anything for ", theme, "please wait...")
-            print(" (ignore the warnings) ")
-            words = helper.get_similar_word_henry(theme, n_return=30, word_set=set(words))
-            w_rhyme_dict = {w3: {word for word in helper.get_rhyming_words_one_step_henry(self.api_url, w3) if
-                                   word in self.words_to_pos and word in self.dict_meters and word not in self.top_common_words[:70]} for #deleted: and self.filter_common_word_henry(word, fast=True)
-                              w3 in words if w3 not in self.top_common_words[:70] and w3 in self.dict_meters}
-
-            #if len(w_rhyme_dict) > 0:
-            mydict[prompt][tone] = {k: v for k, v in w_rhyme_dict.items() if len(v) > 0}
-
-        with open("saved_objects/saved_rhymes", "wb") as pickle_in:
-            pickle.dump(mydict, pickle_in)
-        return mydict[prompt][tone]
-
+    #@override
     def last_word_dict(self, rhyme_dict):
         """
         Given the rhyme sets, extract all possible last words from the rhyme set
@@ -186,29 +120,35 @@ class Scenery_Gen():
         first_rhymes = []
         for i in range(1, len(scheme) + 1):
             if i in [1, 2]:  # lines with a new rhyme -> pick a random key
-                last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]  # NB ensure it doesnt pick the same as another one
+                last_word_dict[i] = [random.choice(
+                    list(rhyme_dict[scheme[i]].keys()))]  # NB ensure it doesnt pick the same as another one
                 j = 0
-                while not self.suitable_last_word(last_word_dict[i][0], i-1) or last_word_dict[i][0] in first_rhymes:
-                        #or any(rhyme_dict['A'][last_word_dict[i][0]] in rhyme_dict['A'][word] for word in first_rhymes):
+                while not self.suitable_last_word(last_word_dict[i][0], i - 1) or last_word_dict[i][0] in first_rhymes:
+                    # or any(rhyme_dict['A'][last_word_dict[i][0]] in rhyme_dict['A'][word] for word in first_rhymes):
                     last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
-                    if not any(self.templates[i-1][1].split("_")[-1] in self.dict_meters[w] for w in rhyme_dict[scheme[i]]):
+                    if not any(self.templates[i - 1][1].split("_")[-1] in self.dict_meters[w] for w in
+                               rhyme_dict[scheme[i]]):
                         word = last_word_dict[i][0]
-                        if self.templates[i-1][0].split()[-1] in self.get_word_pos(word) and len(self.dict_meters[word][0]) == len(self.templates[i-1][1].split("_")[-1]) and any(self.suitable_last_word(r, i+1) for r in rhyme_dict[scheme[i]][word]):
-                            self.dict_meters[word].append(self.templates[i-1][1].split("_")[-1])
-                            print("cheated with ", word, " ", self.dict_meters[word], self.suitable_last_word(word, i-1))
-                    j +=1
+                        if self.templates[i - 1][0].split()[-1] in self.get_word_pos(word) and len(
+                                self.dict_meters[word][0]) == len(self.templates[i - 1][1].split("_")[-1]) and any(
+                                self.suitable_last_word(r, i + 1) for r in rhyme_dict[scheme[i]][word]):
+                            self.dict_meters[word].append(self.templates[i - 1][1].split("_")[-1])
+                            print("cheated with ", word, " ", self.dict_meters[word],
+                                  self.suitable_last_word(word, i - 1))
+                    j += 1
                     if j > len(rhyme_dict[scheme[i]]) * 2: input(str(scheme[i]) + " " + str(rhyme_dict[scheme[i]]))
                 first_rhymes.append(last_word_dict[i][0])
 
             if i in [3, 4]:  # lines with an old rhyme -> pick a random value corresponding to key of rhyming couplet
                 letter = scheme[i]
                 pair = last_word_dict[i - 2][0]
-                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word, i-1)]
+                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word, i - 1)]
                 if len(last_word_dict[i]) == 0:
                     print("fuck me", last_word_dict, i, self.templates[i])
-                    print(1/0)
+                    print(1 / 0)
         return last_word_dict
 
+    #@ovveride
     def suitable_last_word(self, word, line):
         pos = self.templates[line][0].split()[-1].split("sc")[-1]
         meter = self.templates[line][1].split("_")[-1]

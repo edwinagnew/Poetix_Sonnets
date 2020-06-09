@@ -234,9 +234,10 @@ def get_new_pos_dict(file):
         pos = list(dict[word])
         words_to_pos[word] = pos
         for p in pos:
-            if p not in pos_to_words: pos_to_words[p] = []
-            pos_to_words[p].append(word)
-    pos_to_words["POS"] = ["'s"]
+            if p not in pos_to_words: pos_to_words[p] = {}
+            pos_to_words[p][word] = 1
+    pos_to_words["POS"] = {}
+    pos_to_words["POS"]["'s"] = 1
     return pos_to_words, words_to_pos
 
 

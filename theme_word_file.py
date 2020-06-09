@@ -1,6 +1,7 @@
 import pickle
 import pandas as pd
 import random
+import string
 
 from py_files import helper
 
@@ -80,8 +81,8 @@ class Theme():
                 words = case.split()
                 for i in range(len(words)):
                     if words[i] in theme_syns:
-                        good_pos = ['JJ', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS']
-                        punct = [".", ",", "?", "-", "!"]
+                        good_pos = ['JJ', 'JJR', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS']
+                        punct = string.punctuation
                         new_words = [words[i]]
                         left = i - 1
                         while left >= max(0, i-k):
@@ -135,7 +136,7 @@ class Theme():
             print(theme_word_dict)
             for p in theme_word_dict[theme]:
                 for w in theme_word_dict[theme][p]:
-                    theme_word_dict[theme][p][w] *= abs(helper.get_spacy_similarity(theme, w))#/max_val
+                    theme_word_dict[theme][p][w] *= theme_word_dict[theme][p][w] * abs(helper.get_spacy_similarity(theme, w))#/max_val
             with open(extras_file, 'wb') as f:
                 pickle.dump(extras, f)
         with open(theme_file, "wb") as pickle_in:
