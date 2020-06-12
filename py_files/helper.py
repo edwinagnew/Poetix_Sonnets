@@ -204,10 +204,19 @@ def sylls_bounds(partial_template, pos_sylls_mode):
     sylls_lo += 1
     return sylls_up, sylls_lo
 
-def softmax(x):
-    """Compute softmax values for each sets of scores in x."""
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=0) # only difference
+def softmax(x, exclude_zeros=False):
+    """Compute softmax values for each sets of scores in x.
+       exclude_zeros (bool) retains zero elements
+    """
+    if exclude_zeros:
+        if max(x) <= 0:
+            print("max <=0 so retrying without exclusion")
+            return softmax(x) #has to be at least one non negative
+        elif max(x) == min(x): return np.array(x)/len(x)
+        e_x = np.array([int(q > 0) * np.exp(q - np.max(x)) for q in x])
+    else:
+        e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
 def get_pos_dict(postag_file, mistakes_file=None):
     with open(postag_file, 'rb') as f:
@@ -231,6 +240,7 @@ def get_new_pos_dict(file):
     words_to_pos = {}
     pos_to_words = {}
     for word in dict:
+        if len(word) == 1 and word != "a": continue
         pos = list(dict[word])
         words_to_pos[word] = pos
         for p in pos:
@@ -239,6 +249,8 @@ def get_new_pos_dict(file):
     pos_to_words["POS"] = {}
     pos_to_words["POS"]["'s"] = 1
     return pos_to_words, words_to_pos
+
+
 
 
 
@@ -262,4 +274,4 @@ def get_finer_pos_words():
      'ALONG', 'INTO', 'BOTH', 'EITHER', 'WILL', 'IN',
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
-     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "ARE", "OH", "EVEN", "DO"}
+     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "ARE", "OH", "EVEN", "DO", "BE", "OFT", "TOO"}

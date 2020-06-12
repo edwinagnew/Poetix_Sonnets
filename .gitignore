@@ -11,3 +11,4 @@ extra_adjs.p
 glove-word2vec.6B.100d.txt
 word_corpus/
 *.yaml
+glove.6B/

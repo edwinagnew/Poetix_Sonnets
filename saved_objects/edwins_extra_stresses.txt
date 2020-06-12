@@ -57,3 +57,4 @@ quite 0
 beauty 01
 nor 0
 most 0
+too 0

@@ -4,6 +4,8 @@ import random
 import pickle
 import numpy as np
 
+import string
+
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
                  templates_file='poems/number_templates.txt',
@@ -59,26 +61,25 @@ class Poem:
         #print("oi," , pos, meter, phrase)
         if pos in self.special_words:
             return [pos.lower()]
-        if "PRP" in pos:
+        if "PRP" in pos and "_" not in pos:
             ret = [p for p in self.pos_to_words[pos] if meter and p in self.gender and meter in self.get_meter(p) ]
             if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
             return ret
-        if pos not in self.pos_to_words:
+        elif pos not in self.pos_to_words:
             return []
         if meter:
             ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
-            if len(ret) == 0:
-                return []
             return ret
-        return self.pos_to_words[pos]
+        return [p for p in self.pos_to_words[pos]]
 
     def weighted_choice(self,pos, meter=None):
         poss = self.get_pos_words(pos, meter=meter)
         if not poss: return None
-        vals = poss.values()
+        poss_dict = {p:self.pos_to_words[pos][p] for p in poss}
+        vals = poss_dict.values()
         if min(vals) == max(vals): return random.choice(vals)
         else:
-            return np.random.choice(poss.keys(), p=helper.softmax(vals))
+            return np.random.choice(poss_dict.keys(), p=helper.softmax(vals))
 
     def getRhymes(self, theme, words):
         """
