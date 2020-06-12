@@ -17,7 +17,7 @@ class Sonnet_Gen(poem_core.Poem):
                  wv_file='saved_objects/word2vec/model.txt',
                  top_file='saved_objects/words/top_words.txt' ,
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
-                 template_file = 'poems/shakespeare_templates.txt',
+                 template_file = 'poems/jordan_templates.txt',
                  prompt=False):
         #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
         poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=template_file,

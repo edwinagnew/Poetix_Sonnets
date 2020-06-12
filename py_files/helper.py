@@ -242,6 +242,8 @@ def get_new_pos_dict(file):
 
 
 
+
+
 def get_finer_pos_words():
     return {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',
      'AWAY', 'OF', 'COULD', 'WHOSOEVER', 'WHENEVER', 'SHALL', 'ALBEIT',
@@ -262,4 +264,4 @@ def get_finer_pos_words():
      'ALONG', 'INTO', 'BOTH', 'EITHER', 'WILL', 'IN',
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
-     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "ARE", "OH", "EVEN", "DO"}
+     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "ARE", "OH", "EVEN", "DO", "BE", "OFT", "TOO"}

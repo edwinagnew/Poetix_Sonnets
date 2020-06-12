@@ -2,6 +2,8 @@ import pickle
 import pandas as pd
 import random
 import string
+from types import MethodType
+
 
 from py_files import helper
 
@@ -9,39 +11,31 @@ from pattern.en import comparative, superlative, pluralize
 from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
+import poem_core
 
-class Theme():
+class Theme(poem_core.Poem):
 
-    def __init__(self, postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self, theme="forest", postag_file='saved_objects/postag_dict_all+VBN.p',
                  mistakes_file='saved_objects/mistakes.txt',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
-                 top_file='saved_objects/words/top_words.txt'):
-        self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
+                 top_file='saved_objects/words/top_words.txt', ):
 
-        self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
+        poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p",
+                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file)
 
-        self.special_words = helper.get_finer_pos_words()
+
 
         self.poems = list(pd.read_csv('poems/kaggle_poem_dataset.csv')['Content'])
 
-        with open(top_file) as tf:
-            self.top_common_words = [line.strip() for line in tf.readlines()][:125]
-
         self.stemmer = PorterStemmer()
 
+        self.most_recent_theme_words = None
+        if theme:
+            self.most_recent_theme_words = self.get_theme_words(theme)
 
+        #self.score_func = MethodType(score_function, self)
 
-    def get_word_pos(self, word):
-        """
-        Get the set of POS category of a word. If we are unable to get the category, return None.
-        """
-        # Special case
-        if word.upper() in self.special_words:
-            return [word.upper()]
-        if word not in self.words_to_pos:
-            return []
-        return self.words_to_pos[word]
 
 
     def get_theme_words(self, theme, k=1, verbose=True, max_val=20, theme_file="saved_objects/theme_words.p", extras_file='saved_objects/extra_adjs.p'):
@@ -144,5 +138,13 @@ class Theme():
 
         for extra in extras:
             self.words_to_pos[extra] = extras[extra]
-            self.pos_to_words[extras[extra][0]].append(extra)
+            self.pos_to_words[extras[extra][0]][extra] = 1
         return theme_word_dict[theme]
+
+
+    def score_theme_word(self, word, theme):
+        if not self.most_recent_theme_words or theme not in self.most_recent_theme_words:
+            self.most_recent_theme_words = self.get_theme_words(theme)
+        for p in self.most_recent_theme_words[theme]:
+            if word in self.most_recent_theme_words[theme][p]: return self.most_recent_theme_words[theme][p][word]
+        return 0

@@ -106,8 +106,8 @@ import progressbar
 
 from lxml.html import parse
 
-
-translator = str.maketrans(string.punctuation, ' ' * len(string.punctuation))
+rem = string.punctuation + "0123456789" + "“‘-”—’" + "\x97"
+translator = str.maketrans(rem, ' ' * len(rem))
 
 word_set = set()
 for folder in os.listdir(os.getcwd() + "/word_corpus"):
@@ -127,10 +127,10 @@ with open(postag_file, 'rb') as f:
 pos_to_words = postag_dict[1]
 words_to_pos = postag_dict[2]
 
-word_set.update(words_to_pos.keys())
-print(len(word_set))
+word_set.update(" ".join(words_to_pos.keys()).translate(translator).lower().split())
+print(len(word_set), "(o" in word_set)
 #tag wikipedia + dickens and store in histograms
-
+input(str(word_set))
 tree = parse("word_corpus/wikipedia/enwiki-20181001-corpus.xml")
 root = tree.getroot()
 wiki_text = root.text_content()
