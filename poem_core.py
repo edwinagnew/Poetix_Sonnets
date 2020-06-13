@@ -21,7 +21,7 @@ class Poem:
 
         self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
 
-        self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
+        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
 
         with open(top_file) as tf:
             self.top_common_words = [line.strip() for line in tf.readlines()][:125]
