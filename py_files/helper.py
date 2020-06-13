@@ -6,7 +6,7 @@ import re
 import pickle
 import spacy
 import numpy as np
-spacy_nlp = spacy.load('en_core_web_lg')
+spacy_nlp = None#spacy.load('en_core_web_lg')
 
 def create_syll_dict(fnames, extra_file):
     """
@@ -133,7 +133,13 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
 
 
 def get_spacy_similarity(word1, word2):
-    if word1 not in spacy_nlp.vocab or word2 not in spacy_nlp.vocab: return 0
+    global spacy_nlp
+    try:
+        vocab = spacy_nlp.vocab
+    except:
+        spacy_nlp = spacy.load('en_core_web_lg')
+        return get_spacy_similarity(word1, word2)
+    if word1 not in vocab or word2 not in vocab: return 0
     return spacy_nlp(word1).similarity(spacy_nlp(word2))
 
 def isIambic(word):
@@ -208,14 +214,14 @@ def softmax(x, exclude_zeros=False):
     """Compute softmax values for each sets of scores in x.
        exclude_zeros (bool) retains zero elements
     """
-    if exclude_zeros:
-        if max(x) <= 0:
-            print("max <=0 so retrying without exclusion")
-            return softmax(x) #has to be at least one non negative
-        elif max(x) == min(x): return np.array(x)/len(x)
-        e_x = np.array([int(q > 0) * np.exp(q - np.max(x)) for q in x])
+    if exclude_zeros and max(x) <=0:
+        print("max <=0 so retrying without exclusion")
+        return softmax(x) #has to be at least one non negative
+        #elif ma == min(x): return np.array(x)/sum(x)
     else:
         e_x = np.exp(x - np.max(x))
+        if exclude_zeros:
+            e_x[np.array(x)==0] = 0
     return e_x / e_x.sum()
 
 def get_pos_dict(postag_file, mistakes_file=None):
@@ -246,8 +252,12 @@ def get_new_pos_dict(file):
         for p in pos:
             if p not in pos_to_words: pos_to_words[p] = {}
             pos_to_words[p][word] = 1
-    pos_to_words["POS"] = {}
-    pos_to_words["POS"]["'s"] = 1
+    pos_to_words["POS"] = {"'s":1}
+    #pos_to_words["POS"]["'s"] = 1
+
+    pos_to_words["PRPS"] = {"i":1, "you":1, "he":1, "she":1, "it":1, "we":1, "they":1}
+    pos_to_words["PRPO"] = {"me":1, "you":1, "him":1, "her":1, "it":1, "us":1, "them":1, "myself":1, "yourself":1, "himself":1, "herself":1, "itself":1, "ourselves":1, "yourselves":1, "theirselves":1}
+
     return pos_to_words, words_to_pos
 
 

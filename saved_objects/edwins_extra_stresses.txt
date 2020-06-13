@@ -58,3 +58,6 @@ beauty 01
 nor 0
 most 0
 too 0
+we 0
+they 0
+he 0
