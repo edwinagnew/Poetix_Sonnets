@@ -17,13 +17,13 @@ class Sonnet_Gen(poem_core.Poem):
                  wv_file='saved_objects/word2vec/model.txt',
                  top_file='saved_objects/words/top_words.txt' ,
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
-                 template_file = 'poems/jordan_templates.txt',
+                 templates_file = 'poems/jordan_templates.txt',
                  prompt=False):
         #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
-        poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=template_file,
+        poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=templates_file,
                                 syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file)
 
-        with open(template_file, "r") as templs:
+        with open(templates_file, "r") as templs:
             self.templates = {}
             lines = templs.readlines()
             for lin in lines:
@@ -155,7 +155,7 @@ class Sonnet_Gen(poem_core.Poem):
         #gets all templates which end in curr_template and curr_meter
         poss_templates = [item for item in self.templates.keys() if item[-len(curr_template):] == curr_template and self.templates[item].split('_')[-len(curr_meter.split('_')):] == curr_meter.split('_')]
         if exclude: poss_templates = [x for x in poss_templates if x.split()[0] not in exclude] #if exclude is given, remove those ones
-        if len(poss_templates) == 0: return False
+        if len(poss_templates) == 0: return []
         if pref_pos:
             n = len(poss_templates)
             template_scores = np.zeros(n)

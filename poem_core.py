@@ -61,8 +61,8 @@ class Poem:
         #print("oi," , pos, meter, phrase)
         if pos in self.special_words:
             return [pos.lower()]
-        if "PRP" in pos and "_" not in pos:
-            ret = [p for p in self.pos_to_words[pos] if meter and p in self.gender and meter in self.get_meter(p) ]
+        if "PRP" in pos and "_" not in pos and meter:
+            ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(len(meter) == len(q) for q in self.get_meter(p)) ]
             if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
             return ret
         elif pos not in self.pos_to_words:
@@ -147,11 +147,16 @@ class Poem:
                 first_rhymes.append(last_word_dict[i][0])
             if i in [3, 4, 7, 8, 11, 12, 14]:  # lines with an old rhyme -> pick a random value corresponding to key of rhyming couplet
                 letter = scheme[i]
-                pair = last_word_dict[i-2][0]
+                #print(i, last_word_dict[i-2])
                 if i == 14:
                     pair = last_word_dict[13][0]
+                else:
+                    pair = last_word_dict[i - 2][0]
                 print(i, letter, pair, rhyme_dict[letter][pair])
                 last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word)]
+                if len(last_word_dict[i]) == 0:
+                    print("not happening")
+                    return self.last_word_dict(rhyme_dict)
         return last_word_dict
 
     def suitable_last_word(self, word): #checks pos is in self.end_pos and has correct possible meters
