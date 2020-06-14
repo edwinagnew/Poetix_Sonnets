@@ -24,8 +24,8 @@ class Scenery_Gen(poem_core.Poem):
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 #templates_file='poems/scenery_templates.txt',
-                 templates_file='poems/number_templates.txt',
+                 templates_file="poems/rhetorical_templates.txt",
+                 #templates_file='poems/number_templates.txt',
                  mistakes_file='saved_objects/mistakes.txt'):
 
         #self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
@@ -160,7 +160,7 @@ class Scenery_Gen(poem_core.Poem):
         meter = self.templates[line][1].split("_")[-1]
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
-    def write_stanza(self, theme="flower", verbose=True, checks=["RB", "NNS"], rhyme_lines=True):
+    def write_stanza(self, theme="flower", verbose=True, checks=["RB", "NNS"], rhyme_lines=False):
         """
         Writes a poem from the templates
         Parameters

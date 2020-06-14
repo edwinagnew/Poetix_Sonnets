@@ -125,8 +125,8 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
         for word, weight in zip(words, weights):
             score += max(get_spacy_similarity(word, syn), 0) ** 0.5 * weight
         return score / sum(weights)
-
-    syn_score_list = [(syn, cal_score(words, weights, syn)) for syn in word_set if ps.stem(syn) not in seen_words_set and syn in spacy_nlp.vocab]
+    vocab = get_spacy_vocab()
+    syn_score_list = [(syn, cal_score(words, weights, syn)) for syn in word_set if ps.stem(syn) not in seen_words_set and syn in vocab]
     syn_score_list.sort(key=lambda x: x[1], reverse=True)
 
     return [e[0] for e in syn_score_list[:n_return]]
@@ -141,6 +141,14 @@ def get_spacy_similarity(word1, word2):
         return get_spacy_similarity(word1, word2)
     if word1 not in vocab or word2 not in vocab: return 0
     return spacy_nlp(word1).similarity(spacy_nlp(word2))
+
+def get_spacy_vocab():
+    global spacy_nlp
+    try:
+        return spacy_nlp.vocab
+    except:
+        spacy_nlp = spacy.load('en_core_web_lg')
+        return spacy_nlp.vocab
 
 def isIambic(word):
     #simply return whether or not the word alternates stress ie 1010 or 01010 etc
