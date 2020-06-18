@@ -1,7 +1,0 @@
-thou PRP
-geese NNS
-manifest JJ
-long JJ
-close JJ
-nose NN
-fern NN
