@@ -249,13 +249,25 @@ def get_pos_dict(postag_file, mistakes_file=None):
                         pos_to_words[pos].append(word)
     return pos_to_words, words_to_pos
 
-def get_new_pos_dict(file):
+def get_new_pos_dict(file, mistakes_file=None):
+    mistakes = {}
+    if mistakes_file:
+        lines = open(mistakes_file, "r").readlines()
+        for a in lines:
+            if "#" in a: continue
+            k = a.split()[0]
+            if k not in mistakes: mistakes[k] = []
+            mistakes[k] += a.split()[1:]
+    #print(mistakes)
     dict = pickle.load(open(file, "rb"))
     words_to_pos = {}
     pos_to_words = {}
     for word in dict:
-        if len(word) == 1 and word != "a": continue
+        #if len(word) == 1 and word != "a": continue
         pos = list(dict[word])
+        #if word in ["thee", "thy", "thou"]: pos = ["PRP"]
+       # elif word in ["thy", "thine"]: pos = ["PRP$"]
+        if word in mistakes: pos = {p for p in pos if p not in mistakes[word]}
         words_to_pos[word] = pos
         for p in pos:
             if p not in pos_to_words: pos_to_words[p] = {}

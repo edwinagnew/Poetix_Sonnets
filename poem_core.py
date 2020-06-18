@@ -4,15 +4,17 @@ import random
 import pickle
 import numpy as np
 
-import string
+from os import path
 
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
                  templates_file='poems/number_templates.txt',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
-                 top_file='saved_objects/words/top_words.txt'):
-        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file)
+                 top_file='saved_objects/words/top_words.txt',
+                 mistakes_file=None):
+        while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object: ")
+        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file)
 
         with open(templates_file) as tf:
             self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
