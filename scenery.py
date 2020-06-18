@@ -26,7 +26,7 @@ class Scenery_Gen(poem_core.Poem):
                  top_file='saved_objects/words/top_words.txt',
                  templates_file="poems/rhetorical_templates.txt",
                  #templates_file='poems/number_templates.txt',
-                 mistakes_file='saved_objects/mistakes.txt'):
+                 mistakes_file='/Users/edwinagnew/Dropbox/shared_poetix/mistakes.txt'):
 
         #self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
          #                 ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
@@ -34,7 +34,7 @@ class Scenery_Gen(poem_core.Poem):
            #               ("AND THAT JJ WHICH RB VBZ NN", "0_1_01_0_10_1_01")]
 
         poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=templates_file,
-                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file)
+                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file, mistakes_file=mistakes_file)
         if model == "bert":
             self.lang_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -213,7 +213,8 @@ class Scenery_Gen(poem_core.Poem):
                         poss = self.get_pos_words(check, meter=meter[adv], phrase=(line_arr[low:high], line_arr[low:high].index(line_arr[adv])))
                         inc_syn = True
                         if not poss:
-                            input("not happening " + line + str(template) + str(meter) + meter[adv])
+                            if input("not happening " + line + str(template) + str(meter) + meter[adv] + " press enter to ignore phrase"):
+                                low = high = 0
                             line = self.write_line(line_number, template, meter, rhymes=rhymes, theme_words=theme_words)
                             inc_syn = False
                             continue
@@ -473,10 +474,10 @@ class Scenery_Gen(poem_core.Poem):
 
     def phrase_in_poem_fast(self, words, include_syns=False):
         if type(words) == list:
-            if len(words) == 1: return True
-            words = " ".join(words)
-        words = words.split()
-        if len(words) > 2: return self.phrase_in_poem_fast(words[:2]) and self.phrase_in_poem_fast(words[1:])
+            if len(words) <= 1: return True
+        else:
+            words = words.split()
+        if len(words) > 2: return self.phrase_in_poem_fast(words[:2], include_syns=include_syns) and self.phrase_in_poem_fast(words[1:], include_syns=include_syns)
         if words[0] == words[1]: return True
         if words[0] in self.gender: return True  # ?
         # words = " "+ words + " "
@@ -487,8 +488,8 @@ class Scenery_Gen(poem_core.Poem):
             syns = []
             for j in words:
                 syns.append([l.name() for s in wn.synsets(j) for l in s.lemmas() if l.name() in self.dict_meters])
-            contenders = [words[0] + " " + w for w in syns[1]]
-            contenders += [w + " " + words[1] for w in syns[0]]
+            contenders = set(words[0] + " " + w for w in syns[1])
+            contenders.update([w + " " + words[1] for w in syns[0]])
             print(words, ": " , contenders)
             return any(self.phrase_in_poem_fast(c) for c in contenders)
 
