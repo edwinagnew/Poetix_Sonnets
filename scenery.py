@@ -73,6 +73,16 @@ class Scenery_Gen(poem_core.Poem):
         phrase (optional) - returns only words which have a phrase in the dataset. in format ([word1, word2, word3], i) where i is the index of the word to change since the length can be 2 or 3
         """
         #print("oi," , pos, meter, phrase)
+        #punctuation managment
+        punc = [".", ",", ";", "?", ">"]
+        if pos[-1] in punc:
+            p = pos[-1]
+            if p == ">":
+                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                pos = pos.split("<")[0] + p
+            return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
+
+        #similar/repeeated word managemnt
         if pos not in self.pos_to_words and "_" in pos:
             sub_pos = pos.split("_")[0]
             poss = self.get_pos_words(sub_pos, meter=meter, phrase=phrase)
@@ -275,7 +285,9 @@ class Scenery_Gen(poem_core.Poem):
 
                 if len(poss) == 1: new_word = poss[0]
 
-                else: new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[pos][w] for w in poss])) #softmax loses distinctions if any?
+                else:
+                    sub_pos = pos.translate(str.maketrans('', '', string.punctuation))
+                    new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[sub_pos][w.translate(str.maketrans('', '', string.punctuation))] for w in poss])) #softmax loses distinctions if any?
             else:
                 dist = helper.softmax(scores)
                 new_word = np.random.choice(new_words, p=dist)
@@ -479,6 +491,7 @@ class Scenery_Gen(poem_core.Poem):
             words = words.split()
         if len(words) > 2: return self.phrase_in_poem_fast(words[:2], include_syns=include_syns) and self.phrase_in_poem_fast(words[1:], include_syns=include_syns)
         if words[0] == words[1]: return True
+        if words[0][-1] in ",.?;>" or words[1][-1] in ",.?;>": return self.phrase_in_poem_fast((words[0] + " " + words[1]).translate(str.maketrans('', '', string.punctuation)), include_syns=include_syns)
         if words[0] in self.gender: return True  # ?
         # words = " "+ words + " "
 
