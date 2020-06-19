@@ -8,16 +8,21 @@ from os import path
 
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
-                 templates_file='poems/number_templates.txt',
+                 templates_file='poems/jordan_templates.txt',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
                  mistakes_file=None):
-        while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object: ")
+        while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
         self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file)
 
-        with open(templates_file) as tf:
-            self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
+        try:
+            with open(templates_file) as tf:
+                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
+        except:
+            print(templates_file, " does not exist so reading from poems/jordan_templates.txt instead")
+            with open("poems/jordan_templates.txt") as tf:
+                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
 
         self.special_words = helper.get_finer_pos_words()
 
@@ -31,13 +36,17 @@ class Poem:
 
         self.api_url = 'https://api.datamuse.com/words'
 
-        with open("poems/end_pos.txt", "r") as pickin:
+        """with open("poems/end_pos.txt", "r") as pickin:
             lis = pickin.readlines()
             self.end_pos = {}
             for l in lis:
-                self.end_pos[l.split()[0]] = l.split()[1:]
+                self.end_pos[l.split()[0]] = l.split()[1:] """
 
     def get_meter(self, word):
+        if word[-1] in ".,?;":
+            return self.get_meter(word[:-1])
+        elif word[-1] == ">":
+            return self.get_meter(word.split("<")[0])
         if word not in self.dict_meters: return []
         return self.dict_meters[word]
 
@@ -61,6 +70,13 @@ class Poem:
         meter - (optional) returns only words which fit the given meter, e.g. 101
         """
         #print("oi," , pos, meter, phrase)
+        punc = [".", ",", ";", "?", ">"]
+        if pos[-1] in punc:
+            p = pos[-1]
+            if p == ">":
+                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                pos = pos.split("<")[0] + p
+            return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
         if pos in self.special_words:
             return [pos.lower()]
         if "PRP" in pos and "_" not in pos and meter:
@@ -161,7 +177,8 @@ class Poem:
                     return self.last_word_dict(rhyme_dict)
         return last_word_dict
 
-    def suitable_last_word(self, word): #checks pos is in self.end_pos and has correct possible meters
+    def suitable_last_word(self, word, punc=False): #checks pos is in self.end_pos and has correct possible meters
+        if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
 
