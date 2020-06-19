@@ -5,6 +5,8 @@ from py_files import helper
 import random
 from py_files import line
 
+import string
+
 
 import poem_core
 
@@ -18,10 +20,12 @@ class Sonnet_Gen(poem_core.Poem):
                  top_file='saved_objects/words/top_words.txt' ,
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  templates_file = 'poems/jordan_templates.txt',
+                 mistakes_file='/Users/edwinagnew/Dropbox/shared_poetix/mistakes.txt',
                  prompt=False):
         #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
         poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=templates_file,
-                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file)
+                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file,
+                                mistakes_file=mistakes_file)
 
         with open(templates_file, "r") as templs:
             self.templates = {}
@@ -29,7 +33,16 @@ class Sonnet_Gen(poem_core.Poem):
             for lin in lines:
                 self.templates[" ".join(lin.split()[:-1])] = lin.split()[-1].strip()
 
-
+        self.end_pos = {}
+        for temp in self.templates:
+            end = temp.split()[-1]
+            ends = [end]
+            if "<" in end:
+                ends = [end.split("<")[0] + end.split(">")[1].strip(">").split("/")[0], end.split("<")[0] + end.split(">")[1].strip(">").split("/")[0]]
+            meter = self.templates[temp].split("_")[-1]
+            for e in ends:
+                if e not in self.end_pos: self.end_pos[e] = []
+                if meter not in self.end_pos[e]: self.end_pos[e].append(meter)
         if prompt:
             self.gen_poem_edwin(prompt)
 
@@ -68,7 +81,7 @@ class Sonnet_Gen(poem_core.Poem):
         used_templates = []
         for line_number in range(1,15):
             first_word = random.choice(list(last_word_dict[line_number]))  # last word is decided in last_word_dict
-            while first_word not in self.dict_meters.keys() or not self.suitable_last_word(first_word): #make sure its valid
+            while not self.get_meter(first_word) or not self.suitable_last_word(first_word): #make sure its valid
                 first_word = random.choice(list(last_word_dict[line_number]))
             in_template = self.get_word_pos(first_word)[0]
             while in_template not in self.end_pos or not any(pos in self.end_pos[in_template] for pos in self.dict_meters[first_word]):
@@ -78,15 +91,34 @@ class Sonnet_Gen(poem_core.Poem):
                 print(first_word, in_meter)
                 print(1/0) #shouldnt get here, will crash if it does
             in_meter = in_meter[0]
-            curr_line = line.Line(first_word, in_meter, pos_template=in_template)
+            curr_line = line.Line(first_word + " ", in_meter, pos_template=in_template)
             template = False
             while curr_line.syllables < 10: #iterates until line is complete
                 #if reset: print("HI", curr_line.text)
-                if not template:
+                while not template:
+                    print("tick:", curr_line.text, curr_line.pos_template, [c.text for c in candidates[1:]])
                     template = self.get_random_template(curr_line.pos_template, curr_line.meter)
-                if (line_number-1)%2 == 0 and template.split()[0] in ['AND']:
-                    print("oi oi", template, line_number)
-                    template = self.get_random_template(curr_line.pos_template, curr_line.meter, exclude=["AND"]) #makes sure first line of each stanza doesnt start with AND
+                    if not template: input("help" + curr_line.pos_template + curr_line.meter + curr_line.text)
+
+                    if template[-1] in ",.?;" and curr_line.text[-1] != template[-1]: curr_line.text = curr_line.text[:-1] + template[-1]
+                    elif template[-1] in ">" and curr_line.text[-1] not in ",.?;": curr_line.text = curr_line.text[:-1] + random.choice(template.split("<")[-1].strip(">").split("/"))
+
+                    if line_number == 14 and template[-1] in ",;" + string.ascii_lowercase: template = None
+                    elif len(candidates) > 1 and candidates[-1].text[-1] in ",;" + string.ascii_lowercase:
+                        template = self.get_random_template(curr_line.pos_template, curr_line.meter, end_punc=".")
+                        if not template:
+                            template = self.get_random_template(curr_line.pos_template, curr_line.meter, end_punc="?")
+                            if not template:
+                                print("trying to end ", curr_line.text[:-1], " ", curr_line.pos_template, " ", curr_line.meter, " with a . but not happening")
+                                template = self.get_random_template(curr_line.pos_template, curr_line.meter)
+                                curr_line.text = curr_line.text[:-1] + "."
+
+
+                curr_line.text = curr_line.text.strip()
+
+                if template.split()[0] in ['AND', 'THAT'] and ((line_number-1)%2 == 0  or len(candidates) > 1 and candidates[-1].text[-1] == "."):
+                    print("oi oi", template, line_number, curr_line.text)
+                    template = self.get_random_template(curr_line.pos_template, curr_line.meter, exclude=["AND", "THAT"]) #makes sure first line of each stanza doesnt start with AND
                     if not template:
                         curr_line.reset()
                         template = False
@@ -139,7 +171,7 @@ class Sonnet_Gen(poem_core.Poem):
                 if( (cand + 1) % 4 == 0): print("")
         #return candidates
 
-    def get_random_template(self, curr_template, curr_meter, pref_pos=None, exclude=None):
+    def get_random_template(self, curr_template, curr_meter, pref_pos=None, exclude=None, end_punc=None):
         """
         Gets a random template given the current POS and meter templates
         Parameters
@@ -153,8 +185,9 @@ class Sonnet_Gen(poem_core.Poem):
 
         """
         #gets all templates which end in curr_template and curr_meter
-        poss_templates = [item for item in self.templates.keys() if item[-len(curr_template):] == curr_template and self.templates[item].split('_')[-len(curr_meter.split('_')):] == curr_meter.split('_')]
+        poss_templates = [item for item in self.templates.keys() if item.translate(str.maketrans('', '', string.punctuation))[-len(curr_template):] == curr_template and self.templates[item].split('_')[-len(curr_meter.split('_')):] == curr_meter.split('_')]
         if exclude: poss_templates = [x for x in poss_templates if x.split()[0] not in exclude] #if exclude is given, remove those ones
+        if end_punc: poss_templates = [x for x in poss_templates if x[-1] == end_punc or ("<" in x and end_punc in x.split("<")[1].strip(">").split("/"))]
         if len(poss_templates) == 0: return []
         if pref_pos:
             n = len(poss_templates)
