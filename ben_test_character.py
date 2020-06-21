@@ -102,7 +102,7 @@ class Sonnet_Gen():
 
 
         #self.character = self.gen_character("sun", "male", "radiant")
-        self.character = self.gen_character("emperor", "male", "cruel")
+        self.character = self.gen_character("forest", "none", "savage")
 
         self.pos_to_words["chNN"] = list(self.character.char_words)
         self.pos_to_words["chPRP"] = [pronoun for pronoun in self.pos_to_words["PRP"] if pronoun in list(self.character.pronouns)]
