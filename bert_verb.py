@@ -9,6 +9,7 @@ from py_files import helper
 
 from transformers import BertTokenizer, BertForMaskedLM
 from transformers import RobertaTokenizer, RobertaForMaskedLM
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 import pronouncing
 
@@ -26,7 +27,7 @@ class Scenery_Gen():
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
                  templates_file='poems/scenery_templates.txt',
-                 mistakes_file='saved_objects/mistakes.txt'):
+                 mistakes_file=None):
 
         with open(templates_file) as tf:
             self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines()]
@@ -55,6 +56,9 @@ class Scenery_Gen():
             self.lang_model.eval()
             self.vocab_to_num = {self.lang_vocab[x]: x for x in range(len(self.lang_vocab))}
 
+        elif model == "gpt_2":
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            self.model = GPT2LMHeadModel.from_pretrained('gpt2')
 
         else:
             self.lang_model = None
@@ -70,12 +74,13 @@ class Scenery_Gen():
 
         self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
 
+
     def fix_line(self, words, word_number, POS, meter, verbose = False):
         potential_verbs = self.get_pos_words(POS, meter)
         best_score = float("inf")
         best_word = ""
         for verb in potential_verbs:
-            new_line = line
+            new_line = words
             new_line[word_number] = verb
             input_ids = torch.tensor(self.tokenizer.encode(" ".join(new_line), add_special_tokens=False)).unsqueeze(0)  # tokenizes
             tokens = [self.lang_vocab[x] for x in input_ids[0]]
@@ -95,13 +100,16 @@ class Scenery_Gen():
         print(best_word)
         line[word_number] = self.lang_vocab[np.argmax(outputs[out_number].detach().numpy())]
 
-
+    def gpt_2_score_line(self, line):
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        outputs =self.model(input_ids, labels=input_ids)
+        loss, logits = outputs[:2]
+        return loss.item()
 
     def score_line(self, words):
         line = words.split()
 
         input_ids = torch.tensor(self.tokenizer.encode(" ".join(line), add_special_tokens=False)).unsqueeze(0)  # tokenizes
-        tokens = [self.lang_vocab[x] for x in input_ids[0]]
         loss, outputs = self.lang_model(input_ids,masked_lm_labels=input_ids)  # masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
         return loss.item()
 

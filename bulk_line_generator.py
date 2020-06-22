@@ -11,6 +11,7 @@ import theme_word_file
 
 from transformers import BertTokenizer, BertForMaskedLM
 from transformers import RobertaTokenizer, RobertaForMaskedLM
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 import pronouncing
 
@@ -51,6 +52,9 @@ class Bulk_Gen(poem_core.Poem):
             self.lang_model.eval()
             self.vocab_to_num = {self.lang_vocab[x]: x for x in range(len(self.lang_vocab))}
 
+        elif model == "gpt_2":
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            self.model = GPT2LMHeadModel.from_pretrained('gpt2')
 
         else:
             self.lang_model = None
@@ -72,34 +76,27 @@ class Bulk_Gen(poem_core.Poem):
         meter - (optional) returns only words which fit the given meter, e.g. 101
         phrase (optional) - returns only words which have a phrase in the dataset. in format ([word1, word2, word3], i) where i is the index of the word to change since the length can be 2 or 3
         """
-        #print("oi," , pos, meter, phrase)
-        if pos not in self.pos_to_words and "_" in pos:
-            sub_pos = pos.split("_")[0]
-            poss = self.get_pos_words(sub_pos, meter=meter, phrase=phrase)
-            word = random.choice(poss)
-            if pos.split("_")[1] in string.ascii_lowercase:
-                self.pos_to_words[pos] = {word: self.pos_to_words[sub_pos][word]}
-            else:
-                num = pos.split("_")[1]
-                if num not in self.pos_to_words:
-                    #self.pos_to_words[pos] = {word:1}
-                    self.pos_to_words[num] = word
-                else:
-                    word = self.pos_to_words[num]
-                    self.pos_to_words[pos] = {w: helper.get_spacy_similarity(w, word) for w in poss}
-                    return poss
-
-            return [word]
-        if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter)
-        else:
-            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
-            phrases = []
-            for word in ret:
-                phrase[0][phrase[1]] = word
-                phrases.append(" ".join(phrase[0]))
-            print(phrases, ret)
-            ret = [ret[i] for i in range(len(ret)) if self.phrase_in_poem_fast(phrases[i], include_syns=True)]
+        punc = [".", ",", ";", "?", ">"]
+        if pos[-1] in punc:
+            p = pos[-1]
+            if p == ">":
+                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                pos = pos.split("<")[0] + p
+            return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
+        if pos in self.special_words:
+            return [pos.lower()]
+        if "PRP" in pos and "_" not in pos and meter:
+            ret = [p for p in self.pos_to_words[pos] if
+                   p in self.gender and any(len(meter) == len(q) for q in self.get_meter(p))]
+            if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
             return ret
+        elif pos not in self.pos_to_words:
+            return []
+        if meter:
+            ret = [word for word in self.pos_to_words[pos] if
+                   word in self.dict_meters and meter in self.dict_meters[word]]
+            return ret
+        return [p for p in self.pos_to_words[pos]]
 
 
     #@override
@@ -226,9 +223,17 @@ class Bulk_Gen(poem_core.Poem):
         #numbers = {}
         line = ""
         for i in range(len(template) - 1):
+            p = ""
             new_words = []
             scores = []
             pos = template[i]
+            punc = [".", ",", ";", "?", ">"]
+            if pos[-1] in punc:
+                p = pos[-1]
+                if p == ">":
+                    p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                    pos = pos.split("<")[0] + p
+                pos = pos[:-1]
             #num = -1
             #letter = ""
             """if "_" in pos:
@@ -257,10 +262,10 @@ class Bulk_Gen(poem_core.Poem):
 
                 if len(poss) == 1: new_word = poss[0]
 
-                else: new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[pos][w] for w in poss])) #softmax loses distinctions if any?
+                else: new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[pos][w] for w in poss])) + p #softmax loses distinctions if any?
             else:
                 dist = helper.softmax(scores)
-                new_word = np.random.choice(new_words, p=dist)
+                new_word = np.random.choice(new_words, p=dist) + p
                 theme_words[pos][new_word] = theme_words[pos][new_word] / 4.0  # don't choose same word twice
                 #theme_words[self.stemmer.stem(new_word)] = 0
                 #if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0
@@ -338,6 +343,44 @@ class Bulk_Gen(poem_core.Poem):
 
         if len(cases) == 0: return False
         return cases
+
+    def fix_line(self, words, word_number, POS, meter, verbose = False):
+        potential_verbs = self.get_pos_words(POS, meter)
+        best_score = float("inf")
+        best_word = ""
+        for verb in potential_verbs:
+            new_line = words
+            new_line[word_number] = verb
+            input_ids = torch.tensor(self.tokenizer.encode(" ".join(new_line), add_special_tokens=False)).unsqueeze(0)  # tokenizes
+            tokens = [self.lang_vocab[x] for x in input_ids[0]]
+            loss, outputs = self.lang_model(input_ids, masked_lm_labels=input_ids)  # masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
+            softmax = torch.nn.Softmax(dim=1)  # normalizes the probabilites to be between 0 and 1
+            outputs = softmax(outputs[0])
+            extra_token = ""
+        # for word_number in range(0,len(line)-1): #ignore  last word to keep rhyme
+            k = tokens.index(self.tokenizer.tokenize(line[-1])[0])  # where the last word begins
+
+            out_number = word_number
+
+            if loss.item() < best_score:
+                best_score = loss
+                best_word = verb
+
+        print(best_word)
+        line[word_number] = self.lang_vocab[np.argmax(outputs[out_number].detach().numpy())]
+
+    def gpt_2_score_line(self, line):
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        outputs =self.model(input_ids, labels=input_ids)
+        loss, logits = outputs[:2]
+        return loss.item()
+
+    def score_line(self, words):
+        line = words.split()
+
+        input_ids = torch.tensor(self.tokenizer.encode(" ".join(line), add_special_tokens=False)).unsqueeze(0)  # tokenizes
+        loss, outputs = self.lang_model(input_ids,masked_lm_labels=input_ids)  # masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
+        return loss.item()
 
     def phrase_in_poem_fast(self, words, include_syns=False):
         if type(words) == list:
