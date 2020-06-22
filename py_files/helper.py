@@ -222,6 +222,7 @@ def softmax(x, exclude_zeros=False):
     """Compute softmax values for each sets of scores in x.
        exclude_zeros (bool) retains zero elements
     """
+    if x.shape[0] == 1: return softmax(x[0], exclude_zeros=exclude_zeros)
     if exclude_zeros and max(x) <=0:
         print("max <=0 so retrying without exclusion")
         return softmax(x) #has to be at least one non negative
