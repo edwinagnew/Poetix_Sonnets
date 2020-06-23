@@ -8,19 +8,21 @@ from py_files import helper
 
 class gpt:
 
-    def __init__(self, seed, sonnet_object=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
-        if sonnet_object:
-            self.s = sonnet_basic
+    def __init__(self, seed, sonnet_method=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
+        if sonnet_method:
+            self.sonnet_words = sonnet_method
         else:
-            self.s = sonnet_basic.Sonnet_Gen()
+            t = sonnet_basic.Sonnet_Gen()
+            self.sonnet_words = t.get_pos_words
 
         print("loading model")
         self.tokenizer = GPT2Tokenizer.from_pretrained(model)
         self.model = GPT2LMHeadModel.from_pretrained(model)
+        print("loaded", model)
 
         if seed: print(self.good_generation(seed, template, meter))
 
-    def good_generation(self, seed, template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), b=6):
+    def good_generation(self, seed, template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), rhyme_words=[], b=6, verbose=False):
         """if not tokenizer or not model:
             print("loading model")
             tokenizer = GPT2Tokenizer.from_pretrained('gpt2' + size)
@@ -30,13 +32,13 @@ class gpt:
         if template and not meter: meter = [""] * len(template)
         words = list(self.tokenizer.encoder.keys())
 
-        print("tokenizing")
-        if not seed: seed = random.choice(self.s.get_pos_words(template[0], meter=meter[0])) #picks first word randomly
+        if verbose: print("tokenizing")
+        if not seed: seed = random.choice(self.sonnet_words(template[0], meter=meter[0])) #picks first word randomly
         generated = self.tokenizer.encode(seed)
         context = torch.tensor([generated])
         past = None
 
-        punc = ",.;"
+        punc = ",.;?"
 
         if template:
             a, b = len(seed.split()), len(template)
@@ -48,7 +50,7 @@ class gpt:
         #for i in range(a, b):
         i = a
         while i < b:
-            print(i)
+            if verbose: print(i)
             output, past = self.model(context, past=past)
 
             if template:
@@ -60,20 +62,26 @@ class gpt:
                 else:
                     if template[i][-1] in punc:
                         template[i], punc_next = template[i][:-1], template[i][-1]
-                    poss = set(self.s.get_pos_words(template[i], meter=meter[i]))  # searching a set is O(1), searching a list is O(n)!!!
-                    print(template[i], meter[i], poss)
+                    poss = set(self.sonnet_words(template[i], meter=meter[i]))  # searching a set is O(1), searching a list is O(n)!!!
+                    if rhyme_words and i == b-1: poss = set(p for p in poss if p in rhyme_words)
                 # filt = torch.tensor([x.strip() in poss for x in tokenizer.encoder])
                 # token = torch.argmax(output[..., -1, :][0] * filt)
-                filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder]) #"Ġ" is gpt-2's space character
-                dist = helper.softmax(output[..., -1, :].detach().numpy() * filt, exclude_zeros=True)
-                token = np.random.choice(np.arange(len(words)), p=dist).item()
-                print("for ", template[i], end=': ')
+                if len(poss) == 1:
+                    #choose token with right spacing
+                    space = " " * int(list(poss)[0] not in punc)
+                    token = self.tokenizer.encode(space + list(poss)[0])[0]
+                else:
+                    filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder]) #"Ġ" is gpt-2's space character
+                    dist = helper.softmax(output[..., -1, :].detach().numpy() * filt, exclude_zeros=True) #TODO think about not necessarily softmaxing all words?
+                    token = np.random.choice(np.arange(len(words)), p=dist).item()
+                if verbose: print("for ", template[i], end=': ')
 
             else:
                 # token = torch.argmax(output[..., -1, :]).item()
                 dist = helper.softmax(output[..., -1, :].detach().numpy())
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
-            print("picked "+ str(token) + ": '"+ str(self.tokenizer.decode(token)) + "' with prob " + str(dist[token]))
+
+            if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(dist[token]))
 
             generated += [token]  # .tolist()
             # context = token.unsqueeze(0)
@@ -81,7 +89,7 @@ class gpt:
 
             i += int(not punc_next)
 
-        print("tokens: ", generated)
+        if verbose: print("tokens: ", generated)
         sequence = self.tokenizer.decode(generated)
 
         # while len(sequence.split()) != len(template):
@@ -95,6 +103,6 @@ class gpt:
     def gpt_2_score_line(self, line):
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         outputs = self.model(input_ids, labels=input_ids)
-        loss, logits = outputs[:2]
-        return loss.item()
+        #loss, logits = outputs[:2]
+        return outputs[0].item()
 
