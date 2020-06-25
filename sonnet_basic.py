@@ -9,7 +9,6 @@ import string
 
 
 import poem_core
-import gpt_2_gen
 
 
 #Based off limericks.py
@@ -45,7 +44,7 @@ class Sonnet_Gen(poem_core.Poem):
                 if e not in self.end_pos: self.end_pos[e] = []
                 if meter not in self.end_pos[e]: self.end_pos[e].append(meter)
 
-        self.gpt = None
+
         if prompt:
             self.gen_poem_edwin(prompt)
 
@@ -174,17 +173,7 @@ class Sonnet_Gen(poem_core.Poem):
                 if( (cand + 1) % 4 == 0): print("")
         #return candidates
 
-    def write_line_gpt(self, template, meter, k=3):
-        if not self.gpt:
-            self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words, template=None, meter=None)
-        t_2 = template
-        if template[-1] == ">":
-            t_2 = template.split("<")[0] + random.choice(template.split("<")[1].strip(">").split("/"))
-        print("\n")
-        print(t_2, meter)
-        for i in range(k):
-            #print("generating with ", t_2, meter.split("_"), i)
-            print(self.gpt.good_generation(None, template=t_2.split(), meter=meter.split("_")))
+
 
     def get_random_template(self, curr_template, curr_meter, pref_pos=None, exclude=None, end_punc=None):
         """

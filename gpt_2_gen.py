@@ -1,4 +1,4 @@
-import sonnet_basic
+#import sonnet_basic
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 import numpy as np
@@ -12,8 +12,9 @@ class gpt:
         if sonnet_method:
             self.sonnet_words = sonnet_method
         else:
-            t = sonnet_basic.Sonnet_Gen()
-            self.sonnet_words = t.get_pos_words
+            input("didnt give me a sonnet_object, try again pls")
+            #t = sonnet_basic.Sonnet_Gen()
+            #self.sonnet_words = t.get_pos_words
 
         print("loading model")
         self.tokenizer = GPT2Tokenizer.from_pretrained(model)
@@ -22,7 +23,7 @@ class gpt:
 
         if seed: print(self.good_generation(seed, template, meter))
 
-    def good_generation(self, seed, template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), rhyme_words=[], b=6, verbose=False):
+    def good_generation(self, seed=None, template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), rhyme_words=[], b=6, verbose=False):
         """if not tokenizer or not model:
             print("loading model")
             tokenizer = GPT2Tokenizer.from_pretrained('gpt2' + size)

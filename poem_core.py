@@ -4,6 +4,8 @@ import random
 import pickle
 import numpy as np
 
+import gpt_2_gen
+
 from os import path
 
 class Poem:
@@ -36,11 +38,7 @@ class Poem:
 
         self.api_url = 'https://api.datamuse.com/words'
 
-        """with open("poems/end_pos.txt", "r") as pickin:
-            lis = pickin.readlines()
-            self.end_pos = {}
-            for l in lis:
-                self.end_pos[l.split()[0]] = l.split()[1:] """
+        self.gpt = None
 
     def get_meter(self, word):
         if word[-1] in ".,?;":
@@ -92,12 +90,13 @@ class Poem:
 
     def weighted_choice(self,pos, meter=None):
         poss = self.get_pos_words(pos, meter=meter)
-        if not poss: return None
+        if not poss: return []
+        elif len(poss) == 1: return poss[0]
         poss_dict = {p:self.pos_to_words[pos][p] for p in poss}
-        vals = poss_dict.values()
-        if min(vals) == max(vals): return random.choice(vals)
+        vals = list(poss_dict.values())
+        if len(vals) < 2 or min(vals) == max(vals): return random.choice(poss)
         else:
-            return np.random.choice(poss_dict.keys(), p=helper.softmax(vals))
+            return np.random.choice(poss, p=helper.softmax(vals))
 
     def getRhymes(self, theme, words):
         """
@@ -181,4 +180,14 @@ class Poem:
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
-
+    def write_line_gpt(self, template, meter, k=3, verbose=False):
+        if not self.gpt:
+            self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
+        t_2 = template
+        if template[-1] == ">":
+            t_2 = template.split("<")[0] + random.choice(template.split("<")[1].strip(">").split("/"))
+        print("\n")
+        print(t_2, meter)
+        for i in range(k):
+            #print("generating with ", t_2, meter.split("_"), i)
+            print(self.gpt.good_generation(None, template=t_2.split(), meter=meter.split("_"), verbose=verbose))
