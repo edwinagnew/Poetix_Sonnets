@@ -4,7 +4,7 @@ import random
 import pickle
 import numpy as np
 
-import gpt_2_gen
+#import gpt_2_gen
 
 from os import path
 
@@ -16,7 +16,8 @@ class Poem:
                  top_file='saved_objects/words/top_words.txt',
                  mistakes_file=None):
         while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
-        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file)
+        keep_scores = False#"byron" in words_file
+        self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file, keep_scores=keep_scores)
 
         try:
             with open(templates_file) as tf:
@@ -89,14 +90,20 @@ class Poem:
         return [p for p in self.pos_to_words[pos]]
 
     def weighted_choice(self,pos, meter=None):
+        punc = ".,;?"
+        if pos[-1] in punc: return self.weighted_choice(pos[:-1], meter=meter) + pos[-1]
         poss = self.get_pos_words(pos, meter=meter)
-        if not poss: return []
+        if not poss:
+            print("nope", pos, meter)
+            return None
         elif len(poss) == 1: return poss[0]
         poss_dict = {p:self.pos_to_words[pos][p] for p in poss}
         vals = list(poss_dict.values())
         if len(vals) < 2 or min(vals) == max(vals): return random.choice(poss)
         else:
-            return np.random.choice(poss, p=helper.softmax(vals))
+            word = np.random.choice(poss, p=helper.softmax(vals))
+            self.pos_to_words[pos][word] /= 2
+            return word
 
     def getRhymes(self, theme, words):
         """
@@ -180,9 +187,11 @@ class Poem:
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
-    def write_line_gpt(self, template, meter, k=3, verbose=False):
+    def write_line_gpt(self, template, meter, k=3, gpt_model=None, verbose=False):
         if not self.gpt:
-            self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
+            #self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
+            self.gpt = gpt_model
+            if not gpt_model: print("need a gpt model", 1/0)
         t_2 = template
         if template[-1] == ">":
             t_2 = template.split("<")[0] + random.choice(template.split("<")[1].strip(">").split("/"))

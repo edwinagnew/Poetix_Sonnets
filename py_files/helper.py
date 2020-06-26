@@ -53,6 +53,7 @@ def create_syll_dict(fnames, extra_file):
         with open(extra_file, "r") as file:
             extras = file.readlines()
             for extra in extras:
+                if extra.split()[0] not in dict_meters: dict_meters[extra.split()[0]] = []
                 dict_meters[extra.split()[0]].append(extra.split()[1])
     return dict_meters
 
@@ -218,7 +219,7 @@ def sylls_bounds(partial_template, pos_sylls_mode):
     sylls_lo += 1
     return sylls_up, sylls_lo
 
-def softmax(x, exclude_zeros=False):
+def softmax(x, exclude_zeros=False, k=0):
     """Compute softmax values for each sets of scores in x.
        exclude_zeros (bool) retains zero elements
     """
@@ -230,7 +231,7 @@ def softmax(x, exclude_zeros=False):
     else:
         e_x = np.exp(x - np.max(x))
         if exclude_zeros:
-            e_x[np.array(x)==0] = 0
+            e_x[np.array(x)<=k] = 0
     return e_x / e_x.sum()
 
 def get_pos_dict(postag_file, mistakes_file=None):
@@ -250,7 +251,7 @@ def get_pos_dict(postag_file, mistakes_file=None):
                         pos_to_words[pos].append(word)
     return pos_to_words, words_to_pos
 
-def get_new_pos_dict(file, mistakes_file=None):
+def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
     mistakes = {}
     if mistakes_file:
         lines = open(mistakes_file, "r").readlines()
@@ -273,6 +274,7 @@ def get_new_pos_dict(file, mistakes_file=None):
         for p in pos:
             if p not in pos_to_words: pos_to_words[p] = {}
             pos_to_words[p][word] = 1
+            if keep_scores: pos_to_words[p][word] = dict[word][p]
     pos_to_words["POS"] = {"'s":1}
     #pos_to_words["POS"]["'s"] = 1
 

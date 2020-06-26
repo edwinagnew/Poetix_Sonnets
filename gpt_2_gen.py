@@ -73,7 +73,8 @@ class gpt:
                     token = self.tokenizer.encode(space + list(poss)[0])[0]
                 else:
                     filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder]) #"Ġ" is gpt-2's space character
-                    dist = helper.softmax(output[..., -1, :].detach().numpy() * filt, exclude_zeros=True) #TODO think about not necessarily softmaxing all words?
+                    words = output[..., -1, :].detach().numpy() * filt
+                    dist = helper.softmax(words, exclude_zeros=True, k=np.percentile(words, 25)) #TODO think about not necessarily softmaxing all words?
                     token = np.random.choice(np.arange(len(words)), p=dist).item()
                 if verbose: print("for ", template[i], end=': ')
 
