@@ -15,7 +15,7 @@ import poem_core
 
 class Theme(poem_core.Poem):
 
-    def __init__(self, theme="forest", postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self, theme=None, postag_file='saved_objects/postag_dict_all+VBN.p',
                  mistakes_file='saved_objects/mistakes.txt',
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',

@@ -43,6 +43,8 @@ class Sonnet_Gen(poem_core.Poem):
             for e in ends:
                 if e not in self.end_pos: self.end_pos[e] = []
                 if meter not in self.end_pos[e]: self.end_pos[e].append(meter)
+
+
         if prompt:
             self.gen_poem_edwin(prompt)
 
@@ -170,6 +172,8 @@ class Sonnet_Gen(poem_core.Poem):
                 print(candidates[cand].text)#, ": ", candidates[cand].meter)
                 if( (cand + 1) % 4 == 0): print("")
         #return candidates
+
+
 
     def get_random_template(self, curr_template, curr_meter, pref_pos=None, exclude=None, end_punc=None):
         """
