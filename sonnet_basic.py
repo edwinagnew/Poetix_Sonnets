@@ -1,4 +1,5 @@
 import numpy as np
+
 import pickle
 from collections import defaultdict
 from py_files import helper
@@ -14,7 +15,7 @@ import poem_core
 #Based off limericks.py
 
 class Sonnet_Gen(poem_core.Poem):
-    def __init__(self,postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self,words_file="saved_objects/tagged_words.p",
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  wv_file='saved_objects/word2vec/model.txt',
                  top_file='saved_objects/words/top_words.txt' ,
@@ -23,7 +24,7 @@ class Sonnet_Gen(poem_core.Poem):
                  mistakes_file='/Users/edwinagnew/Dropbox/shared_poetix/mistakes.txt',
                  prompt=False):
         #self.pos_to_words, self.words_to_pos = helper.get_pos_dict(postag_file, mistakes_file=mistakes_file)
-        poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=templates_file,
+        poem_core.Poem.__init__(self, words_file=words_file, templates_file=templates_file,
                                 syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file,
                                 mistakes_file=mistakes_file)
 
@@ -93,7 +94,7 @@ class Sonnet_Gen(poem_core.Poem):
                 print(first_word, in_meter)
                 print(1/0) #shouldnt get here, will crash if it does
             in_meter = in_meter[0]
-            curr_line = line.Line(first_word + " ", in_meter, pos_template=in_template)
+            curr_line = line.Line(first_word + " ", in_meter, pos_template=in_template) #adds space in case punctuation is replaced
             template = False
             while curr_line.syllables < 10: #iterates until line is complete
                 #if reset: print("HI", curr_line.text)
@@ -101,24 +102,32 @@ class Sonnet_Gen(poem_core.Poem):
                     print("tick:", curr_line.text, curr_line.pos_template, [c.text for c in candidates[1:]])
                     template = self.get_random_template(curr_line.pos_template, curr_line.meter)
                     if not template: input("help" + curr_line.pos_template + curr_line.meter + curr_line.text)
+                    #print("a", template)
+                    if template[-1] in ",.?;" and curr_line.text[-1] != template[-1]:
+                        curr_line.text = curr_line.text[:-1] + template[-1]
+                        print("text modified with", template[-1])
+                    elif template[-1] in ">" and curr_line.text[-1] not in ",.?;":
+                        curr_line.text = curr_line.text[:-1] + random.choice(template.split("<")[-1].strip(">").split("/"))
+                        print("text modified with", curr_line.text[-1])
 
-                    if template[-1] in ",.?;" and curr_line.text[-1] != template[-1]: curr_line.text = curr_line.text[:-1] + template[-1]
-                    elif template[-1] in ">" and curr_line.text[-1] not in ",.?;": curr_line.text = curr_line.text[:-1] + random.choice(template.split("<")[-1].strip(">").split("/"))
 
-                    if line_number == 14 and template[-1] in ",;" + string.ascii_lowercase: template = None
+                    if line_number == 14 and template[-1] in ",;>" + string.ascii_lowercase: template = self.get_random_template(curr_line.pos_template, curr_line.meter, end_punc=".")
                     elif len(candidates) > 1 and candidates[-1].text[-1] in ",;" + string.ascii_lowercase:
                         template = self.get_random_template(curr_line.pos_template, curr_line.meter, end_punc=".")
+                        print("tempalte modified with .")
                         if not template:
                             template = self.get_random_template(curr_line.pos_template, curr_line.meter, end_punc="?")
+                            print("tempalte modified with ?")
+
                             if not template:
                                 print("trying to end ", curr_line.text[:-1], " ", curr_line.pos_template, " ", curr_line.meter, " with a . but not happening")
                                 template = self.get_random_template(curr_line.pos_template, curr_line.meter)
                                 curr_line.text = curr_line.text[:-1] + "."
-
+                    print(template)
 
                 curr_line.text = curr_line.text.strip()
 
-                if template.split()[0] in ['AND', 'THAT'] and ((line_number-1)%2 == 0  or len(candidates) > 1 and candidates[-1].text[-1] == "."):
+                if template and template.split()[0] in ['AND', 'THAT'] and ((line_number-1)%2 == 0  or len(candidates) > 1 and candidates[-1].text[-1] == "."):
                     print("oi oi", template, line_number, curr_line.text)
                     template = self.get_random_template(curr_line.pos_template, curr_line.meter, exclude=["AND", "THAT"]) #makes sure first line of each stanza doesnt start with AND
                     if not template:
