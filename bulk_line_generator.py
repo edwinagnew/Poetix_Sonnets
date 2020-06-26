@@ -262,9 +262,9 @@ class Bulk_Gen(poem_core.Poem):
 
                 if len(poss) == 1: new_word = poss[0]
 
-                else: new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[pos][w] for w in poss])) + p #softmax loses distinctions if any?
+                else: new_word = np.random.choice(poss, p=self.my_softmax([self.pos_to_words[pos][w] for w in poss])) + p #softmax loses distinctions if any?
             else:
-                dist = helper.softmax(scores)
+                dist = self.my_softmax(scores)
                 new_word = np.random.choice(new_words, p=dist) + p
                 theme_words[pos][new_word] = theme_words[pos][new_word] / 4.0  # don't choose same word twice
                 #theme_words[self.stemmer.stem(new_word)] = 0
@@ -367,7 +367,7 @@ class Bulk_Gen(poem_core.Poem):
                 best_word = verb
 
         print(best_word)
-        line[word_number] = self.lang_vocab[np.argmax(outputs[out_number].detach().numpy())]
+        words[word_number] = self.lang_vocab[np.argmax(outputs[out_number].detach().numpy())]
 
     def gpt_2_score_line(self, line):
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
@@ -431,3 +431,16 @@ class Bulk_Gen(poem_core.Poem):
             if "_" in pos: #or pos in "0123456789"
                 del self.pos_to_words[pos]
 
+    def my_softmax(self, x, exclude_zeros=False):
+        """Compute softmax values for each sets of scores in x.
+           exclude_zeros (bool) retains zero elements
+        """
+        if exclude_zeros and max(x) <= 0:
+            print("max <=0 so retrying without exclusion")
+            return softmax(x)  # has to be at least one non negative
+            # elif ma == min(x): return np.array(x)/sum(x)
+        else:
+            e_x = np.exp(x - np.max(x))
+            if exclude_zeros:
+                e_x[np.array(x) == 0] = 0
+        return e_x / e_x.sum()

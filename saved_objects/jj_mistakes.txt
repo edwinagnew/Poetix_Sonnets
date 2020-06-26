@@ -106,1009 +106,244 @@ quid JJ
 pro JJ
 rid JJ
 impulse JJ
-constant 
-careful 
-emphasized 
-strive 
-godly 
-pure 
-defenseless 
-annoyed 
-heaven 
-hindu 
-commentary 
-intelligent 
-descriptive 
-rational 
-condemned 
-immoral 
-evil 
-enforced 
-preferred 
-metaphysical 
-concrete 
-fulfilling 
-embarrassing 
-unimportant 
-whale 
-stern 
-unsympathetic 
-tenor 
-fictional 
-quaint 
-utopian 
-misunderstood 
-comic 
-musician 
-crucial 
-senior 
-cite 
-atheist 
-alleged 
-lifetime 
-treacherous 
-scholarly 
-pop 
-serious 
-incessant 
-immense 
-fruitful 
-challenging 
-derivative 
-inconsistent 
-contradictory 
-charitable 
-searchable 
-physician 
-fledgling 
-warm 
-uncommon 
-northeast 
-southeast 
-lasting 
-ushering 
-fortified 
-rocky 
-costly 
-ineffective 
-punitive 
-turbulent 
-sultan 
-contingent 
-regular 
-select 
-fourteen 
-tribal 
-unanimous 
-forged 
-enslaved 
-considerable 
-bloodshed 
-collapsed 
-resigned 
-armed 
-biased 
-thousand 
-compulsory 
-domestic 
-clarified 
-peaceful 
-intensified 
-routine 
-suppressed 
-punishable 
-administrative 
-inert 
-financial 
-salary 
-prolonged 
-worth 
-joint 
-reliant 
-crude 
-proven 
-improved 
-paved 
-prominent 
-figurative 
-pictorial 
-historic 
-big 
-monumental 
-shocking 
-undisputed 
-poetic 
-rich 
-ambitious 
-qualified 
-dish 
-fish 
-website 
-exceptional 
-skilled 
-unnamed 
-menial 
-electric 
-ambient 
-static 
-dissatisfied 
-corrupted 
-concealed 
-skillful 
-stainless 
-elderly 
-captive 
-rightful 
-retired 
-expert 
-incapable 
-deceive 
-brute 
-perverted 
-incompetent 
-renowned 
-hallowed 
-shocked 
-roadside 
-enthusiastic 
-extensive 
-inherent 
-scorn 
-worthless 
-ugly 
-quiet 
-mine 
-respective 
-disgraceful 
-disgusting 
-unappreciated 
-competent 
-sorry 
-novelist 
-neglected 
-straightforward 
-bankrupt 
-trite 
-primitive 
-elite 
-lucky 
-superintendent 
-reluctant 
-applicant 
-derogatory 
-meaningless 
-undefined 
-futile 
-resentful 
-editorial 
-hatchet 
-vocal 
-perfect 
-vain 
-lavish 
-penniless 
-signal 
-ready 
-cynical 
-exhausted 
-aggressive 
-extinguish 
-abstract 
-noun 
-altered 
-sphere 
-informal 
-comparative 
-illuminating 
-encouraging 
-explicit 
-digital 
-coercive 
-constructive 
-unite 
-normal 
-dynamic 
-documentary 
-classic 
-seminal 
-ordinary 
-confused 
-recommended 
-adverse 
-organic 
-artificial 
-sol 
-library 
-solvent 
-experimental 
-guarded 
-definite 
-fertile 
-red 
-decree 
-mutual 
-dated 
-universe 
-undisturbed 
-corporeal 
-chemical 
-mystical 
-prophesied 
-hundred 
-assimilated 
-allegorical 
-nitric 
-aqua 
-exterior 
-cold 
-hot 
-moist 
-elemental 
-metallic 
-sulphur 
-surreptitious 
-gentle 
-intricate 
-acid 
-fictitious 
-magic 
-toxic 
-herbal 
-analytical 
-confounded 
-lapis 
-unconscious 
-14th 
-fantasy 
-magical 
-precious 
-incomplete 
-eighth 
-hypothetical 
-alien 
-celestial 
-interchangeable 
-sensitive 
-invaluable 
-amateur 
-simplified 
-matching 
-updated 
-nevertheless 
-compact 
-unreadable 
-corresponding 
-mechanical 
-idle 
-alphabetical 
-intermediate 
-magnetic 
-tracked 
-inappropriate 
-analogous 
-convenient 
-prevalent 
-interrupt 
-miscellaneous 
-invisible 
-supplant 
-binary 
-backward 
-compatible 
-identical 
-unchanged 
-slang 
-adjective 
-kangaroo 
-manufactured 
-transparent 
-uncertain 
-flip 
-electronic 
-animated 
-lantern 
-robotic 
-nip 
-patented 
-optical 
-toy 
-huge 
-decreased 
-thrive 
-plausible 
-smooth 
-expressive 
-expensive 
-steady 
-packed 
-tight 
-loaded 
-sliced 
-thin 
-inanimate 
-flat 
-cheap 
-surreal 
-mesh 
-fur 
-mimic 
-screen 
-unseen 
-movable 
-lit 
-interesting 
-multiple 
-marginal 
-tedious 
-pointless 
-dazzling 
-satisfied 
-subordinate 
-facial 
-commonplace 
-stagnant 
-athletic 
-twin 
-oracular 
-prophetic 
-deadly 
-seer 
-purified 
-dormant 
-reinforced 
-trusted 
-seventh 
-fused 
-pronounced 
-silent 
-holy 
-robed 
-bearded 
-wooden 
-marble 
-esthetic 
-necessary 
-permanent 
-floral 
-sixteen 
-joyful 
-modest 
-boundary 
-solid 
-dispersed 
-favourable 
-bottom 
-amber 
-emitted 
-cornered 
-giant 
-relented 
-infected 
-injured 
-motive 
-bolt 
-fashioned 
-shepherd 
-convinced 
-vivid 
-scorned 
-suited 
-leaden 
-spirited 
-nymph 
-twenty 
-jealous 
-forgive 
-incense 
-wish 
-unwed 
-memorial 
-stained 
-asleep 
-sad 
-youthful 
-unchanging 
-recognizable 
-imagined 
-lifeless 
-slender 
-imaginative 
-ivory 
-harmonious 
-bronzes 
-simpler 
-germ 
-horn 
-upright 
-dispassionate 
-self 
-fit 
-acute 
-tripod 
-empty 
-busy 
-mosaic 
-modesty 
-imposing 
-chaotic 
-troubled 
-consecutive 
-crushed 
-seeded 
-indoor 
-straight 
-windy 
-crystal 
-rigorous 
-improbable 
-ankle 
-tough 
-memorable 
-entertaining 
-prevailing 
-prime 
-victorious 
-fifteen 
-robin 
-decisive 
-squared 
-accurate 
-slick 
-professed 
-athlete 
-closed 
-taboo 
-justified 
-junior 
-abused 
-delayed 
-infectious 
-healthy 
-vacant 
-bold 
-thirteen 
-synonymous 
-syllable 
-breathy 
-creaky 
-obscured 
-valid 
-vocabulary 
-noticeable 
-cultivated 
-displaced 
-underwent 
-diversified 
-circa 
-numeral 
-oriental 
-constituent 
-absent 
-inaccurate 
-discredited 
-exclusive 
-remote 
-elapsed 
-ina 
-dual 
-emphatic 
-feminine 
-possessive 
-distinctive 
-san 
-thirty 
-fragile 
-chin 
-tooth 
-endangered 
-ceremonial 
-liable 
-resident 
-reformed 
-parish 
-rugged 
-alpine 
-indirect 
-sheep 
-mineral 
-archive 
-impressed 
-practised 
-arithmetic 
-harmonic 
-robust 
-statistical 
-discrete 
-variable 
-unbiased 
-weighted 
-precise 
-aforementioned 
-rival 
-hostile 
-brutal 
-satirical 
-irresponsible 
-smoothly 
-terrified 
-donkey 
-whisky 
-abridged 
-revered 
-embalmed 
-fat 
-silenced 
-sure 
-timeless 
-wise 
-especial 
-spy 
-clever 
-wondrous 
-raven 
-convincing 
-enlightened 
-upset 
-frankly 
-flagrant 
-excellent 
-fiftieth 
-proof 
-unflattering 
-dull 
-clumsy 
-assured 
-stereotyped 
-humorous 
-caustic 
-rotten 
-abortive 
-unravel 
-surprised 
-illiterate 
-authorised 
-favourite 
-arboreal 
-aquatic 
-larvae 
-undergo 
-skin 
-helpful 
-frog 
-extinct 
-devoid 
-elephant 
-seal 
-fossil 
-sideways 
-discarded 
-lateral 
-suitable 
-protective 
-excessive 
-impervious 
-brackish 
-damp 
-tear 
-muscular 
-fold 
-underneath 
-polar 
-flattened 
-diminutive 
-depressing 
-jaw 
-embedded 
-discerning 
-olfactory 
-underground 
-bony 
-superficial 
-delicate 
-secrete 
-distasteful 
-poisonous 
-lethal 
-green 
-receptive 
-nuptial 
-tailed 
-explosive 
-arrive 
-rainy 
-unison 
-frenzied 
-extra 
-regulated 
-horny 
-organ 
-redundant 
-innermost 
-globular 
-warmer 
-cool 
-amphibious 
-juvenile 
-intervening 
-foam 
-nourishment 
-oval 
-wet 
-accessory 
-jaws 
-spectacular 
-carnivorous 
-shallow 
-filtered 
-sediment 
-edible 
-diet 
-feathery 
-clogged 
-inhospitable 
-appropriate 
-leaf 
-digestive 
-blunt 
-undulating 
-elongated 
-undergone 
-ringed 
-maternal 
-fluid 
-nursery 
-foremost 
-rear 
-dim 
-baited 
-stomachs 
-elm 
-stationary 
-odoriferous 
-immobile 
-subdue 
-crown 
-unwary 
-horned 
-inquisitive 
-yellow 
-coloured 
-subdued 
-submerged 
-edged 
-stirring 
-soft 
-fleeting 
-loud 
-quieter 
-unwanted 
-fright 
-nocturnal 
-daylight 
-enlarged 
-thumbs 
-daytime 
-glaring 
-sufficient 
-defensive 
-slippery 
-sticky 
-predatory 
-susceptible 
-isolated 
-diurnal 
-detached 
-instrumental 
-irrespective 
-maritime 
-populated 
-acre 
-longitude 
-colloquial 
-contiguous 
-maximum 
-downtown 
-senatorial 
-consolidated 
-unconnected 
-boarding 
-partial 
-alcoholic 
-springtime 
-bald 
-willow 
-brown 
-perennial 
-marine 
-certified 
-threatening 
-hazardous 
-uniform 
-arid 
-temperate 
-confined 
-conventional 
-fallow 
-forested 
-unfit 
-affecting 
-unevenly 
-feudal 
-solitary 
-veal 
-fifty 
-niece 
-botanical 
-indebted 
-pen 
-banquet 
-grave 
-induced 
-wrecked 
-sterile 
-folded 
-splintered 
-conjectured 
-constrained 
-reminiscent 
-fungus 
-latent 
-accumulated 
-stony 
-coral 
-protected 
-efficient 
-dried 
-arctic 
-insufficient 
-unusual 
-aerial 
-imperial 
-user 
-competitive 
-loathsome 
-cultured 
-fatty 
-enriched 
-hybrid 
-surf 
-synthetic 
-liquid 
-insight 
-den 
-grand 
-saturated 
-aromatic 
-interstellar 
-volatile 
-unhappy 
-supreme 
-unreasonable 
-guaranteed 
-underlying 
-acquittal 
-collateral 
-distinguishing 
-incarcerated 
-defective 
-denial 
-interim 
-disposed 
-prerogative 
-lenient 
-adequate 
-fair 
-harmless 
-reasonable 
-mandatory 
-pertinent 
-deferential 
-afresh 
-improper 
-admissible 
-frivolous 
-inferior 
-tribunal 
-applicable 
-reverse 
-unconstitutional 
-directive 
-wrongful 
-solemn 
-contentious 
-empowered 
-unsatisfied 
-upsetting 
-peremptory 
-guilty 
-practicable 
-requisite 
-preliminary 
-patriotic 
-periodical 
-majestic 
-atop 
-fancy 
-adaptable 
-halcyon 
-purple 
-wax 
-pilgrim 
-impassioned 
-wrought 
-selfish 
-nobler 
-spacious 
-glorious 
-umbrella 
-occupant 
-electrical 
-patient 
-convertible 
-disabled 
-gastric 
-functionary 
-residual 
-verbal 
-aloud 
-portable 
-mounted 
-augmented 
-smart 
-worn 
-unlit 
-accessible 
-auditory 
-deaf 
-alternate 
-sophisticated 
-powered 
-broken 
-tech 
-font 
-activated 
-prompt 
-lighten 
-bamboo 
-bead 
-strewn 
-akin 
-tall 
-acidic 
-concentrated 
-gaseous 
-unspecified 
-oxalic 
-conjugate 
-neutral 
-manageable 
-mole 
-plastic 
-crystalline 
-inorganic 
-phosphoric 
-successive 
-refined 
-enhanced 
-cooked 
-adhesive 
-waterproof 
-projectile 
-aboriginal 
-heated 
-durable 
-aristocratic 
-aggregate 
-void 
-inch 
-widening 
-dense 
-thick 
-gravel 
-swell 
-saline 
-alkaline 
-valuable 
-exhaust 
-renewable 
-premature 
-insoluble 
-mile 
-responsive 
-respected 
-width 
-encompassing 
-lunar 
-ascent 
-blasted 
-congratulatory 
-comparable 
-acceptable 
-departed 
-couch 
-uncovered 
-audible 
-intermittent 
-coiled 
-sunlight 
-gray 
-soiled 
-lightened 
-sleep 
-olive 
-disc 
-rendezvous 
-decayed 
-upside 
-lowered 
-quarantine 
-barren 
-crowning 
-net 
-manned 
-unmanned 
-ruptured 
-automatic 
-nominal 
-worried 
-bubble 
-unexpectedly 
-outward 
-rigged 
-flung 
-cramped 
-noisy 
-tired 
-scrubbed 
-forbidding 
-parachute 
-familiar 
-surgical 
-operative 
-twelfth 
-virulent 
-cosmic 
-inclusive 
-shuttle 
-lapel 
-drowned 
-illogical 
-burlesque 
-satiric 
-pagan 
-conducive 
-devilish 
-argumentative 
-alkali 
-periodic 
-outermost 
-shiny 
-obscure 
-favoured 
-drip 
-odd 
-abundant 
-stellar 
-incompatible 
-cubic 
-excited 
-pale 
-lustre 
-bare 
-repulsive 
-elevated 
-instantaneous 
-graphite 
-triple 
-colourless 
-arsenic 
-spiral 
-powdered 
-feeble 
-blue 
-symmetrical 
-congested 
-weakly 
+emphasized JJ
+strive JJ
+heaven JJ
+commentary JJ
+whale JJ
+cite JJ
+lifetime JJ
+pop JJ
+physician JJ
+ushering JJ
+sultan JJ
+fourteen JJ
+bloodshed JJ
+thousand JJ
+clarified JJ
+intensified JJ
+salary JJ
+worth JJ
+dish JJ
+fish JJ
+website JJ
+deceive JJ
+brute JJ
+scorn JJ
+novelist JJ
+extinguish JJ
+noun JJ
+sphere JJ
+unite JJ
+sol JJ
+library JJ
+decree JJ
+universe JJ
+hundred JJ
+aqua JJ
+sulphur JJ
+acid JJ
+lapis JJ
+fantasy JJ
+nevertheless JJ
+interrupt JJ
+supplant JJ
+slang JJ
+kangaroo JJ
+flip JJ
+lantern JJ
+nip JJ
+thrive JJ
+mesh JJ
+fur JJ
+mimic JJ
+screen JJ
+multiple JJ
+seer JJ
+esthetic JJ
+sixteen JJ
+boundary JJ
+emitted JJ
+relented JJ
+motive JJ
+bolt JJ
+fashioned JJ
+shepherd JJ
+convinced JJ
+suited JJ
+nymph JJ
+twenty JJ
+forgive JJ
+incense JJ
+wish JJ
+bronzes JJ
+germ JJ
+horn JJ
+self JJ
+tripod JJ
+mosaic JJ
+modesty JJ
+ankle JJ
+fifteen JJ
+robin JJ
+squared JJ
+professed JJ
+athlete JJ
+thirteen JJ
+syllable JJ
+vocabulary JJ
+underwent JJ
+circa JJ
+elapsed JJ
+ina JJ
+san JJ
+thirty JJ
+chin JJ
+tooth JJ
+parish JJ
+sheep JJ
+archive JJ
+smoothly JJ
+donkey JJ
+whisky JJ
+especial JJ
+spy JJ
+frankly JJ
+proof JJ
+stereotyped JJ
+unravel JJ
+larvae JJ
+undergo JJ
+skin JJ
+frog JJ
+elephant JJ
+seal JJ
+fossil JJ
+tear JJ
+fold JJ
+underneath JJ
+jaw JJ
+secrete JJ
+arrive JJ
+unison JJ
+horny JJ
+organ JJ
+innermost JJ
+warmer JJ
+foam JJ
+nourishment JJ
+oval JJ
+accessory JJ
+jaws JJ
+sediment JJ
+diet JJ
+leaf JJ
+undergone JJ
+nursery JJ
+foremost JJ
+stomachs JJ
+elm JJ
+subdue JJ
+crown JJ
+quieter JJ
+fright JJ
+daylight JJ
+thumbs JJ
+acre JJ
+longitude JJ
+maximum JJ
+boarding JJ
+willow JJ
+unevenly JJ
+veal JJ
+fifty JJ
+niece JJ
+indebted JJ
+pen JJ
+banquet JJ
+induced JJ
+folded JJ
+constrained JJ
+fungus JJ
+user JJ
+surf JJ
+insight JJ
+den JJ
+supreme JJ
+guaranteed JJ
+underlying JJ
+acquittal JJ
+incarcerated JJ
+denial JJ
+disposed JJ
+prerogative JJ
+afresh JJ
+tribunal JJ
+directive JJ
+atop JJ
+pilgrim JJ
+wrought JJ
+nobler JJ
+umbrella JJ
+occupant JJ
+functionary JJ
+aloud JJ
+mounted JJ
+powered JJ
+tech JJ
+font JJ
+activated JJ
+prompt JJ
+lighten JJ
+bead JJ
+strewn JJ
+akin JJ
+oxalic JJ
+mole JJ
+cooked JJ
+projectile JJ
+aggregate JJ
+void JJ
+inch JJ
+widening JJ
+gravel JJ
+swell JJ
+exhaust JJ
+mile JJ
+width JJ
+encompassing JJ
+ascent JJ
+couch JJ
+uncovered JJ
+sunlight JJ
+sleep JJ
+disc JJ
+rendezvous JJ
+upside JJ
+lowered JJ
+quarantine JJ
+net JJ
+manned JJ
+unmanned JJ
+ruptured JJ
+bubble JJ
+unexpectedly JJ
+outward JJ
+rigged JJ
+flung JJ
+scrubbed JJ
+parachute JJ
+operative JJ
+shuttle JJ
+lapel JJ
+drowned JJ
+burlesque JJ
+alkali JJ
+outermost JJ
+drip JJ
+lustre JJ
+arsenic JJ
+weakly JJ
 radical 
 undiscovered 
 nonsense 
