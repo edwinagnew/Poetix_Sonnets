@@ -29,7 +29,8 @@ class gpt:
             tokenizer = GPT2Tokenizer.from_pretrained('gpt2' + size)
             model = GPT2LMHeadModel.from_pretrained('gpt2' + size)
             print("loaded gpt2", size)"""
-
+        if type(template) != list: return self.good_generation(seed=seed, template=template.split(), meter=meter, rhyme_words=rhyme_words, verbose=verbose)
+        if type(meter) != list: return self.good_generation(seed=seed, template=template, meter=meter.split("_"), rhyme_words=rhyme_words, verbose=verbose)
         if template and not meter: meter = [""] * len(template)
         words = list(self.tokenizer.encoder.keys())
 
