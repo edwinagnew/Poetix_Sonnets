@@ -12,7 +12,7 @@ class gpt:
         if sonnet_method:
             self.sonnet_words = sonnet_method
         else:
-            input("didnt give me a sonnet_object, try again pls")
+            input("didnt give me a sonnet_method, try again pls")
             #t = sonnet_basic.Sonnet_Gen()
             #self.sonnet_words = t.get_pos_words
 
@@ -71,6 +71,7 @@ class gpt:
                     #choose token with right spacing
                     space = " " * int(list(poss)[0] not in punc)
                     token = self.tokenizer.encode(space + list(poss)[0])[0]
+                    dist = np.ones(len(words))
                 else:
                     filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder]) #"Ġ" is gpt-2's space character
                     words = output[..., -1, :].detach().numpy() * filt
@@ -103,6 +104,7 @@ class gpt:
         return sequence
 
     def gpt_2_score_line(self, line):
+        if type(line) == list: return [self.gpt_2_score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         outputs = self.model(input_ids, labels=input_ids)
         #loss, logits = outputs[:2]

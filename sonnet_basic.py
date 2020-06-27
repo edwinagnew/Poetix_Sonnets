@@ -123,7 +123,7 @@ class Sonnet_Gen(poem_core.Poem):
                                 print("trying to end ", curr_line.text[:-1], " ", curr_line.pos_template, " ", curr_line.meter, " with a . but not happening")
                                 template = self.get_random_template(curr_line.pos_template, curr_line.meter)
                                 curr_line.text = curr_line.text[:-1] + "."
-                    print(template)
+                print(template)
 
                 curr_line.text = curr_line.text.strip()
 
@@ -150,8 +150,8 @@ class Sonnet_Gen(poem_core.Poem):
                     curr_line.print_info()
                     print(1/0)
                     continue
-                if template in used_templates: #reduces but doesnt eliminate chance of reusing templates (sometimes have to)
-                    template = self.get_random_template(curr_line.pos_template, curr_line.meter)
+                #if template in used_templates: #reduces but doesnt eliminate chance of reusing templates (sometimes have to)
+                #    template = self.get_random_template(curr_line.pos_template, curr_line.meter)
 
                 next_pos = template.split()[-len(curr_line.pos_template.split()) - 1] #gets next POS from the right
                 next_meter = self.templates[template].split("_")[-len(curr_line.pos_template.split()) - 1] #gets next meter
