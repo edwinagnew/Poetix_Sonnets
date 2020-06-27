@@ -74,9 +74,9 @@ class gpt:
                     token = self.tokenizer.encode(space + list(poss)[0])[0]
                     dist = np.ones(len(words))
                 else:
-                    filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder]) #"Ġ" is gpt-2's space character
-                    words = output[..., -1, :].detach().numpy() * filt
-                    dist = helper.softmax(words, exclude_zeros=True, k=np.percentile(words, 25)) #TODO think about not necessarily softmaxing all words?
+                    filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words]) #"Ġ" is gpt-2's space character
+                    ws = output[..., -1, :].detach().numpy() * filt
+                    dist = helper.softmax(ws, exclude_zeros=True)#, k=np.percentile(words, 0)) #TODO think about not necessarily softmaxing all words?
                     token = np.random.choice(np.arange(len(words)), p=dist).item()
                 if verbose: print("for ", template[i], end=': ')
 
@@ -104,8 +104,8 @@ class gpt:
 
         return sequence
 
-    def gpt_2_score_line(self, line):
-        if type(line) == list: return [self.gpt_2_score_line(li.strip()) for li in line]
+    def score_line(self, line):
+        if type(line) == list: return [self.score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         outputs = self.model(input_ids, labels=input_ids)
         #loss, logits = outputs[:2]
