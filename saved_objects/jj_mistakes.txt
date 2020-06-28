@@ -344,336 +344,84 @@ drip JJ
 lustre JJ
 arsenic JJ
 weakly JJ
-radical 
-undiscovered 
-nonsense 
-condensed 
-complicated 
-brine 
-distilled 
-quantum 
-fume 
-slurred 
-satisfactory 
-thorn 
-decorative 
-ecclesiastical 
-ben 
-dictionary 
-sorted 
-fourteenth 
-nasal 
-measurable 
-iodine 
-obvious 
-dissimilar 
-rigid 
-reticular 
-staggered 
-spinal 
-hollow 
-ear 
-anatomical 
-lizard 
-conical 
-inflexible 
-flexible 
-reptile 
-forehead 
-moveable 
-ancestral 
-compressed 
-owls 
-oily 
-prismatic 
-immature 
-pouch 
-nipple 
-complementary 
-thorough 
-stinging 
-unmistakably 
-impressing 
-sixteenth 
-continual 
-lime 
-painless 
-fallacious 
-false 
-consequent 
-conditional 
-divorced 
-infuriated 
-countless 
-finite 
-apothecary 
-evident 
-concise 
-devious 
-integral 
-authoritative 
-genuine 
-orthodox 
-overlooked 
-forgotten 
-blooming 
-nice 
-apt 
-aesthetic 
-chiefly 
-confusing 
-coherent 
-amplitude 
-luminous 
-radiant 
-vicious 
-contested 
-shortened 
-wan 
-arched 
-coarse 
-nail 
-arch 
-cheek 
-fleshy 
-nose 
-unprotected 
-secretive 
-precarious 
-diligent 
-fearless 
-mountainous 
-withered 
-shy 
-mistaken 
-insect 
-persecuted 
-detrimental 
-exciting 
-daring 
-adventurous 
-undertaken 
-errant 
-bounded 
-arbitrary 
-outspoken 
-prose 
-puzzled 
-marsh 
-lowland 
-inaccessible 
-affluent 
-devastating 
-stimulating 
-replenish 
-toppled 
-stunning 
-predominant 
-sunny 
-profitable 
-welcomed 
-untouched 
-aloe 
-provisional 
-collective 
-outlaws 
-effectual 
-confederate 
-unpaid 
-embarrassed 
-diplomatic 
-depreciated 
-tarnished 
-westward 
-unsettled 
-aggravated 
-gloomy 
-unrestricted 
-unwilling 
-ineffectual 
-blank 
-engrossed 
-perpetual 
-disputed 
-eager 
-objectionable 
-heady 
-substantive 
-uninspired 
-inadequate 
-irregular 
-tributary 
-volcanic 
-das 
-anomalous 
-northward 
-masked 
-uplift 
-voluminous 
-lava 
-debris 
-unsustainable 
-disastrous 
-helpless 
-norm 
-transatlantic 
-cod 
-snail 
-org 
-insatiable 
-transcendental 
-posthumous 
-appalled 
-decent 
-frugal 
-combative 
-mature 
-boastful 
-charming 
-unfulfilled 
-theologian 
-disgusted 
-irritated 
-platonic 
-suspicious 
-incomprehensible 
-dubious 
-doubtful 
-polite 
-unattractive 
-quarrelsome 
-insulting 
-unpleasant 
-enraged 
-attractive 
-progressive 
-arrogant 
-paralyzed 
-venereal 
-ignorant 
-waning 
-pet 
-supplementary 
-comprehensible 
-unfamiliar 
-amused 
-observable 
-purest 
-realist 
-intuitive 
-compassionate 
-cruel 
-tormented 
-ceaseless 
-ascetic 
-invariable 
-aspiring 
-wholesome 
-primeval 
-esteemed 
-talented 
-intelligible 
-unworthy 
-utterly 
-serene 
-faithful 
-mathematician 
-objective 
-needle 
-molded 
-protracted 
-unitary 
-nomadic 
-plain 
-provincial 
-customary 
-forensic 
-fragmented 
-penal 
-gay 
-fluent 
-deficient 
-overworked 
-martial 
-overwhelming 
-vested 
-fraudulent 
-lapsed 
-reservoir 
-unpaved 
-undergoing 
-cordial 
-soured 
-booming 
-steadfast 
-illicit 
-unimpressive 
-brave 
-untrained 
-inexperienced 
-imminent 
-piecemeal 
-clipped 
-elastic 
-dummy 
-fabricated 
-laptop 
-careless 
-servile 
-prairie 
-upward 
-frigid 
-aspen 
-verified 
-thoroughly 
-neglect 
-mighty 
-bloody 
-amalgamated 
-outdoor 
-eclectic 
-ubiquitous 
-thrust 
-indifferent 
-venomous 
-simultaneous 
-inbred 
-salmon 
-mandarin 
-outlandish 
-welcome 
-empress 
-inclined 
-calm 
-unsure 
-secluded 
-theirs 
-unemployed 
-proud 
-prolong 
-undisclosed 
-wonderful 
-childlike 
-stubborn 
-elegant 
-exaggerated 
-vanish 
-displeased 
-dice 
-entangled 
-lauded 
-unsuccessful 
-promising 
-hairstyle 
-strategic 
-therefor 
-materialistic 
-idolatrous 
-renovated 
-relaxed 
-accustomed 
-cherished 
-unearthed 
+brine JJ
+fume JJ
+slurred JJ
+thorn JJ
+ben JJ
+dictionary JJ
+iodine JJ
+staggered JJ
+ear JJ
+lizard JJ
+reptile JJ
+forehead JJ
+owls JJ
+pouch JJ
+nipple JJ
+unmistakably JJ
+impressing JJ
+lime JJ
+consequent JJ
+divorced JJ
+apothecary JJ
+blooming JJ
+chiefly JJ
+amplitude JJ
+nail JJ
+arch JJ
+cheek JJ
+nose JJ
+insect JJ
+undertaken JJ
+prose JJ
+marsh JJ
+lowland JJ
+replenish JJ
+toppled JJ
+welcomed JJ
+aloe JJ
+outlaws JJ
+westward JJ
+tributary JJ
+das JJ
+northward JJ
+uplift JJ
+lava JJ
+debris JJ
+norm JJ
+cod JJ
+snail JJ
+org JJ
+theologian JJ
+venereal JJ
+purest JJ
+realist JJ
+utterly JJ
+mathematician JJ
+needle JJ
+molded JJ
+reservoir JJ
+undergoing JJ
+dummy JJ
+laptop JJ
+prairie JJ
+upward JJ
+aspen JJ
+verified JJ
+thoroughly JJ
+neglect JJ
+thrust JJ
+salmon JJ
+empress JJ
+inclined JJ
+theirs JJ
+prolong JJ
+vanish JJ
+dice JJ
+hairstyle JJ
+therefor JJ
+unearthed JJ
 sudden 
 priceless 
 pyramid 

@@ -26,6 +26,7 @@ class Bulk_Gen(poem_core.Poem):
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
                  templates_file="poems/jordan_templates.txt",
+                 paired_templates=False,
                  #templates_file='poems/number_templates.txt',
                  mistakes_file='saved_objects/mistakes.txt'):
 
@@ -58,6 +59,13 @@ class Bulk_Gen(poem_core.Poem):
 
         else:
             self.lang_model = None
+
+        if paired_templates == True:
+            self.temp_pairs = {}
+            for i in range(len(self.templates)):
+                if i % 2 == 1:
+                    self.temp_pairs[self.templates[i-1]] = self.templates[i]
+
 
         #with open('poems/kaggle_poem_dataset.csv', newline='') as csvfile:
          #   self.poems = csv.DictReader(csvfile)
@@ -280,6 +288,60 @@ class Bulk_Gen(poem_core.Poem):
         word = random.choice(self.get_pos_words(pos, meter=meter[-1]))
         line += word
         return line
+
+    def write_line_pairs(self,  num_lines, theme="flower"):
+
+        theme_gen = theme_word_file.Theme()
+        theme_words = theme_gen.get_theme_words(theme, verbose=False)
+        lines = []
+        next_temp = False
+        for i in range(num_lines):
+            self.reset_number_words()
+            if next_temp == False:
+                template, meter = random.choice(list(self.temp_pairs.keys()))
+                next_temp = self.temp_pairs[(template, meter)]
+            else:
+                template, meter = next_temp
+                next_temp = False
+            template = template.split()
+            meter = meter.split("_")
+            line = self.write_line(template, meter, theme_words=theme_words)
+            if line:
+                lines.append(line)
+            """
+            for check in checks:
+                if check in template:
+                    adv = template.index(check)
+                    line_arr = line.split()
+                    #phrase = []
+                    low = max(0,adv-1)
+                    if template[low] in self.special_words: low += 1
+                    #phrase.append(line_arr[low])
+                    #phrase.append(line_arr[adv])
+                    high = min(len(line_arr), adv+2)
+                    if template[high-1] in self.special_words: high -= 1
+                    #phrase.append(line_arr[high])
+                    print(check, " adv ", line, "low: ", low, ", high: ", high, "adv: ", adv, line_arr[low:high])
+                    inc_syn = False
+                    while not self.phrase_in_poem_fast(line_arr[low:high], include_syns=inc_syn):
+                        poss = self.get_pos_words(check, meter=meter[adv], phrase=(line_arr[low:high], line_arr[low:high].index(line_arr[adv])))
+                        inc_syn = True
+                        if not poss:
+                            continue
+                        else:
+                            line = self.write_line(line_number, template, meter, theme_words=theme_words)
+                            inc_syn = False
+                            continue
+
+                        line_arr[adv] = random.choice(poss)
+                        print(check, " updated, line now ", " ".join(line_arr))
+                    line = " ".join(line_arr)
+
+        for cand in range(len(lines)):
+            print(lines[cand])
+            if ((cand + 1) % 4 == 0): print("")
+        """
+        return lines
 
 
 

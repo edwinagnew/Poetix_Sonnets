@@ -7,7 +7,7 @@ import bulk_line_generator
 if __name__ == '__main__':
     s = bert_verb.Scenery_Gen(model="gpt_2")
     #s = bert_verb.Scenery_Gen()
-    generator = bulk_line_generator.Bulk_Gen()
+    generator = bulk_line_generator.Bulk_Gen(templates_file="poems/paired_templates.txt", paired_templates=True)
     """
     generator = gpt_2_gen_bitdtfodb.gpt(None)
     sonnet = []
@@ -15,7 +15,7 @@ if __name__ == '__main__':
         temp = generator.good_generation(None)
         sonnet.append(temp)
     """
-    sonnet = generator.write_bulk_lines(1000, "death")
+    sonnet = generator.write_line_pairs(10000, "trees")
 
     #sonnet_file = open("poems/shakespeare_with_punc.txt", "r")
     #sonnet = [line.strip() for line in sonnet_file.readlines()]
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     for i in range((int(len(sonnet)/2))):
         num = i * 2
-        line = sonnet[num] + " " + sonnet[num+1]
+        line = " ".join(sonnet[num:num + 2])
         temp = line.strip()
         score = s.gpt_2_score_line(temp)
 
@@ -95,4 +95,26 @@ if __name__ == '__main__':
     bert think  81  are good
     bert think  175  are bad
     they agree on  3
+    """
+
+    """
+    From initial testing of paired templates, with:
+    
+    NN VBD WITH NN AND JJ NNS QUITE VBN 0_1_0_1_0_10_1_0_1
+    TO JJ NN AND VBG PRPO THERE. 0_10_10_1_01_0_1
+
+
+    NN VBD AND VBD EVERY WHERE 01_01_0_10_10_1
+    AND VB JJ NNS IN PRP$ NN POS NN. 0_1_0_10_1_0_10__1
+
+    BUT AS THE NN SHOULD BY NN VB, 0_1_0_10_1_0_1_01
+    THAT RB NN POS NN MIGHT RB VB 0_10_10__1_0_10_1
+    
+    mean:  7.491654950141907
+    median:  7.4732136726379395
+    best line:  convex seduced and huddled every where and tuck deep heaters in his skinner 's bob.  with a score of  6.201420783996582
+    worst line:  warm packed with group and peaceful vines quite ripped to stricter janice and proving him there.  with a score of  9.093894958496094
+    good lines, of which there are:  0
+    
+    Even when run on 10,000 lines, we still got no lines with a score less than 5.5.
     """
