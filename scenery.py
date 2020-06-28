@@ -20,7 +20,7 @@ from nltk import PorterStemmer
 import poem_core
 
 class Scenery_Gen(poem_core.Poem):
-    def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
+    def __init__(self, model=None, words_file="saved_objects/tagged_words.p",
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
@@ -33,7 +33,7 @@ class Scenery_Gen(poem_core.Poem):
           #                ("WHERE ALL THE scNNS OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
            #               ("AND THAT JJ WHICH RB VBZ NN", "0_1_01_0_10_1_01")]
 
-        poem_core.Poem.__init__(self, words_file="saved_objects/tagged_words.p", templates_file=templates_file,
+        poem_core.Poem.__init__(self, words_file=words_file, templates_file=templates_file,
                                 syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file, mistakes_file=mistakes_file)
         if model == "bert":
             self.lang_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
@@ -109,10 +109,9 @@ class Scenery_Gen(poem_core.Poem):
             for word in ret:
                 phrase[0][phrase[1]] = word
                 phrases.append(" ".join(phrase[0]))
-            print(phrases, ret)
+            #print(phrases, ret)
             ret = [ret[i] for i in range(len(ret)) if self.phrase_in_poem_fast(phrases[i], include_syns=True)]
             return ret
-
 
     #@override
     def last_word_dict(self, rhyme_dict):
@@ -172,7 +171,7 @@ class Scenery_Gen(poem_core.Poem):
         meter = self.templates[line][1].split("_")[-1]
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
-    def write_stanza(self, theme="flower", verbose=False, checks=["RB", "NNS"], rhyme_lines=False):
+    def write_stanza(self, theme="flower", verbose=False, checks=["RB", "NNS"], rhyme_lines=True):
         """
         Writes a poem from the templates
         Parameters
@@ -188,20 +187,19 @@ class Scenery_Gen(poem_core.Poem):
         self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
         lines = []
         orig_lines = []
-        for line_number, (template, meter) in enumerate(self.templates):
+        templates = self.templates[:min(14, len(self.templates))]
+        for line_number, (template, meter) in enumerate(templates):
             self.reset_number_words()
             if line_number % 4 == 0: rhymes = []
             template = template.split()
             meter = meter.split("_")
             line = self.write_line(line_number, template, meter, rhymes=rhymes)
-            print("d", line_number)
             if line_number % 4 < 2 and rhyme_lines:
                 rhymes.append(line.split()[-1])
             #line += random.choice(last_word_dict[line_number])
             #checks = ["RB", "NNS"]
             for check in checks:
                 if check in template:
-                    print("e")
                     adv = template.index(check)
                     line_arr = line.split()
                     #phrase = []
@@ -286,10 +284,10 @@ class Scenery_Gen(poem_core.Poem):
             new_word = self.weighted_choice(pos, meter=meter[i])
             line += new_word + " "
         if n == -1 or not rhymes:
-            pos = template[-1].split("sc")[-1]
+            pos = template[-1]#.split("sc")[-1]
             #num = -1
             #letter = ""
-            word = self.weighted_choice(pos, meter=meter[i])
+            word = self.weighted_choice(pos, meter=meter[-1])
 
         elif n % 4 < 2:
             word = None
@@ -497,7 +495,7 @@ class Scenery_Gen(poem_core.Poem):
                 syns.append([l.name() for s in wn.synsets(j) for l in s.lemmas() if l.name() in self.dict_meters])
             contenders = set(words[0] + " " + w for w in syns[1])
             contenders.update([w + " " + words[1] for w in syns[0]])
-            print(words, ": " , contenders)
+            #print(words, ": " , contenders)
             return any(self.phrase_in_poem_fast(c) for c in contenders)
 
 
