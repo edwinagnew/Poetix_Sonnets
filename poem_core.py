@@ -80,7 +80,8 @@ class Poem:
             return [pos.lower()]
         if "PRP" in pos and "_" not in pos and meter:
             ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(len(meter) == len(q) for q in self.get_meter(p)) ]
-            if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
+            #if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
+            if len(ret) == 0: return [p for p in self.pos_to_words[pos] if meter in self.get_meter(p)]
             return ret
         elif pos not in self.pos_to_words:
             return []

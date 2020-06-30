@@ -247,6 +247,7 @@ class Scenery_Gen(poem_core.Poem):
     def write_line(self, n, template, meter, rhymes=[], verbose=False):
         #numbers = {}
         line = ""
+        punc = ",.;?"
         for i in range(len(template) - 1):
             new_words = []
             scores = []
@@ -282,7 +283,8 @@ class Scenery_Gen(poem_core.Poem):
                 #if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0"
                 if verbose: print(new_word, " chosen with prob", dist[new_words.index(new_word)], "now: ", self.pos_to_words[pos][new_word])"""
             new_word = self.weighted_choice(pos, meter=meter[i])
-            line += new_word + " "
+            space = " " * int(new_word not in punc + "'s")
+            line += space + new_word
         if n == -1 or not rhymes:
             pos = template[-1]#.split("sc")[-1]
             #num = -1
@@ -317,8 +319,8 @@ class Scenery_Gen(poem_core.Poem):
             r = (n % 4) - 2
             if n == 13: r = 0
             word = random.choice([rhyme for rhyme in self.get_pos_words(template[-1], meter=meter[-1]) if self.rhymes(rhyme, rhymes[r])])
-        line += word
-        return line
+        line += " " + word
+        return line.strip()
 
     def update_bert(self, line, meter, template, iterations, rhyme_words=[], filter_meter=True, verbose=False, choice = "min"):
         if iterations <= 0: return " ".join(line) #base case

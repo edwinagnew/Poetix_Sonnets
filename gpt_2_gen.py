@@ -61,6 +61,8 @@ class gpt:
                     poss = set(punc_next)
                     punc_next = False
                     #i -= 1
+                #elif template[i] == "POS":
+                #    poss = {"'s"}
                 else:
                     if template[i][-1] in punc:
                         template[i], punc_next = template[i][:-1], template[i][-1]
@@ -70,7 +72,7 @@ class gpt:
                 # token = torch.argmax(output[..., -1, :][0] * filt)
                 if len(poss) == 1:
                     #choose token with right spacing
-                    space = " " * int(list(poss)[0] not in punc)
+                    space = " " * int(list(poss)[0] not in punc + "'s")
                     token = self.tokenizer.encode(space + list(poss)[0])[0]
                     dist = np.ones(len(words))
                 else:
