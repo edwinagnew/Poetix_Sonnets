@@ -4,6 +4,8 @@ import random
 import pickle
 import numpy as np
 
+import string
+import pronouncing
 #import gpt_2_gen
 
 from os import path
@@ -18,7 +20,7 @@ class Poem:
         while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
         keep_scores = False#"byron" in words_file
         self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file, keep_scores=keep_scores)
-
+        self.backup_words = None
         try:
             with open(templates_file) as tf:
                 self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
@@ -30,6 +32,8 @@ class Poem:
         self.special_words = helper.get_finer_pos_words()
 
         self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
+
+        self.pron = {w.split()[0].lower(): " ".join(w.split()[1:]) for w in open(syllables_file).readlines() if w.split()[0].lower().split("(")[0] in self.words_to_pos}
 
         self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
 
@@ -60,7 +64,7 @@ class Poem:
             return []
         return self.words_to_pos[word]
 
-    def get_pos_words(self,pos, meter=None):
+    def get_pos_words(self,pos, meter=None, rhyme=None):
         """
         Gets all the words of a given POS
         Parameters
@@ -68,8 +72,10 @@ class Poem:
         pos - the POS you want
         meter - (optional) returns only words which fit the given meter, e.g. 101
         """
+        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if w in self.get_rhyme_words(rhyme)]
         #print("oi," , pos, meter, phrase)
         punc = [".", ",", ";", "?", ">"]
+        #print("here2", pos, meter)
         if pos[-1] in punc:
             p = pos[-1]
             if p == ">":
@@ -90,13 +96,45 @@ class Poem:
             return ret
         return [p for p in self.pos_to_words[pos]]
 
-    def weighted_choice(self,pos, meter=None):
-        punc = ".,;?"
-        if pos[-1] in punc: return self.weighted_choice(pos[:-1], meter=meter) + pos[-1]
-        poss = self.get_pos_words(pos, meter=meter)
+    def rhymes(self, word1, word2, check_cmu=True):
+        if not word1 or not word2: return False
+        if word1[-1] in ".,?!>": word1 = word1.translate(str.maketrans('', '', string.punctuation))
+        if word2[-1] in ".,?!>": word2 = word2.translate(str.maketrans('', '', string.punctuation))
+        if word1 in self.get_rhyme_words(word2) or word2 in self.get_rhyme_words(word1): return True
+        if not check_cmu: return False
+
+        def rhyming_syll(pron):
+            found_one = False
+            for i in range(len(pron)-1, 0, -1):
+                if pron[i] == "1": found_one = True
+                if found_one and pron[i] == " ": return pron[i+1:]
+
+        if rhyming_syll(self.pron[word1]) == rhyming_syll(self.pron[word2]): return True
+        for j in range(4):
+            w1 = (word1 + "(" + str(j) + ")").replace("(0)", "")
+            if w1 in self.pron:
+                for k in range(4):
+                    w2 = (word2 + "(" + str(k) + ")").replace("(0)", "")
+                    if w2 in self.pron:
+                        if rhyming_syll(self.pron[w1]) == rhyming_syll(self.pron[w2]): return True
+
+        return False
+
+    def get_rhyme_words(self, word):
+        if not word: return []
+        if word[-1] in string.punctuation:
+            word = word.translate(str.maketrans('', '', string.punctuation))
+            return self.get_rhyme_words(word)
+        return pronouncing.rhymes(word)
+
+    def weighted_choice(self,pos, meter=None, rhyme=None):
+        punc = ".,;?!"
+        if pos[-1] == ">": return self.weighted_choice(pos.split("<")[0], meter=meter, rhyme=rhyme) + random.choice(pos.split("</")[-1].strip(">").split("/"))
+        if pos[-1] in punc: return self.weighted_choice(pos[:-1], meter=meter, rhyme=rhyme) + pos[-1]
+        poss = self.get_pos_words(pos, meter=meter, rhyme=rhyme)
         if not poss:
-            print("nope", pos, meter)
-            return None
+            print("nope", pos, meter, rhyme)
+            return ""
         elif len(poss) == 1: return poss[0]
         poss_dict = {p:self.pos_to_words[pos][p] for p in poss}
         vals = list(poss_dict.values())
@@ -186,18 +224,72 @@ class Poem:
 
     def suitable_last_word(self, word, punc=False): #checks pos is in self.end_pos and has correct possible meters
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
-        return any(w in self.end_pos.keys() for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
+        return any(w in self.end_pos for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
     def write_line_gpt(self, template, meter, k=3, gpt_model=None, verbose=False):
         if not self.gpt:
             #self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1/0)
-        t_2 = template
-        if template[-1] == ">":
-            t_2 = template.split("<")[0] + random.choice(template.split("<")[1].strip(">").split("/"))
         print("\n")
-        print(t_2, meter)
+        print(template, meter)
         for i in range(k):
             #print("generating with ", t_2, meter.split("_"), i)
-            print(self.gpt.good_generation(None, template=t_2.split(), meter=meter.split("_"), verbose=verbose))
+            print(self.gpt.good_generation(None, template=template.split(), meter=meter.split("_"), verbose=verbose))
+
+    def write_line_random(self, template, meter, rhyme_words=[], verbose=False):
+        if type(template) == str: template = template.split()
+        if type(meter) == str: meter = meter.split("_")
+
+        line = ""
+        punc = ",.;?"
+
+
+        for i in range(len(template)):
+            next_word = self.weighted_choice(template[i], meter[i])
+            if not next_word: input("no word for " + template[i] + meter[i])
+            space = " " * int(line != "" and next_word not in (punc + "'s"))
+            line += space + next_word
+
+        r = -2
+        if len(rhyme_words) == 13: r = -1
+        new_word = ""
+        while len(rhyme_words) >= 2 and not self.rhymes(new_word, rhyme_words[r]):
+            old_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
+            self.reset_letter_words()
+            new_word = self.weighted_choice(template[-1], meter[-1], rhyme=rhyme_words[r])
+            new_word = new_word.translate(str.maketrans('', '', string.punctuation))
+            if not new_word:
+                print("cant rhyme")
+                break
+            line.replace(old_word, new_word) #will replace all instances
+            print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_words[r])
+
+
+        return line.strip()
+
+    def reset_letter_words(self):
+        for pos in list(self.pos_to_words):
+            if "_" in pos: #or pos in "0123456789"
+                del self.pos_to_words[pos]
+
+    def get_next_template(self, used_templates):
+        poss = self.templates
+        incomplete = ",;" + string.ascii_lowercase
+        if len(used_templates) > 0:
+            if used_templates[-1][-1] == ".":
+                poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE"]]
+            #elif used_templates[-1][-1] in incomplete:
+             #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
+
+            if len(used_templates) % 4 == 3 or len(used_templates) == 13:
+                poss = [(p.replace("/,", ""), q) for p,q in poss if p[-1] in ">.?"]
+                #print("last line of stanza so:", poss)
+
+
+        if len(poss) == 0:
+            print("theres no templates " + str(len(used_templates)) + used_templates[-1])
+            return random.choice(self.templates)
+        return random.choice(poss)
+
+

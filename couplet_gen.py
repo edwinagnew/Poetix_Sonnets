@@ -10,53 +10,52 @@ s = scenery.Scenery_Gen(templates_file="poems/jordan_templates.txt")
 
 gpt = gpt_2_gen.gpt(None, sonnet_method=s.get_pos_words, model="gpt2")
 
-stanzas = []
-for i in range(4):
-        print(i)
-        s.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
-        loss = 10
-        while loss > 6:
-                template, meter = random.choice(s.templates)
-                if template[-1] == ">": template = template.replace("/.>", " ").replace("<", "")
-                if template[-1] not in ",;" + string.ascii_uppercase: continue
-                line = s.write_line(-1, template.split(), meter.split("_"))
-                loss = gpt.score_line(line)
-        #print(line, template, loss)
-        next_template, next_meter = ",", "1"
-        while next_template[-1] not in ".?":
-                next_template, next_meter = random.choice(s.templates)
-                if next_template[-1] == ">": next_template = next_template.split("<")[0] + "."
-        #print("template 1: ", next_template)
-        next_line = gpt.good_generation(line, template=template + " " + next_template, meter=meter + "_" + next_meter).replace(line, "")
-        #print(line, "->", next_line)
-        line += "\n" + next_line
-        template += " " + next_template
-        meter += "_" + next_meter
+
+def write_set(n_random, n_gpt, sonnet, gpt):
+        sonnet.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
+        used_templates = []
+        rhymes = []
+        scores = []
+        stanza = ""
+        #for i in range(n_random):
+        while len(stanza.split()) <= n_random:
+                template, meter = sonnet.get_next_template(used_templates)
+                line = sonnet.write_line_random(template, meter, rhymes)
+                if len(stanza) == 0 or stanza[-2] in ".?!":
+                        line = line.capitalize()
+                score = gpt.score_line(line)
+                if score < 6:
+                        stanza += line + "\n"
+                        rhymes.append(line.split()[-1])
+                        used_templates.append(template)
+                        scores.append(score)
+
+        for j in range(n_gpt):
+                template, meter = sonnet.get_next_template(used_templates)
+                r = None if len(rhymes) < 2 else rhymes[-2]
+                line = gpt.good_generation(stanza, template=template, meter=meter, rhyme_words=sonnet.get_rhyme_words(r))
+                line = line.replace(stanza.strip(), "").strip()
+                #print(line, "\n=>", line.replace(stanza.strip(), ""), "\n=>", stanza)
+                if len(stanza.split("\n")) == 0 or stanza[-2] in ".?!":
+                        line = line.capitalize()
+                stanza += line + "\n"
+                rhymes.append(line.split()[-1])
+                used_templates.append(template)
+                score = gpt.score_line(line)
+                scores.append(score)
+
+        stanza = stanza.strip()
+        total_score = gpt.score_line(stanza)
+
+        return (stanza, total_score, scores)
 
 
-        next_template, next_meter = ".", "1"
-        while next_template[-1] not in ",;" + string.ascii_uppercase or next_template.split()[0] in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE"]:
-                next_template, next_meter = random.choice(s.templates)
-                if next_template[-1] == ">": next_template = next_template.replace("/.>", " ").replace("<", "")
-        #print("template 2: ", next_template)
-        rhyme = (line.split("\n")[-2].split()[-1])
-        #print(rhyme)
-        next_line = gpt.good_generation(line, template=template + " " + next_template, meter=meter + "_" + next_meter, rhyme_words=pronouncing.rhymes(rhyme)).replace(line, "")
-        line += "\n" + next_line
-        template += " " + next_template
-        meter += "_" + next_meter
 
 
-        next_template, next_meter = ",", "1"
-        while next_template[-1] not in ".?":
-                next_template, next_meter = random.choice(s.templates)
-                if next_template[-1] == ">": next_template = next_template.split("<")[0] + "."
-        #print("template 3: ", next_template)
-        rhyme = (line.split("\n")[-2].split()[-1])
-        next_line = gpt.good_generation(line, template=template + " " + next_template, meter=meter + "_" + next_meter, rhyme_words=pronouncing.rhymes(rhyme)).replace(line, "")
-        line += "\n" + next_line
+s, t_s, sc = write_set(1,3,s,gpt)
 
-        stanzas.append((line, gpt.score_line([line, next_line])))
-        #print(stanzas[-1])
+f = open("saved_objects/generated_stanzas/1rand_3g.txt", "a")
 
-print(stanzas)
+f.write("1,3," + s + "," + str(t_s) + "," + str(sc) + "\n")
+
+f.close()

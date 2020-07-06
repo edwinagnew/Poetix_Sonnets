@@ -23,14 +23,14 @@ class gpt:
 
         if seed: print(self.good_generation(seed, template, meter))
 
-    def good_generation(self, seed=None, template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), rhyme_words=[], b=6, verbose=False):
+    def good_generation(self, seed="", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), rhyme_words=[], b=6, verbose=False):
         """if not tokenizer or not model:
             print("loading model")
             tokenizer = GPT2Tokenizer.from_pretrained('gpt2' + size)
             model = GPT2LMHeadModel.from_pretrained('gpt2' + size)
             print("loaded gpt2", size)"""
-        if type(template) != list: return self.good_generation(seed=seed, template=template.split(), meter=meter, rhyme_words=rhyme_words, verbose=verbose)
-        if type(meter) != list: return self.good_generation(seed=seed, template=template, meter=meter.split("_"), rhyme_words=rhyme_words, verbose=verbose)
+        if type(template) != list: template = template.split()
+        if type(meter) != list: meter = meter.split("_")
         if template and not meter: meter = [""] * len(template)
         words = list(self.tokenizer.encoder.keys())
 
@@ -43,7 +43,8 @@ class gpt:
         punc = ",.;?"
 
         if template:
-            a, b = len(seed.split()), len(template)
+            #a, b = len(seed.split()), len(template) #complete partially started line
+            a, b = 0, len(template) #write new line given previous ones
         else:
             a, b = 0, b
 
@@ -64,7 +65,10 @@ class gpt:
                 #elif template[i] == "POS":
                 #    poss = {"'s"}
                 else:
-                    if template[i][-1] in punc:
+                    if template[i][-1] == ">":
+                        template[i], punc_next = template[i].split("<")[0], template[i].split("<")[1].strip(">").split("/")
+
+                    elif template[i][-1] in punc:
                         template[i], punc_next = template[i][:-1], template[i][-1]
                     poss = set(self.sonnet_words(template[i], meter=meter[i]))  # searching a set is O(1), searching a list is O(n)!!!
                     if rhyme_words and i == b-1: poss = set(p for p in poss if p in rhyme_words)
@@ -104,7 +108,7 @@ class gpt:
             if word_index - 1 > 0 and word_index - 1 != " " and sequence[word_index - 1] != "-":
                 sequence = sequence[:word_index] + " " + sequence[word_index:]"""
 
-        return sequence
+        return sequence#.replace(seed, "")
 
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
