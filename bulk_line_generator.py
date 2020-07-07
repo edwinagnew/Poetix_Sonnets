@@ -19,6 +19,7 @@ from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
 import poem_core
+import bert_verb
 
 class Bulk_Gen(poem_core.Poem):
     def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
@@ -192,39 +193,32 @@ class Bulk_Gen(poem_core.Poem):
             line = self.write_line(template, meter, theme_words=theme_words)
             if line:
                 lines.append(line)
-            """
-            for check in checks:
-                if check in template:
-                    adv = template.index(check)
-                    line_arr = line.split()
-                    #phrase = []
-                    low = max(0,adv-1)
-                    if template[low] in self.special_words: low += 1
-                    #phrase.append(line_arr[low])
-                    #phrase.append(line_arr[adv])
-                    high = min(len(line_arr), adv+2)
-                    if template[high-1] in self.special_words: high -= 1
-                    #phrase.append(line_arr[high])
-                    print(check, " adv ", line, "low: ", low, ", high: ", high, "adv: ", adv, line_arr[low:high])
-                    inc_syn = False
-                    while not self.phrase_in_poem_fast(line_arr[low:high], include_syns=inc_syn):
-                        poss = self.get_pos_words(check, meter=meter[adv], phrase=(line_arr[low:high], line_arr[low:high].index(line_arr[adv])))
-                        inc_syn = True
-                        if not poss:
-                            continue
-                        else:
-                            line = self.write_line(line_number, template, meter, theme_words=theme_words)
-                            inc_syn = False
-                            continue
-                            
-                        line_arr[adv] = random.choice(poss)
-                        print(check, " updated, line now ", " ".join(line_arr))
-                    line = " ".join(line_arr)
-                    
-        for cand in range(len(lines)):
-            print(lines[cand])
-            if ((cand + 1) % 4 == 0): print("")
-        """
+
+        return lines
+
+    def write_bulk_lines_with_template(self, num_lines, theme="flower"):
+        theme_gen = theme_word_file.Theme()
+        theme_words = theme_gen.get_theme_words(theme, verbose=False)
+        lines = {}
+        for temp in self.templates:
+            count = 0
+            failed_count = 0
+            lines[temp] = []
+            print("beginning new template")
+            while count < num_lines:
+                self.reset_number_words()
+                template, meter = temp
+                template = template.split()
+                meter = meter.split("_")
+                line = self.write_line(template, meter, theme_words=theme_words)
+                if line:
+                    lines[temp].append(line)
+                    count += 1
+                else:
+                    failed_count += 1
+                if failed_count > 20:
+                    print("yikes, ", temp, " doesn't really work")
+                    break
         return lines
 
     def write_line(self, template, meter, theme_words=[], verbose=True):
@@ -341,6 +335,37 @@ class Bulk_Gen(poem_core.Poem):
             print(lines[cand])
             if ((cand + 1) % 4 == 0): print("")
         """
+        return lines
+
+    def write_line_pairs_threshold(self,  num_lines, target_score=7, theme="flower"):
+
+        theme_gen = theme_word_file.Theme()
+        theme_words = theme_gen.get_theme_words(theme, verbose=False)
+        lines = []
+        next_temp = False
+        redo = False
+        i = 0
+        target_score = int(target_score)
+        while i < num_lines:
+            self.reset_number_words()
+            if redo == False: #keeps track of whether our last line was good enough, enough we want to redo with the same template
+                if next_temp == False:
+                    template, meter = random.choice(list(self.temp_pairs.keys()))
+                    next_temp = self.temp_pairs[(template, meter)]
+                else:
+                    template, meter = next_temp
+                    next_temp = False
+                template = template.split()
+                meter = meter.split("_")
+            line = self.write_line(template, meter, theme_words=theme_words)
+            if line and self.gpt_2_score_line(line) < target_score:
+                lines.append(line)
+                i += 1
+                redo = False
+            else:
+                redo = True
+                continue
+
         return lines
 
 
