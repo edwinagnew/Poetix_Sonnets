@@ -85,12 +85,9 @@ class Scenery_Gen(poem_core.Poem):
         #print("here", pos, meter, rhyme)
         #similar/repeated word management
         if pos not in self.pos_to_words and "_" in pos:
-            #print("here 3", pos, meter)
             sub_pos = pos.split("_")[0]
-            #print("getting weighted", sub_pos, meter)
             word = self.weighted_choice(sub_pos, meter=meter, rhyme=rhyme)
             if not word: input("rhyme broke " + sub_pos + " " + meter + " " + rhyme)
-           #print("got weighted", word)
             #word = random.choice(poss)
             if pos.split("_")[1] in string.ascii_lowercase:
                 #print("maybe breaking on", pos, word, sub_pos)
@@ -189,7 +186,7 @@ class Scenery_Gen(poem_core.Poem):
         -------
 
         """
-
+        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
         self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
         lines = []
         used_templates = []
@@ -204,21 +201,23 @@ class Scenery_Gen(poem_core.Poem):
             meter = meter.split("_")
             #line = self.write_line(line_number, template, meter, rhymes=rhymes)
             if rhyme_lines and len(rhymes) >= 2:
-                r = -1 if line_number == 12 else -2
+                r = -1 if line_number == 13 else -2
+                print(lines[r], rhymes[r], template)
                 word = rhymes[r]
-                pos = used_templates[r].split()[-1].translate(str.maketrans('', '', string.punctuation))
+                pos = used_templates[r].split()[-1].split("_")[0].translate(str.maketrans('', '', string.punctuation))
                 met = random.choice(self.get_meter(word))
-                rhyme_pos = template[-1].translate(str.maketrans('', '', string.punctuation)).split("_")[0]
+                rhyme_pos = template[-1].split("_")[0].translate(str.maketrans('', '', string.punctuation))
                 rhyme_met = meter[-1]
                 poss = set(self.get_pos_words(rhyme_pos, rhyme_met))
                 q = 0
+                print("trying to find a ", pos, met, " which rhymes with any", rhyme_pos, rhyme_met)
                 while not any(self.rhymes(word, w2) for w2 in poss):
                     word = self.weighted_choice(pos, met)
                     print(q, "word now", word)
                     q += 1
-                print("changing line from: '", lines[r] + "'")
-                lines[r].replace(rhymes[r], word)
-                print("to '", lines[r] + "'")
+                print("changing line from: '" + lines[r] + "'")
+                lines[r] = lines[r].replace(rhymes[r], word)
+                print("to '" + lines[r] + "'")
                 rhymes[r] = word
             line = self.write_line_random(template, meter, rhyme_words=rhymes, verbose=True)
             if line_number % 4 < 2 and rhyme_lines:
@@ -241,7 +240,7 @@ class Scenery_Gen(poem_core.Poem):
                         poss = self.get_pos_words(check, meter=meter[adv], phrase=(line_arr[low:high], line_arr[low:high].index(line_arr[adv])))
                         inc_syn = True
                         if not poss:
-                            if input("cant find a suitable phrase " + line + str(template) + str(meter) + meter[adv] + " press enter to ignore phrase"):
+                            if not verbose or input("cant find a suitable phrase " + line + str(template) + str(meter) + meter[adv] + " press enter to ignore phrase"):
                                 low = high = 0
                             line = self.write_line_random(template, meter, rhyme_words=rhymes)
                             inc_syn = False
@@ -258,6 +257,7 @@ class Scenery_Gen(poem_core.Poem):
                     rhyme_set += self.get_rhyme_words(r)
                 print("rhyme_set length: ", len(rhyme_set))
                 line = self.update_bert(line.strip().split(), meter, template, len(template)/2, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
+            if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
             print("line now ", line)
             lines.append(line)
             if template[-1][-1] == ">": template = template[:-1] + [template[-1].split("<")[0] + line[-1]]

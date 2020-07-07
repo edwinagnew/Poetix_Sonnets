@@ -18,7 +18,7 @@ def write_set(n_random, n_gpt, sonnet, gpt):
         scores = []
         stanza = ""
         #for i in range(n_random):
-        while len(stanza.split()) <= n_random:
+        while len(stanza.split("\n")) <= n_random:
                 template, meter = sonnet.get_next_template(used_templates)
                 line = sonnet.write_line_random(template, meter, rhymes)
                 if len(stanza) == 0 or stanza[-2] in ".?!":
@@ -26,6 +26,7 @@ def write_set(n_random, n_gpt, sonnet, gpt):
                 score = gpt.score_line(line)
                 if score < 6:
                         stanza += line + "\n"
+                        print("stanza now '" + stanza + "'")
                         rhymes.append(line.split()[-1])
                         used_templates.append(template)
                         scores.append(score)
@@ -52,10 +53,12 @@ def write_set(n_random, n_gpt, sonnet, gpt):
 
 
 
-s, t_s, sc = write_set(1,3,s,gpt)
+s, t_s, sc = write_set(2,0,s,gpt)
 
-f = open("saved_objects/generated_stanzas/1rand_3g.txt", "a")
+print(s)
 
-f.write("1,3," + s + "," + str(t_s) + "," + str(sc) + "\n")
+f = open("saved_objects/local_generated_stanzas/1rand_3g.txt", "a")
+
+f.write("1,3,\'" + s + "\'," + str(t_s) + "," + str(sc) + "\n")
 
 f.close()

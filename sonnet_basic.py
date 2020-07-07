@@ -69,6 +69,7 @@ class Sonnet_Gen(poem_core.Poem):
         3. Repeat for 14 lines
 
         """
+        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
         #Get rhyming words
         #at some point implement narrative trajectory stuff
         rhyme_dict = {}
@@ -123,7 +124,6 @@ class Sonnet_Gen(poem_core.Poem):
                                 print("trying to end ", curr_line.text[:-1], " ", curr_line.pos_template, " ", curr_line.meter, " with a . but not happening")
                                 template = self.get_random_template(curr_line.pos_template, curr_line.meter)
                                 curr_line.text = curr_line.text[:-1] + "."
-                print(template)
 
                 curr_line.text = curr_line.text.strip()
 

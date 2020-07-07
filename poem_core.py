@@ -18,7 +18,7 @@ class Poem:
                  top_file='saved_objects/words/top_words.txt',
                  mistakes_file=None):
         while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
-        keep_scores = False#"byron" in words_file
+        keep_scores = "byron" in words_file
         self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file, keep_scores=keep_scores)
         self.backup_words = None
         try:
@@ -79,7 +79,7 @@ class Poem:
         if pos[-1] in punc:
             p = pos[-1]
             if p == ">":
-                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                p = random.choice(pos.split("</")[-1].strip(">").split("/"))
                 pos = pos.split("<")[0] + p
             return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
         if pos in self.special_words:
@@ -109,7 +109,7 @@ class Poem:
                 if pron[i] == "1": found_one = True
                 if found_one and pron[i] == " ": return pron[i+1:]
 
-        if rhyming_syll(self.pron[word1]) == rhyming_syll(self.pron[word2]): return True
+        #if rhyming_syll(self.pron[word1]) == rhyming_syll(self.pron[word2]): return True
         for j in range(4):
             w1 = (word1 + "(" + str(j) + ")").replace("(0)", "")
             if w1 in self.pron:
@@ -276,20 +276,28 @@ class Poem:
     def get_next_template(self, used_templates):
         poss = self.templates
         incomplete = ",;" + string.ascii_lowercase
-        if len(used_templates) > 0:
+        n = len(used_templates)
+        if n > 0:
             if used_templates[-1][-1] == ".":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE"]]
             #elif used_templates[-1][-1] in incomplete:
              #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
-            if len(used_templates) % 4 == 3 or len(used_templates) == 13:
+            if n % 4 == 3 or len(used_templates) == 13:
                 poss = [(p.replace("/,", ""), q) for p,q in poss if p[-1] in ">.?"]
                 #print("last line of stanza so:", poss)
+
+        if n % 4 == 0:
+            poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND"]]
 
 
         if len(poss) == 0:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
             return random.choice(self.templates)
+        if "he" in self.gender or "she" in self.gender:
+            poss = [(p[0].replace("VBP", "VBZ"), p[1]) for p in poss]
+        else:
+            poss = [(p[0].replace("VBZ", "VBP"), p[1]) for p in poss]
         return random.choice(poss)
 
 

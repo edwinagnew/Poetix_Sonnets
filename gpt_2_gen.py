@@ -12,7 +12,7 @@ class gpt:
         if sonnet_method:
             self.sonnet_words = sonnet_method
         else:
-            input("didnt give me a sonnet_method, try again pls")
+            print("didnt give me a sonnet_method, wont be able to generate lines")
             #t = sonnet_basic.Sonnet_Gen()
             #self.sonnet_words = t.get_pos_words
 
@@ -34,19 +34,21 @@ class gpt:
         if template and not meter: meter = [""] * len(template)
         words = list(self.tokenizer.encoder.keys())
 
-        if verbose: print("tokenizing")
-        if not seed: seed = random.choice(self.sonnet_words(template[0], meter=meter[0])) #picks first word randomly
-        generated = self.tokenizer.encode(seed)
-        context = torch.tensor([generated])
-        past = None
-
-        punc = ",.;?"
-
         if template:
             #a, b = len(seed.split()), len(template) #complete partially started line
             a, b = 0, len(template) #write new line given previous ones
         else:
             a, b = 0, b
+
+        if verbose: print("tokenizing")
+        if not seed:
+            seed = random.choice(self.sonnet_words(template[0], meter=meter[0])) #picks first word randomly
+            a = 1
+        generated = self.tokenizer.encode(seed)
+        context = torch.tensor([generated])
+        past = None
+
+        punc = ",.;?"
 
         punc_next = False
 
@@ -66,7 +68,7 @@ class gpt:
                 #    poss = {"'s"}
                 else:
                     if template[i][-1] == ">":
-                        template[i], punc_next = template[i].split("<")[0], template[i].split("<")[1].strip(">").split("/")
+                        template[i], punc_next = template[i].split("<")[0], template[i].split("</")[-1].strip(">").split("/")
 
                     elif template[i][-1] in punc:
                         template[i], punc_next = template[i][:-1], template[i][-1]
