@@ -237,9 +237,11 @@ class Poem:
             #print("generating with ", t_2, meter.split("_"), i)
             print(self.gpt.good_generation(None, template=template.split(), meter=meter.split("_"), verbose=verbose))
 
-    def write_line_random(self, template, meter, rhyme_words=[], verbose=False):
+    def write_line_random(self, template, meter, rhyme_words=[], n=1):
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
+
+        if n > 1: return [self.write_line_random(template, meter, rhyme_words) for i in range(n)]
 
         line = ""
         punc = ",.;?"
