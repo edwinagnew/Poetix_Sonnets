@@ -12,8 +12,6 @@ import theme_word_file
 from transformers import BertTokenizer, BertForMaskedLM
 from transformers import RobertaTokenizer, RobertaForMaskedLM
 
-import pronouncing
-
 from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
@@ -24,7 +22,7 @@ class Scenery_Gen(poem_core.Poem):
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 templates_file="poems/rhetorical_templates.txt",
+                 templates_file="poems/jordan_templates.txt",
                  #templates_file='poems/number_templates.txt',
                  mistakes_file='/Users/edwinagnew/Dropbox/shared_poetix/mistakes.txt'):
 
@@ -65,7 +63,7 @@ class Scenery_Gen(poem_core.Poem):
         self.theme_gen = theme_word_file.Theme()
 
     #override
-    def get_pos_words(self,pos, meter=None, phrase=()):
+    def get_pos_words(self,pos, meter=None, rhyme=None, phrase=()):
         """
         Gets all the words of a given POS
         Parameters
@@ -75,21 +73,24 @@ class Scenery_Gen(poem_core.Poem):
         phrase (optional) - returns only words which have a phrase in the dataset. in format ([word1, word2, word3], i) where i is the index of the word to change since the length can be 2 or 3
         """
         #print("oi," , pos, meter, phrase)
-        #punctuation managment
+        #punctuation management
         punc = [".", ",", ";", "?", ">"]
-        if pos[-1] in punc:
-            p = pos[-1]
-            if p == ">":
-                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
-                pos = pos.split("<")[0] + p
-            return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
-
-        #similar/repeeated word managemnt
+        #print("here1", pos, meter)
+        #if pos[-1] in punc:
+        #    p = pos[-1]
+        #    if p == ">":
+        #        p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+        #        pos = pos.split("<")[0] + p
+        #    return [word + p for word in self.get_pos_words(pos[:-1], meter=meter, rhyme=rhyme)]
+        #print("here", pos, meter, rhyme)
+        #similar/repeated word management
         if pos not in self.pos_to_words and "_" in pos:
             sub_pos = pos.split("_")[0]
-            poss = self.get_pos_words(sub_pos, meter=meter, phrase=phrase)
-            word = random.choice(poss)
+            word = self.weighted_choice(sub_pos, meter=meter, rhyme=rhyme)
+            if not word: input("rhyme broke " + sub_pos + " " + meter + " " + rhyme)
+            #word = random.choice(poss)
             if pos.split("_")[1] in string.ascii_lowercase:
+                #print("maybe breaking on", pos, word, sub_pos)
                 self.pos_to_words[pos] = {word: self.pos_to_words[sub_pos][word]}
             else:
                 num = pos.split("_")[1]
@@ -97,11 +98,13 @@ class Scenery_Gen(poem_core.Poem):
                     #self.pos_to_words[pos] = {word:1}
                     self.pos_to_words[num] = word
                 else:
+                    poss = self.get_pos_words(sub_pos, meter)
                     word = self.pos_to_words[num]
                     self.pos_to_words[pos] = {w: helper.get_spacy_similarity(w, word) for w in poss}
                     return poss
 
             return [word]
+        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if w in self.get_rhyme_words(rhyme)]
         if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter)
         else:
             ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
@@ -171,7 +174,7 @@ class Scenery_Gen(poem_core.Poem):
         meter = self.templates[line][1].split("_")[-1]
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
-    def write_stanza(self, theme="flower", verbose=False, checks=["RB", "NNS"], rhyme_lines=True):
+    def write_stanza(self, theme="flower", verbose=False, checks=["RB", "NNS"], rhyme_lines=True, random_templates=True):
         """
         Writes a poem from the templates
         Parameters
@@ -183,21 +186,42 @@ class Scenery_Gen(poem_core.Poem):
         -------
 
         """
-
+        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
         self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
         lines = []
+        used_templates = []
         orig_lines = []
+
         templates = self.templates[:min(14, len(self.templates))]
         for line_number, (template, meter) in enumerate(templates):
-            self.reset_number_words()
+            if random_templates: template, meter = self.get_next_template(used_templates)
+            self.reset_letter_words()
             if line_number % 4 == 0: rhymes = []
             template = template.split()
             meter = meter.split("_")
-            line = self.write_line(line_number, template, meter, rhymes=rhymes)
+            #line = self.write_line(line_number, template, meter, rhymes=rhymes)
+            if rhyme_lines and len(rhymes) >= 2:
+                r = -1 if line_number == 13 else -2
+                print(lines[r], rhymes[r], template)
+                word = rhymes[r]
+                pos = used_templates[r].split()[-1].split("_")[0].translate(str.maketrans('', '', string.punctuation))
+                met = random.choice(self.get_meter(word))
+                rhyme_pos = template[-1].split("_")[0].translate(str.maketrans('', '', string.punctuation))
+                rhyme_met = meter[-1]
+                poss = set(self.get_pos_words(rhyme_pos, rhyme_met))
+                q = 0
+                print("trying to find a ", pos, met, " which rhymes with any", rhyme_pos, rhyme_met)
+                while not any(self.rhymes(word, w2) for w2 in poss):
+                    word = self.weighted_choice(pos, met)
+                    print(q, "word now", word)
+                    q += 1
+                print("changing line from: '" + lines[r] + "'")
+                lines[r] = lines[r].replace(rhymes[r], word)
+                print("to '" + lines[r] + "'")
+                rhymes[r] = word
+            line = self.write_line_random(template, meter, rhyme_words=rhymes, verbose=True)
             if line_number % 4 < 2 and rhyme_lines:
-                rhymes.append(line.split()[-1])
-            #line += random.choice(last_word_dict[line_number])
-            #checks = ["RB", "NNS"]
+                rhymes.append(line.split()[-1].translate(str.maketrans('', '', string.punctuation)))
             for check in checks:
                 if check in template:
                     adv = template.index(check)
@@ -216,9 +240,9 @@ class Scenery_Gen(poem_core.Poem):
                         poss = self.get_pos_words(check, meter=meter[adv], phrase=(line_arr[low:high], line_arr[low:high].index(line_arr[adv])))
                         inc_syn = True
                         if not poss:
-                            if input("not happening " + line + str(template) + str(meter) + meter[adv] + " press enter to ignore phrase"):
+                            if not verbose or input("cant find a suitable phrase " + line + str(template) + str(meter) + meter[adv] + " press enter to ignore phrase"):
                                 low = high = 0
-                            line = self.write_line(line_number, template, meter, rhymes=rhymes)
+                            line = self.write_line_random(template, meter, rhyme_words=rhymes)
                             inc_syn = False
                             continue
                         line_arr[adv] = random.choice(poss)
@@ -230,11 +254,14 @@ class Scenery_Gen(poem_core.Poem):
                 orig_lines.append(line)
                 rhyme_set = []
                 for r in rhymes:
-                    rhyme_set += pronouncing.rhymes(r)
+                    rhyme_set += self.get_rhyme_words(r)
                 print("rhyme_set length: ", len(rhyme_set))
                 line = self.update_bert(line.strip().split(), meter, template, len(template)/2, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
+            if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
             print("line now ", line)
             lines.append(line)
+            if template[-1][-1] == ">": template = template[:-1] + [template[-1].split("<")[0] + line[-1]]
+            used_templates.append(" ".join(template))
             #break
         print("")
         if self.lang_model: [print(orig_lines[i]) for i in range(len(orig_lines))]
@@ -247,42 +274,16 @@ class Scenery_Gen(poem_core.Poem):
     def write_line(self, n, template, meter, rhymes=[], verbose=False):
         #numbers = {}
         line = ""
+        punc = ",.;?"
         for i in range(len(template) - 1):
             new_words = []
             scores = []
             pos = template[i]
             #num = -1
             #letter = ""
-            """if "_" in pos:
-                print("b")
-                try: num = int(pos.split("_")[1])
-                except: letter = pos.split("_")[1]
-                pos = pos.split("_")[0] """
-            """if "sc" in pos:
-                if pos not in self.pos_to_words: input("need to implement scenery rhetorical words")
-                for thematic in self.get_pos_words(pos, meter=meter[i]):
-                    if self.pos_to_words[pos][thematic] > 0.1:
-                        new_words.append(thematic)
-                        scores.append(self.pos_to_words[pos][thematic])
-            if len(new_words) == 0:
-                #new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
-                poss = self.get_pos_words(pos, meter=meter[i])
-                if not poss: input("help " + pos + meter[i])
-                
-                if len(poss) == 1: new_word = poss[0]
-
-                else:
-                    sub_pos = pos.translate(str.maketrans('', '', string.punctuation))
-                    new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[sub_pos][w.translate(str.maketrans('', '', string.punctuation))] for w in poss])) #softmax loses distinctions if any?
-            else:
-                dist = helper.softmax(scores)
-                new_word = np.random.choice(new_words, p=dist)
-                self.pos_to_words[pos][new_word] = self.pos_to_words[pos][new_word] / 4.0  # don't choose same word twice
-                #theme_words[self.stemmer.stem(new_word)] = 0
-                #if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0"
-                if verbose: print(new_word, " chosen with prob", dist[new_words.index(new_word)], "now: ", self.pos_to_words[pos][new_word])"""
             new_word = self.weighted_choice(pos, meter=meter[i])
-            line += new_word + " "
+            space = " " * int(new_word not in (punc + "'s"))
+            line += space + new_word
         if n == -1 or not rhymes:
             pos = template[-1]#.split("sc")[-1]
             #num = -1
@@ -298,10 +299,19 @@ class Scenery_Gen(poem_core.Poem):
 
             rhyme_pos = self.templates[min(13, n + 2)][0].split()[-1]
             rhyme_met = self.templates[min(13, n + 2)][1].split("_")[-1]
-            while not word or not any(r in self.get_pos_words(rhyme_pos, meter=rhyme_met) for r in pronouncing.rhymes(word)):
+            while not word or not any(r in self.get_pos_words(rhyme_pos, meter=rhyme_met) for r in self.get_rhyme_words(word)):
                 print("trying to rhyme", pos, meter[-1], ":", word, "with a", rhyme_pos, rhyme_met, self.get_pos_words(rhyme_pos, rhyme_met))
+                if word:
+                    poss_words = self.get_pos_words(pos, meter[-1])
+                    poss_rhymes = {q for w in poss_words for q in self.get_rhyme_words(w)}
+
+                    if not poss_rhymes or not any(r in poss_rhymes for t in self.get_pos_words(rhyme_pos, rhyme_met) for r in self.get_rhyme_words(t)):
+                        print("calling in backup")
+                        word = random.choice(self.get_backup_words(pos, meter[-1]))
+                        continue
                 #word = random.choice(self.get_pos_words(pos, meter=meter[-1]))
                 word = self.weighted_choice(pos, meter=meter[-1])
+                #word = random.choice([w for w in self.get_rhyme_words()])
                 """if num in numbers:
                     dist = [helper.get_spacy_similarity(numbers[num], w) for w in poss]
                     word = np.random.choice(poss, p=helper.softmax(dist))
@@ -316,9 +326,15 @@ class Scenery_Gen(poem_core.Poem):
         else:
             r = (n % 4) - 2
             if n == 13: r = 0
-            word = random.choice([rhyme for rhyme in self.get_pos_words(template[-1], meter=meter[-1]) if self.rhymes(rhyme, rhymes[r])])
-        line += word
-        return line
+            poss = [rhyme for rhyme in self.get_pos_words(template[-1], meter=meter[-1]) if self.rhymes(rhyme, rhymes[r])]
+            if len(poss) == 0:
+                poss = [s for s in self.get_backup_words(template[1], meter[-1]) if self.rhymes(s, rhymes[r])]
+                if len(poss) == 0:
+                    print("couldnt find a rhyme", template[-1], meter[-1])
+                    print(1/0)
+            word = random.choice(poss)
+        line += " " + word
+        return line.strip()
 
     def update_bert(self, line, meter, template, iterations, rhyme_words=[], filter_meter=True, verbose=False, choice = "min"):
         if iterations <= 0: return " ".join(line) #base case
@@ -415,8 +431,6 @@ class Scenery_Gen(poem_core.Poem):
         for pos in word_dict:
             self.pos_to_words["sc" + pos] = word_dict[pos]
 
-    def rhymes(self, word1, word2):
-        return word1 in pronouncing.rhymes(word2) or word2 in pronouncing.rhymes(word1)
 
     def phrase_in_poem(self, words, ret_lines=False, include_syns=False):
         """
@@ -521,7 +535,9 @@ class Scenery_Gen(poem_core.Poem):
                             if a + 1 >= 1 and a + 1 < len(p_words): self.surrounding_words[word].add(p_words[a+1])
             return self.phrase_in_poem_fast(words, include_syns=False)
 
-    def reset_number_words(self):
-        for pos in list(self.pos_to_words):
-            if "_" in pos: #or pos in "0123456789"
-                del self.pos_to_words[pos]
+    def get_backup_words(self, pos, meter, words_file="saved_objects/tagged_words.p"):
+        if not self.backup_words:
+            pc = poem_core.Poem()
+            self.backup_words = pc.get_pos_words
+
+        return [p for p in self.backup_words(pos) if meter in self.get_meter(p)]
