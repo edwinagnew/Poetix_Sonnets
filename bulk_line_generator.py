@@ -11,6 +11,7 @@ import theme_word_file
 
 from transformers import BertTokenizer, BertForMaskedLM
 from transformers import RobertaTokenizer, RobertaForMaskedLM
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 import pronouncing
 
@@ -18,6 +19,7 @@ from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
 import poem_core
+import bert_verb
 
 class Bulk_Gen(poem_core.Poem):
     def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
@@ -25,6 +27,7 @@ class Bulk_Gen(poem_core.Poem):
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
                  templates_file="poems/jordan_templates.txt",
+                 paired_templates=False,
                  #templates_file='poems/number_templates.txt',
                  mistakes_file='saved_objects/mistakes.txt'):
 
@@ -51,9 +54,19 @@ class Bulk_Gen(poem_core.Poem):
             self.lang_model.eval()
             self.vocab_to_num = {self.lang_vocab[x]: x for x in range(len(self.lang_vocab))}
 
+        elif model == "gpt_2":
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            self.model = GPT2LMHeadModel.from_pretrained('gpt2')
 
         else:
             self.lang_model = None
+
+        if paired_templates == True:
+            self.temp_pairs = {}
+            for i in range(len(self.templates)):
+                if i % 2 == 1:
+                    self.temp_pairs[self.templates[i-1]] = self.templates[i]
+
 
         #with open('poems/kaggle_poem_dataset.csv', newline='') as csvfile:
          #   self.poems = csv.DictReader(csvfile)
@@ -61,6 +74,7 @@ class Bulk_Gen(poem_core.Poem):
         self.surrounding_words = {}
 
         self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
+        self.poem_model = poem_core.Poem()
 
     #override
     def get_pos_words(self,pos, meter=None, phrase=()):
@@ -72,34 +86,27 @@ class Bulk_Gen(poem_core.Poem):
         meter - (optional) returns only words which fit the given meter, e.g. 101
         phrase (optional) - returns only words which have a phrase in the dataset. in format ([word1, word2, word3], i) where i is the index of the word to change since the length can be 2 or 3
         """
-        #print("oi," , pos, meter, phrase)
-        if pos not in self.pos_to_words and "_" in pos:
-            sub_pos = pos.split("_")[0]
-            poss = self.get_pos_words(sub_pos, meter=meter, phrase=phrase)
-            word = random.choice(poss)
-            if pos.split("_")[1] in string.ascii_lowercase:
-                self.pos_to_words[pos] = {word: self.pos_to_words[sub_pos][word]}
-            else:
-                num = pos.split("_")[1]
-                if num not in self.pos_to_words:
-                    #self.pos_to_words[pos] = {word:1}
-                    self.pos_to_words[num] = word
-                else:
-                    word = self.pos_to_words[num]
-                    self.pos_to_words[pos] = {w: helper.get_spacy_similarity(w, word) for w in poss}
-                    return poss
-
-            return [word]
-        if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter)
-        else:
-            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
-            phrases = []
-            for word in ret:
-                phrase[0][phrase[1]] = word
-                phrases.append(" ".join(phrase[0]))
-            print(phrases, ret)
-            ret = [ret[i] for i in range(len(ret)) if self.phrase_in_poem_fast(phrases[i], include_syns=True)]
+        punc = [".", ",", ";", "?", ">"]
+        if pos[-1] in punc:
+            p = pos[-1]
+            if p == ">":
+                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                pos = pos.split("<")[0] + p
+            return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
+        if pos in self.special_words:
+            return [pos.lower()]
+        if "PRP" in pos and "_" not in pos and meter:
+            ret = [p for p in self.pos_to_words[pos] if
+                   p in self.gender and any(len(meter) == len(q) for q in self.get_meter(p))]
+            if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
             return ret
+        elif pos not in self.pos_to_words:
+            return []
+        if meter:
+            ret = [word for word in self.pos_to_words[pos] if
+                   word in self.dict_meters and meter in self.dict_meters[word]]
+            return ret
+        return [p for p in self.pos_to_words[pos]]
 
 
     #@override
@@ -184,6 +191,107 @@ class Bulk_Gen(poem_core.Poem):
             template, meter = random.choice(self.templates)
             template = template.split()
             meter = meter.split("_")
+            #line = self.write_line(template, meter, theme_words=theme_words)
+            line = self.poem_model.write_line_random(template, meter, rhyme_words=[])
+            if line:
+                lines.append(line)
+
+        return lines
+
+    def write_bulk_lines_with_template(self, num_lines, theme="flower"):
+        theme_gen = theme_word_file.Theme()
+        theme_words = theme_gen.get_theme_words(theme, verbose=False)
+        lines = {}
+        for temp in self.templates:
+            count = 0
+            failed_count = 0
+            lines[temp] = []
+            print("beginning new template")
+            while count < num_lines:
+                self.reset_number_words()
+                template, meter = temp
+                template = template.split()
+                meter = meter.split("_")
+                line = self.write_line(template, meter, theme_words=theme_words)
+                if line:
+                    lines[temp].append(line)
+                    count += 1
+                else:
+                    failed_count += 1
+                if failed_count > 20:
+                    print("yikes, ", temp, " doesn't really work")
+                    break
+        return lines
+
+    def write_line(self, template, meter, rhyme_words=[], verbose=True):
+        #numbers = {}
+        line = ""
+        for i in range(len(template) - 1):
+            p = ""
+            new_words = []
+            scores = []
+            pos = template[i]
+            punc = [".", ",", ";", "?", ">"]
+            if pos[-1] in punc:
+                p = pos[-1]
+                if p == ">":
+                    p = random.choice(pos.split("<")[-1].strip(">").split("/"))
+                    pos = pos.split("<")[0] + p
+                pos = pos[:-1]
+            #num = -1
+            #letter = ""
+
+            if "sc" in pos:
+                print("c")
+                pos = pos.split("sc")[-1]
+                if pos not in self.pos_to_words: input("need to implement scenery rhetorical words")
+                for thematic in theme_words[pos]:
+                    if theme_words[pos][thematic] > 0.1 and meter[i] in self.dict_meters[thematic]:
+                        new_words.append(thematic)
+                        scores.append(theme_words[pos][thematic])
+            if len(new_words) == 0:
+                #new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
+                poss = self.get_pos_words(pos, meter=meter[i])
+                if not poss:
+                    return False
+
+                if len(poss) == 1: new_word = poss[0]
+
+                else: new_word = np.random.choice(poss, p=self.my_softmax([self.pos_to_words[pos][w] for w in poss])) + p #softmax loses distinctions if any?
+            else:
+                dist = self.my_softmax(scores)
+                new_word = np.random.choice(new_words, p=dist) + p
+                theme_words[pos][new_word] = theme_words[pos][new_word] / 4.0  # don't choose same word twice
+                #theme_words[self.stemmer.stem(new_word)] = 0
+                #if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0
+                if verbose: print(new_word, " chosen with prob", dist[new_words.index(new_word)], "now: ", theme_words[pos][new_word])
+            line += new_word + " "
+
+        pos = template[-1].split("sc")[-1]
+            #num = -1
+            #letter = ""
+        if len(self.get_pos_words(pos, meter=meter[-1])) == 0:
+            return False
+        word = random.choice(self.get_pos_words(pos, meter=meter[-1]))
+        line += word
+        return line
+
+    def write_line_pairs(self,  num_lines, theme="flower"):
+
+        theme_gen = theme_word_file.Theme()
+        theme_words = theme_gen.get_theme_words(theme, verbose=False)
+        lines = []
+        next_temp = False
+        for i in range(num_lines):
+            self.reset_number_words()
+            if next_temp == False:
+                template, meter = random.choice(list(self.temp_pairs.keys()))
+                next_temp = self.temp_pairs[(template, meter)]
+            else:
+                template, meter = next_temp
+                next_temp = False
+            template = template.split()
+            meter = meter.split("_")
             line = self.write_line(template, meter, theme_words=theme_words)
             if line:
                 lines.append(line)
@@ -211,70 +319,47 @@ class Bulk_Gen(poem_core.Poem):
                             line = self.write_line(line_number, template, meter, theme_words=theme_words)
                             inc_syn = False
                             continue
-                            
+
                         line_arr[adv] = random.choice(poss)
                         print(check, " updated, line now ", " ".join(line_arr))
                     line = " ".join(line_arr)
-                    
+
         for cand in range(len(lines)):
             print(lines[cand])
             if ((cand + 1) % 4 == 0): print("")
         """
         return lines
 
-    def write_line(self, template, meter, theme_words=[], verbose=True):
-        #numbers = {}
-        line = ""
-        for i in range(len(template) - 1):
-            new_words = []
-            scores = []
-            pos = template[i]
-            #num = -1
-            #letter = ""
-            """if "_" in pos:
-                print("b")
-                try: num = int(pos.split("_")[1])
-                except: letter = pos.split("_")[1]
-                pos = pos.split("_")[0] """
-            if "sc" in pos:
-                print("c")
-                pos = pos.split("sc")[-1]
-                if pos not in self.pos_to_words: input("need to implement scenery rhetorical words")
-                for thematic in theme_words[pos]:
-                    if theme_words[pos][thematic] > 0.1 and meter[i] in self.dict_meters[thematic]:
-                        new_words.append(thematic)
-                        scores.append(theme_words[pos][thematic])
-            if len(new_words) == 0:
-                #new_word = random.choice(self.get_pos_words(pos, meter=meter[i]))
-                poss = self.get_pos_words(pos, meter=meter[i])
-                if not poss:
-                    return False
-                """if num in numbers:
-                    print("checking", numbers[num], ":", poss)
-                    dist = [helper.get_spacy_similarity(numbers[num], w) for w in poss]
-                    new_word = np.random.choice(poss, p=helper.softmax(dist))
-                    if verbose: print("weighted choice of ", new_word, ", related to ", numbers[num], "with prob ", dist[poss.index(new_word)])"""
+    def write_line_pairs_threshold(self,  num_lines, target_score=7, theme="flower"):
 
-                if len(poss) == 1: new_word = poss[0]
-
-                else: new_word = np.random.choice(poss, p=helper.softmax([self.pos_to_words[pos][w] for w in poss])) #softmax loses distinctions if any?
+        theme_gen = theme_word_file.Theme()
+        theme_words = theme_gen.get_theme_words(theme, verbose=False)
+        lines = []
+        next_temp = False
+        redo = False
+        i = 0
+        target_score = int(target_score)
+        while i < num_lines:
+            self.reset_number_words()
+            if redo == False: #keeps track of whether our last line was good enough, enough we want to redo with the same template
+                if next_temp == False:
+                    template, meter = random.choice(list(self.temp_pairs.keys()))
+                    next_temp = self.temp_pairs[(template, meter)]
+                else:
+                    template, meter = next_temp
+                    next_temp = False
+                template = template.split()
+                meter = meter.split("_")
+            line = self.write_line(template, meter, theme_words=theme_words)
+            if line and self.gpt_2_score_line(line) < target_score:
+                lines.append(line)
+                i += 1
+                redo = False
             else:
-                dist = helper.softmax(scores)
-                new_word = np.random.choice(new_words, p=dist)
-                theme_words[pos][new_word] = theme_words[pos][new_word] / 4.0  # don't choose same word twice
-                #theme_words[self.stemmer.stem(new_word)] = 0
-                #if "NN" in self.get_word_pos(new_word): theme_words[pluralize(new_word)] = 0
-                if verbose: print(new_word, " chosen with prob", dist[new_words.index(new_word)], "now: ", theme_words[pos][new_word])
-            line += new_word + " "
+                redo = True
+                continue
 
-        pos = template[-1].split("sc")[-1]
-            #num = -1
-            #letter = ""
-        if len(self.get_pos_words(pos, meter=meter[-1])) == 0:
-            return False
-        word = random.choice(self.get_pos_words(pos, meter=meter[-1]))
-        line += word
-        return line
+        return lines
 
 
 
@@ -339,6 +424,44 @@ class Bulk_Gen(poem_core.Poem):
         if len(cases) == 0: return False
         return cases
 
+    def fix_line(self, words, word_number, POS, meter, verbose = False):
+        potential_verbs = self.get_pos_words(POS, meter)
+        best_score = float("inf")
+        best_word = ""
+        for verb in potential_verbs:
+            new_line = words
+            new_line[word_number] = verb
+            input_ids = torch.tensor(self.tokenizer.encode(" ".join(new_line), add_special_tokens=False)).unsqueeze(0)  # tokenizes
+            tokens = [self.lang_vocab[x] for x in input_ids[0]]
+            loss, outputs = self.lang_model(input_ids, masked_lm_labels=input_ids)  # masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
+            softmax = torch.nn.Softmax(dim=1)  # normalizes the probabilites to be between 0 and 1
+            outputs = softmax(outputs[0])
+            extra_token = ""
+        # for word_number in range(0,len(line)-1): #ignore  last word to keep rhyme
+            k = tokens.index(self.tokenizer.tokenize(line[-1])[0])  # where the last word begins
+
+            out_number = word_number
+
+            if loss.item() < best_score:
+                best_score = loss
+                best_word = verb
+
+        print(best_word)
+        words[word_number] = self.lang_vocab[np.argmax(outputs[out_number].detach().numpy())]
+
+    def gpt_2_score_line(self, line):
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        outputs =self.model(input_ids, labels=input_ids)
+        loss, logits = outputs[:2]
+        return loss.item()
+
+    def score_line(self, words):
+        line = words.split()
+
+        input_ids = torch.tensor(self.tokenizer.encode(" ".join(line), add_special_tokens=False)).unsqueeze(0)  # tokenizes
+        loss, outputs = self.lang_model(input_ids,masked_lm_labels=input_ids)  # masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
+        return loss.item()
+
     def phrase_in_poem_fast(self, words, include_syns=False):
         if type(words) == list:
             if len(words) == 1: return True
@@ -388,3 +511,16 @@ class Bulk_Gen(poem_core.Poem):
             if "_" in pos: #or pos in "0123456789"
                 del self.pos_to_words[pos]
 
+    def my_softmax(self, x, exclude_zeros=False):
+        """Compute softmax values for each sets of scores in x.
+           exclude_zeros (bool) retains zero elements
+        """
+        if exclude_zeros and max(x) <= 0:
+            print("max <=0 so retrying without exclusion")
+            return softmax(x)  # has to be at least one non negative
+            # elif ma == min(x): return np.array(x)/sum(x)
+        else:
+            e_x = np.exp(x - np.max(x))
+            if exclude_zeros:
+                e_x[np.array(x) == 0] = 0
+        return e_x / e_x.sum()
