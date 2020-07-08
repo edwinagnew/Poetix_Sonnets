@@ -74,6 +74,7 @@ class Bulk_Gen(poem_core.Poem):
         self.surrounding_words = {}
 
         self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
+        self.poem_model = poem_core.Poem()
 
     #override
     def get_pos_words(self,pos, meter=None, phrase=()):
@@ -190,7 +191,8 @@ class Bulk_Gen(poem_core.Poem):
             template, meter = random.choice(self.templates)
             template = template.split()
             meter = meter.split("_")
-            line = self.write_line(template, meter, theme_words=theme_words)
+            #line = self.write_line(template, meter, theme_words=theme_words)
+            line = self.poem_model.write_line_random(template, meter, rhyme_words=[])
             if line:
                 lines.append(line)
 
@@ -221,7 +223,7 @@ class Bulk_Gen(poem_core.Poem):
                     break
         return lines
 
-    def write_line(self, template, meter, theme_words=[], verbose=True):
+    def write_line(self, template, meter, rhyme_words=[], verbose=True):
         #numbers = {}
         line = ""
         for i in range(len(template) - 1):
@@ -238,11 +240,7 @@ class Bulk_Gen(poem_core.Poem):
                 pos = pos[:-1]
             #num = -1
             #letter = ""
-            """if "_" in pos:
-                print("b")
-                try: num = int(pos.split("_")[1])
-                except: letter = pos.split("_")[1]
-                pos = pos.split("_")[0] """
+
             if "sc" in pos:
                 print("c")
                 pos = pos.split("sc")[-1]
@@ -256,11 +254,6 @@ class Bulk_Gen(poem_core.Poem):
                 poss = self.get_pos_words(pos, meter=meter[i])
                 if not poss:
                     return False
-                """if num in numbers:
-                    print("checking", numbers[num], ":", poss)
-                    dist = [helper.get_spacy_similarity(numbers[num], w) for w in poss]
-                    new_word = np.random.choice(poss, p=helper.softmax(dist))
-                    if verbose: print("weighted choice of ", new_word, ", related to ", numbers[num], "with prob ", dist[poss.index(new_word)])"""
 
                 if len(poss) == 1: new_word = poss[0]
 

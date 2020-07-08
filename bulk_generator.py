@@ -20,12 +20,12 @@ def generate_and_score():
            temp = generator.good_generation(None)
            sonnet.append(temp)
        """
-    # sonnet = generator.write_line_pairs_threshold(50, theme="trees") #takes a really long time to run
-    # sonnet = generator.write_line_pairs(1000, theme="trees") #runs in a more reasonable amount of time
-    #sonnet = generator.write_bulk_lines(1000, theme="death")  # change number to change number of lines generated
+    #sonnet = generator.write_line_pairs_threshold(50, theme="trees") #takes a really long time to run
+    #sonnet = generator.write_line_pairs(1000, theme="trees") #runs in a more reasonable amount of time
+    sonnet = generator.write_bulk_lines(10, theme="death")  # change number to change number of lines generated
 
-    sonnet_file = open("poems/poe.txt", "r")
-    sonnet = [line.strip() for line in sonnet_file.readlines()]
+    #sonnet_file = open("poems/poe.txt", "r")
+    #sonnet = [line.strip() for line in sonnet_file.readlines()]
     shakespeare_sum = 0
     line_count = 0
 
@@ -55,15 +55,17 @@ def generate_and_score():
             goodlines.append((line, score))
             goodlinecount += 1
 
-        avg_loss = shakespeare_sum / line_count
-        scores.sort()
-        print("mean: ", avg_loss)
-        print("median: ", scores[int(len(scores) / 2)])
-        print("best line: ", min_line, " with a score of ", min)
-        print("worst line: ", max_line, " with a score of ", max)
-        print("good lines, of which there are: ", goodlinecount)
-        for item in goodlines:
-            print(item)
+    for i in range(len(sonnet)):
+        print(sonnet[i], " with score ", scores[i])
+    avg_loss = shakespeare_sum / line_count
+    scores.sort()
+    print("mean: ", avg_loss)
+    print("median: ", scores[int(len(scores) / 2)])
+    print("best line: ", min_line, " with a score of ", min)
+    print("worst line: ", max_line, " with a score of ", max)
+    print("good lines, of which there are: ", goodlinecount)
+    for item in goodlines:
+        print(item)
 
     # gpt_2_scores = []
     # bert_scores = []
@@ -94,8 +96,6 @@ def generate_and_score():
     print(goodlinecount)
     """
 
-    # for i in  range(len(sonnet)):
-    # print(sonnet[i], " with score ", scores[i])
 
 
 def score_templates():
