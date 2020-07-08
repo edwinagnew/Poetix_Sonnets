@@ -6,7 +6,7 @@ import random
 
 from py_files import helper
 
-class gpt:
+class gpt_gen:
 
     def __init__(self, seed, sonnet_method=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
         if sonnet_method:
