@@ -72,7 +72,7 @@ class Poem:
         pos - the POS you want
         meter - (optional) returns only words which fit the given meter, e.g. 101
         """
-        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if w in self.get_rhyme_words(rhyme)]
+        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if w in self.rhymes(w, rhyme)]
         #print("oi," , pos, meter, phrase)
         punc = [".", ",", ";", "?", ">"]
         #print("here2", pos, meter)
@@ -96,7 +96,19 @@ class Poem:
             return ret
         return [p for p in self.pos_to_words[pos]]
 
-    def rhymes(self, word1, word2, check_cmu=True):
+    def can_rhyme(self, pair1, pair2):
+        """
+        pair1 - (pos, meter)
+        pair2 - (pos, meter)
+
+        Returns - whether it is possible the two words to rhyme
+        """
+        if not pair1 or not pair2 or not any(pair1) or not any(pair2): return False
+        set1 = set(self.get_pos_words(pair1[0], pair1[1]))
+        set2 = set(self.get_pos_words(pair2[0], pair2[1]))
+        return any(r1 in set2 for w1 in set1 for r1 in self.get_rhyme_words(w1)) or any(r2 in set1 for w2 in set2 for r2 in self.get_rhyme_words(w2))
+
+    def rhymes(self, word1, word2, check_cmu=False):
         if not word1 or not word2: return False
         if word1[-1] in ".,?!>": word1 = word1.translate(str.maketrans('', '', string.punctuation))
         if word2[-1] in ".,?!>": word2 = word2.translate(str.maketrans('', '', string.punctuation))
@@ -237,7 +249,8 @@ class Poem:
             #print("generating with ", t_2, meter.split("_"), i)
             print(self.gpt.good_generation(None, template=template.split(), meter=meter.split("_"), verbose=verbose))
 
-    def write_line_random(self, template, meter, rhyme_words=[], n=1):
+    def write_line_random(self, template, meter, rhyme_word=None, n=1):
+        if rhyme_word: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
 
@@ -253,19 +266,19 @@ class Poem:
             space = " " * int(line != "" and next_word not in (punc + "'s"))
             line += space + next_word
 
-        r = -2
-        if len(rhyme_words) == 13: r = -1
+
         new_word = ""
-        while len(rhyme_words) >= 2 and not self.rhymes(new_word, rhyme_words[r]):
+        while rhyme_word and not self.rhymes(new_word, rhyme_word):
+            print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_word)
             old_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
             self.reset_letter_words()
-            new_word = self.weighted_choice(template[-1], meter[-1], rhyme=rhyme_words[r])
-            new_word = new_word.translate(str.maketrans('', '', string.punctuation))
+            new_word = self.weighted_choice(template[-1], meter[-1], rhyme=rhyme_word).translate(str.maketrans('', '', string.punctuation))
+            print("got", new_word)
             if not new_word:
                 print("cant rhyme")
-                break
-            line.replace(old_word, new_word) #will replace all instances
-            print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_words[r])
+                return 1/0
+            line = line.replace(old_word, new_word) #will replace all instances
+
 
 
         return line.strip()
@@ -300,6 +313,8 @@ class Poem:
             poss = [(p[0].replace("VBP", "VBZ"), p[1]) for p in poss]
         else:
             poss = [(p[0].replace("VBZ", "VBP"), p[1]) for p in poss]
-        return random.choice(poss)
+        t = random.choice(poss)
+        if "<" in t: t = t.split("<")[0] + random.choice(t.split("</")[-1].strip(">").split("/"))
+        return t
 
 
