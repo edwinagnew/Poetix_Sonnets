@@ -24,7 +24,7 @@ class Scenery_Gen(poem_core.Poem):
                  top_file='saved_objects/words/top_words.txt',
                  templates_file="poems/jordan_templates.txt",
                  #templates_file='poems/number_templates.txt',
-                 mistakes_file='/Users/edwinagnew/Dropbox/shared_poetix/mistakes.txt'):
+                 mistakes_file=None):
 
         #self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
          #                 ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
