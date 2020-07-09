@@ -1,5 +1,5 @@
 import scenery
-import gpt_2_gen
+import gpt_2
 
 import random
 import string
@@ -8,7 +8,7 @@ import pronouncing
 
 s = scenery.Scenery_Gen(templates_file="poems/jordan_templates.txt")
 
-gpt = gpt_2_gen.gpt(None, sonnet_method=s.get_pos_words, model="gpt2")
+gpt = gpt_2.gpt(None, sonnet_method=s.get_pos_words, model="gpt2")
 
 
 def write_set(n_random, n_gpt, sonnet, gpt):

@@ -1,12 +1,12 @@
 #import sonnet_basic
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2DoubleHeadsModel
 import torch
 import numpy as np
 import random
 
 from py_files import helper
 
-class gpt:
+class gpt_gen:
 
     def __init__(self, seed, sonnet_method=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
         if sonnet_method:
@@ -16,10 +16,19 @@ class gpt:
             #t = sonnet_basic.Sonnet_Gen()
             #self.sonnet_words = t.get_pos_words
 
-        print("loading model")
+        print("loading models")
         self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+        self.mc_tokenizer = GPT2Tokenizer.from_pretrained(model)
+        num_added_tokens = self.mc_tokenizer.add_special_tokens({'cls_token': '[CLS]'})
+
+        print("1")
         self.model = GPT2LMHeadModel.from_pretrained(model)
+        print("2")
+        self.mc_model = GPT2DoubleHeadsModel.from_pretrained(model)
+        embedding_layer = self.mc_model.resize_token_embeddings(len(self.mc_tokenizer))
         print("loaded", model)
+
+
 
         if seed: print(self.good_generation(seed, template, meter))
 
@@ -118,4 +127,82 @@ class gpt:
         outputs = self.model(input_ids, labels=input_ids)
         #loss, logits = outputs[:2]
         return outputs[0].item()
+
+    def get_word_scores(self, line):
+        if type(line) == list: return [self.get_word_scores(li.strip()) for li in line]
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        outputs = self.model(input_ids)
+        return torch.tensor([outputs[0][0][i][input_ids[0][i]] for i in range(len(input_ids[0]))]) #gets the score of each original word in the line
+
+    def iterative_improve(self, template, meter, line, k=1, past=None):
+        if k == 0: return line
+        if type(template) != list: template = template.split()
+        if type(meter) != list: meter = meter.split("_")
+
+        worst_token_index = torch.argmin(self.get_word_scores(line)).item()
+        print(worst_token_index)
+
+
+        #make sure the word is changeable
+
+
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
+        worst_word = self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip()
+        worst_index = line.split().index(worst_word)
+        print("worst word was ", worst_word)
+        assert self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() == line.split()[worst_index]
+
+        """
+        # random options
+        choices = []
+        for i in range(5):
+            #assuming there's no punctuation
+            print("getting ", template[worst_index], meter[worst_index])
+            new_word = random.choice(self.sonnet_words(template[worst_index], meter[worst_index]))
+            new_line = input_ids[0].tolist()
+            new_line[worst_token_index] = self.mc_tokenizer.encode(" " + new_word)[0]
+            new_line += self.mc_tokenizer.encode('[CLS]')
+            choices.append(new_line)
+        """
+        choices = []
+        poss = set(self.sonnet_words(template[worst_index], meter[worst_index]))
+        print(poss)
+        filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder])
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        out = torch.tensor(self.model(input_ids)[0][0][worst_token_index].detach().numpy() * filt)
+
+        best_vals, best_is = out.topk(5)
+
+        for b in best_is:
+            new_line = input_ids[0].tolist()
+            new_line[worst_token_index] = b
+            new_line += self.mc_tokenizer.encode('[CLS]')
+            choices.append(new_line)
+
+        print([self.mc_tokenizer.decode(c) for c in choices], choices)
+
+        choice_scores = self.multiple_choice(choices)
+
+        print(choice_scores)
+
+        best_line = self.mc_tokenizer.decode(choices[torch.argmax(choice_scores).item()])
+
+        print("best = ", best_line)
+
+
+    def multiple_choice(self, choices):
+        cls_token_location = [tokens.index(self.mc_tokenizer.cls_token_id) for tokens in choices]
+        input_ids = torch.tensor(choices).unsqueeze(0)  # Batch size: 1, number of choices: 2
+        mc_token_ids = torch.tensor([cls_token_location])  # Batch size: 1
+
+        outputs = self.mc_model(input_ids, mc_token_ids=mc_token_ids)
+        lm_prediction_scores, mc_prediction_scores = outputs[:2]
+
+        return mc_prediction_scores
+
+
+
+
+
+
 
