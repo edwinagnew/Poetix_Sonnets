@@ -29,6 +29,7 @@ Some things you should do to get this working: (if you get stuck on anything ple
   - `sonnet = sonnet_basic.Sonnet_Gen()` If you want to use your own templates write `sonnet = sonnet_basic.Sonnet_Gen(templates_file="path_to_file.txt")`
   - `sonnet.gen_poem_edwin('love')` you can replace love with any prompt word you like. The first time you use any prompt word will take longer since it finds and stores related words for future use.
   - It will print a poem and some info along the way
+  - [See here for a list of most recent code snippets](https://docs.google.com/document/d/1g7HA3vJTgx2nRW8nqw2OvcB5aQN0rwsGVod0qTGKztg/edit?usp=sharing)
  4. For a jabberwocky -ish poem:
   - Click on Python Console at the bottom
   - `import sonnet_jabber`
