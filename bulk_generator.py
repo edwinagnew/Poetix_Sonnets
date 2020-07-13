@@ -12,7 +12,7 @@ def generate_and_score():
     s = bert_verb.Scenery_Gen(model="gpt_2")
     s2 = bert_verb.Scenery_Gen()
     # generator = bulk_line_generator.Bulk_Gen(model="gpt_2",templates_file="poems/paired_templates.txt", paired_templates=True)
-    generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/jordan_templates.txt")
+    generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/ben_modified_templates.txt")
     """
        generator = gpt_2_gen_bitdtfodb.gpt(None)
        sonnet = []

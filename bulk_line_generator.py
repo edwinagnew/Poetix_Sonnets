@@ -212,7 +212,7 @@ class Bulk_Gen(poem_core.Poem):
                 template, meter = temp
                 template = template.split()
                 meter = meter.split("_")
-                line = self.poem_model.write_line_random(template, meter, rhyme_words=[])
+                line = self.poem_model.write_line_random(template, meter)
                 if line:
                     lines[temp].append(line)
                     count += 1
