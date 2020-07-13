@@ -24,7 +24,7 @@ class Scenery_Gen(poem_core.Poem):
                  top_file='saved_objects/words/top_words.txt',
                  templates_file="poems/jordan_templates.txt",
                  #templates_file='poems/number_templates.txt',
-                 mistakes_file='/Users/edwinagnew/Dropbox/shared_poetix/mistakes.txt'):
+                 mistakes_file=None):
 
         #self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
          #                 ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
@@ -104,7 +104,7 @@ class Scenery_Gen(poem_core.Poem):
                     return poss
 
             return [word]
-        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if w in self.get_rhyme_words(rhyme)]
+        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
         if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter)
         else:
             ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
@@ -174,7 +174,62 @@ class Scenery_Gen(poem_core.Poem):
         meter = self.templates[line][1].split("_")[-1]
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
-    def write_stanza(self, theme="flower", verbose=False, checks=["RB", "NNS"], rhyme_lines=True, random_templates=True):
+    def write_poem(self, theme="flower", verbose=False, rhyme_lines=True):
+
+        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
+        self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
+
+        lines = []
+        used_templates = []
+        #first three stanzas
+
+        for i in range(3):
+            print("\n\nwriting stanza", i)
+            next_templates = []
+            while(len(next_templates) < 4):
+                template, meter = self.get_next_template(used_templates)
+                if not rhyme_lines or len(next_templates) < 2 or self.can_rhyme((next_templates[-2][0].split()[-1], next_templates[-2][1].split("_")[-1]), (template.split()[-1], meter.split("_")[-1])):
+                    next_templates.append((template, meter))
+                    used_templates.append(template)
+                    if verbose: print(len(next_templates), template, meter, "worked")
+                else:
+                    if verbose: print(next_templates[-2], "wont work with", template, meter)
+                    if random.random() < (1/len(self.templates)*2):
+                        if verbose: print("so changing", next_templates[-2])
+                        #k = i * 4 + len(next_templates) - 2
+                        new_t, new_m = self.get_next_template(used_templates[:-2])
+                        next_templates[-2] = (new_t, new_m)
+                        used_templates[-2] = new_t
+
+            if verbose: print("templates chosen: ", next_templates)
+            lines += self.write_stanza(next_templates, rhyme_lines=rhyme_lines, verbose=verbose)
+
+        #fourth stanza
+        print("\n\nwriting last couplet")
+        template, meter = self.get_next_template(used_templates)
+        used_templates.append(template)
+        t2, m2 = self.get_next_template(used_templates)
+        while rhyme_lines and not self.can_rhyme((template.split()[-1], meter.split("_")[-1]), (t2.split()[-1], m2.split("_")[-1])):
+            t2, m2 = self.get_next_template(used_templates)
+            if verbose: print(t2, m2, "2wont work with", template, meter)
+            if random.random() < (1 / len(self.templates) * 2):
+                if verbose: print("2so changing", template, meter)
+                # k = i * 4 + len(next_templates) - 2
+                template, meter = self.get_next_template([])
+                used_templates[0] = template
+
+        lines += self.write_stanza([(template,meter), (t2,m2)], rhyme_lines=rhyme_lines, verbose=verbose)
+
+        print("")
+        print("         ---", theme.upper(), "---       ")
+        for cand in range(len(lines)):
+            print(lines[cand])
+            if ((cand + 1) % 4 == 0): print("")
+
+        #return lines
+
+
+    def write_stanza(self, templates, checks=("RB", "NNS"), rhyme_lines=True, verbose=False):
         """
         Writes a poem from the templates
         Parameters
@@ -186,42 +241,39 @@ class Scenery_Gen(poem_core.Poem):
         -------
 
         """
-        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
-        self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
         lines = []
-        used_templates = []
-        orig_lines = []
+        rhymes = []
 
-        templates = self.templates[:min(14, len(self.templates))]
         for line_number, (template, meter) in enumerate(templates):
-            if random_templates: template, meter = self.get_next_template(used_templates)
+            if verbose: print("\n", line_number)
             self.reset_letter_words()
-            if line_number % 4 == 0: rhymes = []
+            #rhymes = []
             template = template.split()
             meter = meter.split("_")
             #line = self.write_line(line_number, template, meter, rhymes=rhymes)
-            if rhyme_lines and len(rhymes) >= 2:
-                r = -1 if line_number == 13 else -2
-                print(lines[r], rhymes[r], template)
-                word = rhymes[r]
-                pos = used_templates[r].split()[-1].split("_")[0].translate(str.maketrans('', '', string.punctuation))
-                met = random.choice(self.get_meter(word))
-                rhyme_pos = template[-1].split("_")[0].translate(str.maketrans('', '', string.punctuation))
-                rhyme_met = meter[-1]
-                poss = set(self.get_pos_words(rhyme_pos, rhyme_met))
-                q = 0
-                print("trying to find a ", pos, met, " which rhymes with any", rhyme_pos, rhyme_met)
-                while not any(self.rhymes(word, w2) for w2 in poss):
-                    word = self.weighted_choice(pos, met)
-                    print(q, "word now", word)
-                    q += 1
-                print("changing line from: '" + lines[r] + "'")
-                lines[r] = lines[r].replace(rhymes[r], word)
-                print("to '" + lines[r] + "'")
-                rhymes[r] = word
-            line = self.write_line_random(template, meter, rhyme_words=rhymes, verbose=True)
-            if line_number % 4 < 2 and rhyme_lines:
-                rhymes.append(line.split()[-1].translate(str.maketrans('', '', string.punctuation)))
+
+            r = None
+            if rhyme_lines:
+                if line_number > 1 or (len(templates) == 2 and line_number == 1):
+                    r = rhymes[max(0, line_number-2)]
+                    if verbose: print("wr1tting", template, meter, r)
+                    line = self.write_line_random(template, meter, rhyme_word=r)
+                    if verbose: print("wrot1", line)
+                else:
+                    line = self.write_line_random(template, meter)
+                    if verbose: print("wrote4", line)
+                    last_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
+                    rhyme_temp = templates[min(len(templates)-1, line_number+2)]
+                    rhyme_pos = rhyme_temp[0].split()[-1]
+                    rhyme_met = rhyme_temp[1].split("_")[-1]
+                    while not any(self.rhymes(last_word, w) for w in self.get_pos_words(rhyme_pos,rhyme_met)):
+                        if verbose: print("trying", " ".join(template), meter, "again to get a rhyme with", rhyme_pos, rhyme_met)
+                        line = self.write_line_random(template, meter)
+                        last_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
+                    if verbose: print("done", line)
+                    rhymes.append(last_word)
+            else:
+                line = self.write_line_random(template, meter)
             for check in checks:
                 if check in template:
                     adv = template.index(check)
@@ -234,7 +286,7 @@ class Scenery_Gen(poem_core.Poem):
                     high = min(len(line_arr), adv+2)
                     if template[high-1] in self.special_words: high -= 1
                     #phrase.append(line_arr[high])
-                    print(check, " adv ", line, "low: ", low, ", high: ", high, "adv: ", adv, line_arr[low:high])
+                    print("checking poem database for", check, " adv ", line, "low: ", low, ", high: ", high, "adv: ", adv, line_arr[low:high])
                     inc_syn = False
                     while not self.phrase_in_poem_fast(line_arr[low:high], include_syns=inc_syn):
                         poss = self.get_pos_words(check, meter=meter[adv], phrase=(line_arr[low:high], line_arr[low:high].index(line_arr[adv])))
@@ -242,34 +294,28 @@ class Scenery_Gen(poem_core.Poem):
                         if not poss:
                             if not verbose or input("cant find a suitable phrase " + line + str(template) + str(meter) + meter[adv] + " press enter to ignore phrase"):
                                 low = high = 0
-                            line = self.write_line_random(template, meter, rhyme_words=rhymes)
+                            if verbose: print("rewriting line", template, meter, r)
+                            line = self.write_line_random(template, meter, rhyme_word=r)
                             inc_syn = False
                             continue
                         line_arr[adv] = random.choice(poss)
-                        print(check, " updated, line now ", " ".join(line_arr))
+                        if verbose: print(check, " updated, line now ", " ".join(line_arr))
                     line = " ".join(line_arr)
             if self.lang_model:
                 print("f")
                 print("line initially ", line)
-                orig_lines.append(line)
                 rhyme_set = []
                 for r in rhymes:
                     rhyme_set += self.get_rhyme_words(r)
                 print("rhyme_set length: ", len(rhyme_set))
                 line = self.update_bert(line.strip().split(), meter, template, len(template)/2, rhyme_words=rhyme_set, filter_meter=True, verbose=True)
             if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
-            print("line now ", line)
+            #print("line now ", line)
             lines.append(line)
-            if template[-1][-1] == ">": template = template[:-1] + [template[-1].split("<")[0] + line[-1]]
-            used_templates.append(" ".join(template))
+            #if template[-1][-1] == ">": template = template[:-1] + [template[-1].split("<")[0] + line[-1]]
             #break
-        print("")
-        if self.lang_model: [print(orig_lines[i]) for i in range(len(orig_lines))]
-        print("")
-        print("         ---", theme.upper(), "---       ")
-        for cand in range(len(lines)):
-            print(lines[cand])
-            if ((cand + 1) % 4 == 0): print("")
+        return lines
+
 
     def write_line(self, n, template, meter, rhymes=[], verbose=False):
         #numbers = {}
