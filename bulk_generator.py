@@ -22,7 +22,7 @@ def generate_and_score():
        """
     #sonnet = generator.write_line_pairs_threshold(50, theme="trees") #takes a really long time to run
     #sonnet = generator.write_line_pairs(1000, theme="trees") #runs in a more reasonable amount of time
-    sonnet = generator.write_bulk_lines(10, theme="death")  # change number to change number of lines generated
+    sonnet = generator.write_bulk_lines(1000, theme="death")  # change number to change number of lines generated
 
     #sonnet_file = open("poems/poe.txt", "r")
     #sonnet = [line.strip() for line in sonnet_file.readlines()]
@@ -101,7 +101,7 @@ def generate_and_score():
 def score_templates():
     s = bert_verb.Scenery_Gen(model="gpt_2")
     # generator = bulk_line_generator.Bulk_Gen(model="gpt_2",templates_file="poems/paired_templates.txt", paired_templates=True)
-    generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/jordan_templates.txt")
+    generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/ben_modified_templates.txt")
     template_lines = generator.write_bulk_lines_with_template(10)
     template_scores = []
     print("finished generating, about to start scoring")
@@ -115,7 +115,7 @@ def score_templates():
         else:
             temp_avg = sum(scores)/len(scores)
         template_scores.append((item, temp_avg))
-    template_scores.sort(key=lambda x:x[1], reverse=True)
+    #template_scores.sort(key=lambda x:x[1], reverse=True)
     for obj in template_scores:
         print("the following template: ", obj[0], " had an average score of ", obj[1])
         for line in template_lines[obj[0]]:
@@ -126,7 +126,8 @@ def score_templates():
 
 if __name__ == '__main__':
 
-    generate_and_score()
+    #generate_and_score()
+    score_templates()
 
     """
 
