@@ -1,4 +1,6 @@
-import pickle
+import time
+
+
 import random
 import torch
 import json
@@ -6,16 +8,21 @@ import numpy as np
 import string
 import pandas as pd
 
+
 from py_files import helper
+
 import theme_word_file
 
-from transformers import BertTokenizer, BertForMaskedLM
-from transformers import RobertaTokenizer, RobertaForMaskedLM
+
+
+#from transformers import BertTokenizer, BertForMaskedLM
+#from transformers import RobertaTokenizer, RobertaForMaskedLM
 
 from nltk.corpus import wordnet as wn
-from nltk import PorterStemmer
 
 import poem_core
+
+
 
 class Scenery_Gen(poem_core.Poem):
     def __init__(self, model=None, words_file="saved_objects/tagged_words.p",
@@ -174,7 +181,7 @@ class Scenery_Gen(poem_core.Poem):
         meter = self.templates[line][1].split("_")[-1]
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
-    def write_poem(self, theme="flower", verbose=False, rhyme_lines=True):
+    def write_poem(self, theme="flower", verbose=False, random_templates=True, rhyme_lines=True, checks=()):
 
         self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
         self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
@@ -186,39 +193,45 @@ class Scenery_Gen(poem_core.Poem):
         for i in range(3):
             print("\n\nwriting stanza", i)
             next_templates = []
-            while(len(next_templates) < 4):
-                template, meter = self.get_next_template(used_templates)
-                if not rhyme_lines or len(next_templates) < 2 or self.can_rhyme((next_templates[-2][0].split()[-1], next_templates[-2][1].split("_")[-1]), (template.split()[-1], meter.split("_")[-1])):
-                    next_templates.append((template, meter))
-                    used_templates.append(template)
-                    if verbose: print(len(next_templates), template, meter, "worked")
-                else:
-                    if verbose: print(next_templates[-2], "wont work with", template, meter)
-                    if random.random() < (1/len(self.templates)*2):
-                        if verbose: print("so changing", next_templates[-2])
-                        #k = i * 4 + len(next_templates) - 2
-                        new_t, new_m = self.get_next_template(used_templates[:-2])
-                        next_templates[-2] = (new_t, new_m)
-                        used_templates[-2] = new_t
+            if not random_templates:
+                next_templates = self.templates[i*4:(i+1)*4]
+            else:
+                while(len(next_templates) < 4):
+                    template, meter = self.get_next_template(used_templates)
+                    if not rhyme_lines or len(next_templates) < 2 or self.can_rhyme((next_templates[-2][0].split()[-1], next_templates[-2][1].split("_")[-1]), (template.split()[-1], meter.split("_")[-1])):
+                        next_templates.append((template, meter))
+                        used_templates.append(template)
+                        if verbose: print(len(next_templates), template, meter, "worked")
+                    else:
+                        if verbose: print(next_templates[-2], "wont work with", template, meter)
+                        if random.random() < (1/len(self.templates)*2):
+                            if verbose: print("so changing", next_templates[-2])
+                            #k = i * 4 + len(next_templates) - 2
+                            new_t, new_m = self.get_next_template(used_templates[:-2])
+                            next_templates[-2] = (new_t, new_m)
+                            used_templates[-2] = new_t
 
             if verbose: print("templates chosen: ", next_templates)
-            lines += self.write_stanza(next_templates, rhyme_lines=rhyme_lines, verbose=verbose)
+            lines += self.write_stanza(next_templates, rhyme_lines=rhyme_lines, verbose=verbose, checks=checks)
 
         #fourth stanza
         print("\n\nwriting last couplet")
-        template, meter = self.get_next_template(used_templates)
-        used_templates.append(template)
-        t2, m2 = self.get_next_template(used_templates)
-        while rhyme_lines and not self.can_rhyme((template.split()[-1], meter.split("_")[-1]), (t2.split()[-1], m2.split("_")[-1])):
+        if not random_templates:
+            (template, meter), (t2, m2) = self.templates[-2:]
+        else:
+            template, meter = self.get_next_template(used_templates)
+            used_templates.append(template)
             t2, m2 = self.get_next_template(used_templates)
-            if verbose: print(t2, m2, "2wont work with", template, meter)
-            if random.random() < (1 / len(self.templates) * 2):
-                if verbose: print("2so changing", template, meter)
-                # k = i * 4 + len(next_templates) - 2
-                template, meter = self.get_next_template([])
-                used_templates[0] = template
+            while rhyme_lines and not self.can_rhyme((template.split()[-1], meter.split("_")[-1]), (t2.split()[-1], m2.split("_")[-1])):
+                t2, m2 = self.get_next_template(used_templates)
+                if verbose: print(t2, m2, "2wont work with", template, meter)
+                if random.random() < (1 / len(self.templates) * 2):
+                    if verbose: print("2so changing", template, meter)
+                    # k = i * 4 + len(next_templates) - 2
+                    template, meter = self.get_next_template([])
+                    used_templates[0] = template
 
-        lines += self.write_stanza([(template,meter), (t2,m2)], rhyme_lines=rhyme_lines, verbose=verbose)
+        lines += self.write_stanza([(template,meter), (t2,m2)], rhyme_lines=rhyme_lines, verbose=verbose, checks=checks)
 
         print("")
         print("         ---", theme.upper(), "---       ")

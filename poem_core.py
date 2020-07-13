@@ -250,11 +250,13 @@ class Poem:
             print(self.gpt.good_generation(None, template=template.split(), meter=meter.split("_"), verbose=verbose))
 
     def write_line_random(self, template, meter, rhyme_word=None, n=1):
+        print("writing line", template, meter)
+        if rhyme_word and type(rhyme_word) == list: rhyme_word = rhyme_word[-1]
         if rhyme_word: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
 
-        if n > 1: return [self.write_line_random(template, meter, rhyme_words) for i in range(n)]
+        if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
 
         line = ""
         punc = ",.;?"
@@ -288,7 +290,7 @@ class Poem:
             if "_" in pos: #or pos in "0123456789"
                 del self.pos_to_words[pos]
 
-    def get_next_template(self, used_templates):
+    def get_next_template(self, used_templates, check_the_rhyme=None):
         poss = self.templates
         incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
@@ -298,12 +300,12 @@ class Poem:
             #elif used_templates[-1][-1] in incomplete:
              #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
-            if n % 4 == 3 or len(used_templates) == 13:
+            if n % 4 == 3 or n == 13:
                 poss = [(p.replace("/,", ""), q) for p,q in poss if p[-1] in ">.?"]
                 #print("last line of stanza so:", poss)
 
         if n % 4 == 0:
-            poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND"]]
+            poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND", "OR"]]
 
 
         if len(poss) == 0:
@@ -313,6 +315,8 @@ class Poem:
             poss = [(p[0].replace("VBP", "VBZ"), p[1]) for p in poss]
         else:
             poss = [(p[0].replace("VBZ", "VBP"), p[1]) for p in poss]
+
+        if check_the_rhyme: poss = [p for p in poss if any(self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
         t = random.choice(poss)
         if "<" in t: t = t.split("<")[0] + random.choice(t.split("</")[-1].strip(">").split("/"))
         return t
