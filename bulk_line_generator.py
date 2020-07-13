@@ -206,13 +206,13 @@ class Bulk_Gen(poem_core.Poem):
             count = 0
             failed_count = 0
             lines[temp] = []
-            print("beginning new template")
+            print("beginning new template, ", temp)
             while count < num_lines:
                 self.reset_number_words()
                 template, meter = temp
                 template = template.split()
                 meter = meter.split("_")
-                line = self.write_line(template, meter, theme_words=theme_words)
+                line = self.poem_model.write_line_random(template, meter)
                 if line:
                     lines[temp].append(line)
                     count += 1
