@@ -58,8 +58,33 @@ class Dynamic_Meter(poem_core.Poem):
         if prompt:
             self.gen_poem_edwin(prompt)
 
-    def get_poss_meters(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
+    def get_poss_meters(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged (but backward)
         word_pos = template[-1]
+        if len(template) == 1:
+            check_meter = "".join(reversed(meter))
+            if (check_meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(check_meter, word_pos)]) == 0:
+                return None
+            else:
+                return {check_meter: {}} #should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
+        else:
+            poss_meters = {}
+            for poss_meter in self.possible_meters:
+                #print("checking for ", word_pos, "with meter ", poss_meter)
+                check_meter = "".join(reversed(poss_meter)) #we're going through the string backwords, so we reverse it
+                if meter.find(poss_meter) == 0 and (check_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(check_meter, word_pos)]) > 0:
+                    temp = self.get_poss_meters(template[:-1], meter[len(poss_meter):])
+                    #print("made recursive call")
+                    if temp != None:
+                        #print("adding something to dict")
+                        poss_meters[check_meter] = temp
+            if len(poss_meters) == 0:
+                return None
+            return poss_meters
+
+
+    #TODO: test
+    def get_poss_meters_forward(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
+        word_pos = template[0]
         if len(template) == 1:
             if (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
                 return None
@@ -69,8 +94,8 @@ class Dynamic_Meter(poem_core.Poem):
             poss_meters = {}
             for poss_meter in self.possible_meters:
                 #print("checking for ", word_pos, "with meter ", poss_meter)
-                if poss_meter in meter[:len(poss_meter)] and (poss_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(poss_meter, word_pos)]) > 0:
-                    temp = self.get_poss_meters(template[:-1], meter[len(poss_meter):])
+                if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(poss_meter, word_pos)]) > 0:
+                    temp = self.get_poss_meters_forward(template[1:], meter[len(poss_meter):])
                     #print("made recursive call")
                     if temp != None:
                         #print("adding something to dict")
