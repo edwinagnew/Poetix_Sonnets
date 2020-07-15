@@ -35,11 +35,30 @@ class Poem:
 
         self.pron = {w.split()[0].lower(): " ".join(w.split()[1:]) for w in open(syllables_file).readlines() if w.split()[0].lower().split("(")[0] in self.words_to_pos}
 
-        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
 
         with open(top_file) as tf:
             self.top_common_words = [line.strip() for line in tf.readlines()][:125]
 
+
+        places = open("saved_objects/words/places.txt").readlines()
+        self.pos_to_words["PLC"] = {p.strip(): 1 for p in places}
+        for p in places:
+            p = p.strip()
+            if p not in self.words_to_pos: self.words_to_pos[p] = []
+            self.words_to_pos[p].append("PLC")
+
+        names = open("saved_objects/words/names.txt").readlines()
+        curr = None
+        self.all_names = {}
+        for n in names:
+            n = n.strip()
+            if "#" in n:
+                curr = n.split("#")[-1]
+                continue
+            if curr not in self.all_names: self.all_names[curr] = []
+            self.all_names[curr].append(n)
+
+        self.reset_gender()
 
         self.api_url = 'https://api.datamuse.com/words'
 
@@ -79,7 +98,7 @@ class Poem:
         if pos[-1] in punc:
             p = pos[-1]
             if p == ">":
-                p = random.choice(pos.split("</")[-1].strip(">").split("/"))
+                p = random.choice(pos.split("<")[-1].strip(">").split("/"))
                 pos = pos.split("<")[0] + p
             return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
         if pos in self.special_words:
@@ -141,7 +160,7 @@ class Poem:
 
     def weighted_choice(self,pos, meter=None, rhyme=None):
         punc = ".,;?!"
-        if pos[-1] == ">": return self.weighted_choice(pos.split("<")[0], meter=meter, rhyme=rhyme) + random.choice(pos.split("</")[-1].strip(">").split("/"))
+        if pos[-1] == ">": return self.weighted_choice(pos.split("<")[0], meter=meter, rhyme=rhyme) + random.choice(pos.split("<")[-1].strip(">").split("/"))
         if pos[-1] in punc: return self.weighted_choice(pos[:-1], meter=meter, rhyme=rhyme) + pos[-1]
         poss = self.get_pos_words(pos, meter=meter, rhyme=rhyme)
         if not poss:
@@ -238,16 +257,21 @@ class Poem:
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
-    def write_line_gpt(self, template, meter, k=3, gpt_model=None, verbose=False):
+    def write_line_gpt(self, template, meter, rhyme_word=None, n=1, gpt_model=None, verbose=False):
         if not self.gpt:
             #self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1/0)
         print("\n")
+        if "he" in self.gender or "she" in self.gender:
+            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+        else:
+            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+
         print(template, meter)
-        for i in range(k):
+        for i in range(n):
             #print("generating with ", t_2, meter.split("_"), i)
-            print(self.gpt.good_generation(None, template=template.split(), meter=meter.split("_"), verbose=verbose))
+            print(self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose))
 
     def write_line_random(self, template, meter, rhyme_word=None, n=1):
         print("writing line", template, meter)
@@ -255,6 +279,13 @@ class Poem:
         if rhyme_word: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
+
+        if "he" in self.gender or "she" in self.gender:
+            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+        else:
+            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+
+
 
         if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
 
@@ -290,6 +321,16 @@ class Poem:
             if "_" in pos: #or pos in "0123456789"
                 del self.pos_to_words[pos]
 
+    def reset_gender(self):
+        self.gender = random.choice([["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"],  ["he", "him", "his", "himself"], ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]])
+
+        g = random.choice(["male", "female"])
+        if "he" in self.gender: g = "male"
+        elif "she" in self.gender: g = "female"
+
+        self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
+
+
     def get_next_template(self, used_templates, check_the_rhyme=None):
         poss = self.templates
         incomplete = ",;" + string.ascii_lowercase
@@ -318,7 +359,7 @@ class Poem:
 
         if check_the_rhyme: poss = [p for p in poss if any(self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
         t = random.choice(poss)
-        if "<" in t: t = t.split("<")[0] + random.choice(t.split("</")[-1].strip(">").split("/"))
+        if "<" in t: t = t.split("<")[0] + random.choice(t.split("<")[-1].strip(">").split("/"))
         return t
 
 
