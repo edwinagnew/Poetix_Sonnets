@@ -50,9 +50,10 @@ class gpt_gen:
 
         if verbose: print("tokenizing")
         if not seed:
-            seed = random.choice(self.sonnet_words(template[0], meter=meter[0])) #picks first word randomly
+            generated = self.tokenizer.encode(random.choice(self.sonnet_words(template[0], meter=meter[0]))) #picks first word randomly
             a = 1
-        generated = self.tokenizer.encode(seed)
+        else:
+            generated = self.tokenizer.encode(seed)
         context = torch.tensor([generated])
         past = None
 
@@ -119,7 +120,7 @@ class gpt_gen:
             if word_index - 1 > 0 and word_index - 1 != " " and sequence[word_index - 1] != "-":
                 sequence = sequence[:word_index] + " " + sequence[word_index:]"""
 
-        return sequence#.replace(seed, "")
+        return sequence.replace(seed.strip(), "").strip()
 
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
