@@ -155,13 +155,14 @@ class gpt_gen:
 
         word_scores = self.get_word_scores(line)
         #if word_scores.min() < 0: word_scores -= word_scores.min()
+        word_scores -= word_scores.max()
         if keep_last:
             last = input_ids[0].tolist().index(first_tokens[-1])
             word_scores[last:] = 0
 
         worst_token_index = -1
         worst_index = -1
-        while worst_index < 1 or len(self.sonnet_words(template[worst_index], meter[worst_index])) < 2:
+        while worst_index < 1 or len(self.sonnet_words(template[worst_index], meter[worst_index])) < 2: #dont change first word because it doesnt have any context
         #while self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() not in words or worst_index < 1 or len(self.sonnet_words(template[worst_index], meter[worst_index])) < 2:
             if verbose and worst_token_index > -1: print("changing", self.tokenizer.decode(input_ids[0][worst_token_index].item()))
             #if worst_token_index + worst_index > 0: word_scores[worst_token_index] = 0
