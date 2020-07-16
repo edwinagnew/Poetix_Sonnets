@@ -275,7 +275,8 @@ class Poem:
 
         return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose)
 
-    def write_line_random(self, template, meter, rhyme_word=None, n=1, verbose=False):
+    def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
+        if template is None: template, meter = random.choice(self.templates)
         if "he" in self.gender or "she" in self.gender:
             template = template.replace("VBP", "VBZ").replace("DO", "DOES")
         else:
@@ -283,7 +284,7 @@ class Poem:
 
         print("writing line", template, meter)
         if rhyme_word and type(rhyme_word) == list: rhyme_word = rhyme_word[-1]
-        if rhyme_word: print("rhyme word:", rhyme_word)
+        if rhyme_word and verbose: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
 
@@ -329,6 +330,13 @@ class Poem:
         elif "she" in self.gender: g = "female"
 
         self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
+
+    def get_template_from_line(self, line):
+        poss = self.templates
+        for i, word in enumerate(line.split()):
+            poss = [p for p in poss if p[0].split()[i] in self.get_word_pos(word)]
+            if len(poss) == 1: return poss[0]
+        return poss
 
 
     def get_next_template(self, used_templates, check_the_rhyme=None):
