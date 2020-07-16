@@ -101,7 +101,7 @@ def generate_and_score():
 def score_templates():
     s = bert_verb.Scenery_Gen(model="gpt_2")
     # generator = bulk_line_generator.Bulk_Gen(model="gpt_2",templates_file="poems/paired_templates.txt", paired_templates=True)
-    generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/ben_modified_templates.txt")
+    generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/jordan_templates.txt")
     template_lines = generator.write_bulk_lines_with_template(10)
     template_scores = []
     print("finished generating, about to start scoring")
