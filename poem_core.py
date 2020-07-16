@@ -65,6 +65,21 @@ class Poem:
         self.gpt = None
         self.gpt_past = ""
 
+        self.meter_and_pos = {}
+        self.possible_meters = ["1", "0", "10", "01", "101", "010", "1010", "0101", "10101", "01010", "101010",
+                                "010101"]  # the possible meters a word could have
+        possible_pos = list(self.pos_to_words.keys())
+        for pos in possible_pos:
+            for meter in self.possible_meters:
+                self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
+                                                    word in self.dict_meters and meter in self.dict_meters[word]]
+        for word in self.special_words:
+            if word in self.dict_meters:
+                meter = self.dict_meters[word]
+                self.meter_and_pos[(meter, word)] = [word]
+            else:
+                continue
+
     def get_meter(self, word):
         if word[-1] in ".,?;":
             return self.get_meter(word[:-1])
@@ -370,5 +385,159 @@ class Poem:
         t = random.choice(poss)
         if "<" in t: t = t.split("<")[0] + random.choice(t.split("<")[-1].strip(">").split("/"))
         return t
+
+    def get_poss_meters(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged (but backward)
+        """
+
+        :param template: a list of POS's for the desired template
+        :param meter: The desired meter for the line as a whole. Should be given backwords, i.e. "1010101010"
+        :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
+        the next word can take on, given that meter assigned to the last word.
+        """
+        if type(template) == str: template = template.split()
+
+        word_pos = template[-1]
+        if word_pos[-1] == ">":
+            word_pos = word_pos.split("<")[0]
+        elif word_pos[-1] in [",", ".", ":", ";",">", "?"]:
+            word_pos = word_pos[:-1]
+
+        if word_pos == "POS":
+            temp = self.get_poss_meters(template[:-1], meter)
+            if temp != None:
+                return {"": temp}
+
+        if len(template) == 1:
+            check_meter = "".join(reversed(meter))
+            if (check_meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(check_meter, word_pos)]) == 0:
+                return None
+            else:
+                return {check_meter: {}} #should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
+        else:
+            poss_meters = {}
+            for poss_meter in self.possible_meters:
+                #print("checking for ", word_pos, "with meter ", poss_meter)
+                check_meter = "".join(reversed(poss_meter)) #we're going through the string backwords, so we reverse it
+                if meter.find(poss_meter) == 0 and (check_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(check_meter, word_pos)]) > 0:
+                    temp = self.get_poss_meters(template[:-1], meter[len(poss_meter):])
+                    #print("made recursive call")
+                    if temp != None:
+                        #print("adding something to dict")
+                        poss_meters[check_meter] = temp
+            if len(poss_meters) == 0:
+                return None
+            return poss_meters
+
+
+    def get_poss_meters_forward(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
+        """
+        :param template: A list of POS's and/or special words
+        :param meter: The desired meter for the line, given forward as a string of the form "0101010101".
+        :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
+        the next word can take on, given that meter assigned to the last word.
+        """
+        if type(template) == str: template = template.split()
+
+        word_pos = template[0]
+        if word_pos[-1] == ">":
+            word_pos = word_pos.split("<")[0]
+        elif word_pos[-1] in [",", ".", ":", ";",">", "?"]:
+            word_pos = word_pos[:-1]
+
+        if word_pos == "POS":
+            temp = self.get_poss_meters_forward(template[1:], meter)
+            if temp != None:
+                return {"": self.get_poss_meters_forward(template[1:], meter)}
+
+        if len(template) == 1:
+            if (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
+                return None
+            else:
+                return {meter: {}} #should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
+        else:
+            poss_meters = {}
+            for poss_meter in self.possible_meters:
+                #print("checking for ", word_pos, "with meter ", poss_meter)
+                if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(poss_meter, word_pos)]) > 0:
+                    temp = self.get_poss_meters_forward(template[1:], meter[len(poss_meter):])
+                    #print("made recursive call")
+                    if temp != None:
+                        #print("adding something to dict")
+                        poss_meters[poss_meter] = temp
+            if len(poss_meters) == 0:
+                return None
+            return poss_meters
+
+
+    def check_template(self, template, meter): #makes sure any special words are in the meter dictionary, takes (template and meter as lists)
+        """
+        :param template: takes a template
+        :param meter: takes the meter paired with the template, with words separated by _'s
+        :return: returns nothing, just updates the dictionary
+        """
+
+        if type(template) == str: template = template.split()
+        if type(meter) == str: meter = meter.split("_")
+
+        for i in range(len(template)):
+            word = template[i]
+            if word[-1] == ">":
+                word = word.split("<")[0]
+            elif word[-1] in [",", ".", ":", ";", ">", "?"]:
+                word = word[:-1]
+
+            if word == "POS":
+                continue
+            if word in self.special_words:
+                if (meter[i], word) not in self.dict_meters:
+                    print("adding to dictionary the word, ", word, "with meter ", meter[i])
+                    self.meter_and_pos[(meter[i], word)] = [word]
+                else:
+                    self.meter_and_pos[(meter[i], word)].append([word])
+
+    def write_line_dynamic_meter(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
+        if template is None: template, meter = random.choice(self.templates)
+        if "he" in self.gender or "she" in self.gender:
+            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+        else:
+            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+
+        self.check_template(template, meter)
+
+        print("writing line", template, " with dynamic meter")
+        if rhyme_word and type(rhyme_word) == list: rhyme_word = rhyme_word[-1]
+        if rhyme_word and verbose: print("rhyme word:", rhyme_word)
+        if type(template) == str: template = template.split()
+
+        if n > 1: return [self.write_line_dynamic_meter(template, meter, rhyme_word) for i in range(n)]
+
+        line = ""
+        punc = ",.;?"
+
+        my_meter_dict = self.get_poss_meters(template, "1010101010")
+        for i in range(len(template)):
+            my_meter = random.choice(list(my_meter_dict.keys()))
+            next_word = self.weighted_choice(template[i], my_meter)
+            if not next_word: input("no word for " + template[i] + my_meter)
+            space = " " * int(line != "" and next_word not in (punc + "'s"))
+            line += space + next_word
+            my_meter_dict = my_meter_dict[my_meter]
+
+
+        new_word = ""
+        while rhyme_word and not self.rhymes(new_word, rhyme_word):
+            if verbose: print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_word)
+            old_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
+            self.reset_letter_words()
+            new_word = self.weighted_choice(template[-1], meter[-1], rhyme=rhyme_word).translate(str.maketrans('', '', string.punctuation))
+            if verbose: print("got", new_word)
+            if not new_word:
+                print("cant rhyme")
+                return 1/0
+            line = line.replace(old_word, new_word) #will replace all instances
+
+
+
+        return line.strip()
 
 
