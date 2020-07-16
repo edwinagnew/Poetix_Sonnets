@@ -259,7 +259,7 @@ class Scenery_Gen(poem_core.Poem):
         -------
 
         """
-        #self.gpt_past = ""
+        self.gpt_past = ""
         lines = []
         rhymes = []
 
@@ -282,7 +282,7 @@ class Scenery_Gen(poem_core.Poem):
                     if verbose: print("wrot1", line)
                 else:
                     #line = self.write_line_random(template, meter)
-                    line = line_method(template, meter)
+                    line = line_method(template, meter, verbose=verbose)
                     if verbose: print("wrote4", line)
                     last_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
                     rhyme_temp = templates[min(len(templates)-1, line_number+2)]
@@ -292,7 +292,8 @@ class Scenery_Gen(poem_core.Poem):
                         if verbose: print("trying", template, meter, "again to get a rhyme with", rhyme_pos, rhyme_met)
                         #line = self.write_line_random(template, meter)
                         #line = self.write_line_gpt(template=template, meter=meter, verbose=verbose)
-                        line = line_method(template, meter, verbose=verbose)
+                        rh = None if len(self.get_pos_words(rhyme_pos, rhyme_met)) > 1 else self.get_pos_words(rhyme_pos, rhyme_met)[0]
+                        line = line_method(template, meter, rh, verbose=verbose)
                         last_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
                     if verbose: print("done", line)
                     rhymes.append(last_word)
