@@ -63,7 +63,17 @@ class Dynamic_Meter(poem_core.Poem):
         :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
         the next word can take on, given that meter assigned to the last word.
         """
+        if type(template) == str: template = template.split()
+
         word_pos = template[-1]
+        if word_pos[-1] == ">":
+            word_pos = word_pos.split("<")[0]
+        elif word_pos[-1] in [",", ".", ":", ";",">", "?"]:
+            word_pos = word_pos[:-1]
+
+        if word_pos == "POS":
+            return self.get_poss_meters_forward(template[:-1], meter)
+
         if len(template) == 1:
             check_meter = "".join(reversed(meter))
             if (check_meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(check_meter, word_pos)]) == 0:
@@ -93,7 +103,17 @@ class Dynamic_Meter(poem_core.Poem):
         :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
         the next word can take on, given that meter assigned to the last word.
         """
+        if type(template) == str: template = template.split()
+
         word_pos = template[0]
+        if word_pos[-1] == ">":
+            word_pos = word_pos.split("<")[0]
+        elif word_pos[-1] in [",", ".", ":", ";",">", "?"]:
+            word_pos = word_pos[:-1]
+
+        if word_pos == "POS":
+            return self.get_poss_meters_forward(template[1:], meter)
+
         if len(template) == 1:
             if (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
                 return None
@@ -116,10 +136,13 @@ class Dynamic_Meter(poem_core.Poem):
 
     def check_template(self, template, meter): #makes sure any special words are in the meter dictionary, takes (template and meter as lists)
         """
-        :param template:
-        :param meter:
+        :param template: takes a template
+        :param meter: takes the meter paired with the template, with words separated by _'s
         :return:
         """
+        if type(template) == str: template = template.split()
+        if type(template) == str: template = template.split("_")
+
         for i in range(len(template)):
             if template[i] in self.special_words:
                 if (meter[i], template[i]) not in self.dict_meters:
@@ -135,17 +158,15 @@ class Dynamic_Meter(poem_core.Poem):
         """
         #template = random.choice(list(self.templates.keys()))
         #meter = self.templates[template]
-        template = ["THIS", "VB", "TO", "VB", "RB", "VBD", "WHEN", "PRPS", "VBD", "JJ"]
-        meter = self.templates[" ".join(template)]
-        if type(template) == str: template = template.split()
-        if type(meter) == str: meter = meter.split("_")
+        template = "VBG PRP$ NN BY PRP$ NN<,/.>"
+        meter = self.templates[template]
         self.check_template(template, meter) #need to make sure any special words are in our meter dict.
         starting_meter = "1010101010" #we work through the meter backwords, because it makes indexing easier
         print(template)
         poss_meters = self.get_poss_meters(template, starting_meter)
         print(poss_meters)
         new_meters = []
-        while len(new_meters) < len(template):
+        while len(new_meters) < len(template.split()):
             new_meter = random.choice(list(poss_meters.keys()))
             new_meters.append(new_meter)
             poss_meters = poss_meters[new_meter]
