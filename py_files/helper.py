@@ -6,6 +6,7 @@ import re
 import pickle
 import spacy
 import numpy as np
+import string
 spacy_nlp = None#spacy.load('en_core_web_lg')
 
 def create_syll_dict(fnames, extra_file):
@@ -276,12 +277,20 @@ def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
             pos_to_words[p][word] = 1
             if keep_scores: pos_to_words[p][word] = dict[word][p]
     pos_to_words["POS"] = {"'s":1}
-    #pos_to_words["POS"]["'s"] = 1
 
     pos_to_words["PRPS"] = {"i":1, "you":1, "he":1, "she":1, "it":1, "we":1, "they":1}
     pos_to_words["PRPO"] = {"me":1, "you":1, "him":1, "her":1, "it":1, "us":1, "them":1, "myself":1, "yourself":1, "himself":1, "herself":1, "itself":1, "ourselves":1, "yourselves":1, "theirselves":1}
 
+    for p in ["PRPS", "PRPO"]:
+        for w in pos_to_words[p]:
+            if w not in words_to_pos: words_to_pos[w] = []
+            words_to_pos[w].append(p)
+
     return pos_to_words, words_to_pos
+
+
+def remove_punc(s):
+    return s.translate(str.maketrans('', '', string.punctuation))
 
 
 

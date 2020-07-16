@@ -6,7 +6,7 @@ import random
 import string
 
 from py_files import helper
-s
+
 class gpt_gen:
 
     def __init__(self, seed=None, sonnet_method=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
@@ -50,9 +50,10 @@ class gpt_gen:
 
         if verbose: print("tokenizing")
         if not seed:
-            seed = random.choice(self.sonnet_words(template[0], meter=meter[0])) #picks first word randomly
+            generated = self.tokenizer.encode(random.choice(self.sonnet_words(template[0], meter=meter[0]))) #picks first word randomly
             a = 1
-        generated = self.tokenizer.encode(seed)
+        else:
+            generated = self.tokenizer.encode(seed)
         context = torch.tensor([generated])
         past = None
 
@@ -76,7 +77,7 @@ class gpt_gen:
                 #    poss = {"'s"}
                 else:
                     if template[i][-1] == ">":
-                        template[i], punc_next = template[i].split("<")[0], template[i].split("</")[-1].strip(">").split("/")
+                        template[i], punc_next = template[i].split("<")[0], template[i].split("<")[-1].strip(">").split("/")
 
                     elif template[i][-1] in punc:
                         template[i], punc_next = template[i][:-1], template[i][-1]
@@ -91,7 +92,9 @@ class gpt_gen:
                     token = self.tokenizer.encode(space + list(poss)[0])[0]
                     dist = np.ones(len(words))
                 else:
+                    #TODO - check this could find multi token words
                     filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words]) #"Ġ" is gpt-2's space character
+                    #filt = np.array([self.filt_score(x.strip("Ġ").lower(), poss, template[i]) for x in words])
                     ws = output[..., -1, :].detach().numpy() * filt
                     dist = helper.softmax(ws, exclude_zeros=True)#, k=np.percentile(words, 0)) #TODO think about not necessarily softmaxing all words?
                     token = np.random.choice(np.arange(len(words)), p=dist).item()
@@ -119,7 +122,11 @@ class gpt_gen:
             if word_index - 1 > 0 and word_index - 1 != " " and sequence[word_index - 1] != "-":
                 sequence = sequence[:word_index] + " " + sequence[word_index:]"""
 
-        return sequence#.replace(seed, "")
+        return sequence.replace(seed.strip(), "").strip()
+
+    def filt_score(self, word, poss, pos):
+        if word not in poss: return 0
+        return self.sonnet_object.pos_to_words[helper.remove_punc(pos)][word]
 
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
@@ -132,114 +139,171 @@ class gpt_gen:
         if type(line) == list: return [self.get_word_scores(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         outputs = self.model(input_ids)
-        return torch.tensor([outputs[0][0][i][input_ids[0][i]] for i in range(len(input_ids[0]))]) #gets the score of each original word in the line
+        return torch.tensor([outputs[0][0][max(0,i-1)][input_ids[0][i]] for i in range(len(input_ids[0]))]) #gets the score of each original word in the line
 
-    def iterative_improve_mc(self, template, meter, line, k=1, past=None):
-        if k == 0: return line
+    def get_worst_suitable_word(self, template, meter, line, verbose=False, keep_last=True, p=0.2):
+        words = line.replace("'s", " 's").translate(str.maketrans('', '', string.punctuation)).split()
+
+        if verbose: print("line score before:", self.score_line(line))
+
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
+
+        if verbose: print([self.tokenizer.decode(t.item()) for t in input_ids[0]], input_ids)
+
+        first_tokens = [self.tokenizer.encode((bool(w) * " ") + words[w])[0] for w in range(len(words))]
+        if verbose: print("first_tokens", first_tokens, self.tokenizer.decode(first_tokens))
+
+        word_scores = self.get_word_scores(line)
+        #if word_scores.min() < 0: word_scores -= word_scores.min()
+        if keep_last:
+            last = input_ids[0].tolist().index(first_tokens[-1])
+            word_scores[last:] = 0
+
+        worst_token_index = -1
+        worst_index = -1
+        while worst_index < 1 or len(self.sonnet_words(template[worst_index], meter[worst_index])) < 2:
+        #while self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() not in words or worst_index < 1 or len(self.sonnet_words(template[worst_index], meter[worst_index])) < 2:
+            if verbose and worst_token_index > -1: print("changing", self.tokenizer.decode(input_ids[0][worst_token_index].item()))
+            #if worst_token_index + worst_index > 0: word_scores[worst_token_index] = 0
+            if word_scores.min() == 0:
+                print("couldnt find any word to change")
+                return None
+            worst_token_index = torch.argmin(word_scores).item()
+            word_scores[worst_token_index] = 0
+            #print("first worst", worst_token_index, input_ids[0][worst_token_index].item(), self.tokenizer.decode(input_ids[0][worst_token_index].item()))
+            #worst_word = self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip()
+            #if worst_word in words: worst_index = words.index(worst_word)
+            while input_ids[0][worst_token_index] not in first_tokens: worst_token_index -= 1
+            worst_index = first_tokens.index(input_ids[0][worst_token_index])
+            #print("worst_token_index now", worst_token_index, input_ids[0][worst_token_index].item(), worst_index, first_tokens[worst_index])
+
+
+
+        if verbose: print("word scores:", word_scores.tolist())
+        if verbose: print("worst word was ", worst_token_index, line.split()[worst_index], words[worst_index])
+
+        if worst_index > 0 and len(self.sonnet_words(template[worst_index-1], meter[worst_index-1])) > 1 and random.random() < p/2:
+            worst_index -= 1
+            if verbose: print("randomly decremented worst_index to", worst_index, line.split()[worst_index], words[worst_index])
+        elif worst_index < len(words) - 2 and len(self.sonnet_words(template[worst_index + 1], meter[worst_index+1])) > 1 and random.random() < p/2:
+            worst_index += 1
+            if verbose: print("randomly incremented worst_index to", worst_index, line.split()[worst_index], words[worst_index])
+
+        if verbose: print("\n")
+        return worst_index
+
+    def iterative_improve_loss(self, template, meter, line, n=1, k=10, verbose=False, keep_rhyme_word=True):
+        if n == 0: return line
         if type(template) != list: template = template.split()
         if type(meter) != list: meter = meter.split("_")
 
-        print("line score before:", self.score_line(line))
+        #input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
 
-        worst_token_index = torch.argmin(self.get_word_scores(line)).item()
-        print(worst_token_index)
+        worst_index = self.get_worst_suitable_word(template, meter, line, verbose=verbose, keep_last=keep_rhyme_word)
+        if worst_index is None: return line
 
+        # random
+        #if selection == "random":
+        choices = []
+        scores = []
+        poss = self.sonnet_words(helper.remove_punc(template[worst_index]), meter[worst_index])
+        if verbose: print("getting ", helper.remove_punc(template[worst_index]), meter[worst_index], end=": ")
+        for new_word in random.sample(poss, min(len(poss), k)):
+            if verbose: print(new_word, end=", ")
+            #new_line = input_ids[0].tolist()
+            #new_line = new_line[:worst_token_index] + self.tokenizer.encode(" " + new_word) + new_line[worst_token_index + 1:]
+            #choices.append(self.tokenizer.decode(new_line))
+            new_line = line.replace(line.split()[worst_index], new_word)
+            choices.append(new_line)
+            scores.append(self.score_line(new_line))
 
-        #make sure the word is changeable
+        """# top k
+        else:
+            poss = self.sonnet_words(template[worst_index].translate(str.maketrans('', '', string.punctuation)), meter[worst_index])
+            words = list(self.tokenizer.encoder.keys())
+            filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words])
+            if verbose: print("filtering:", self.tokenizer.decode([x for x in range(len(words)) if filt[x]]), sum(filt))
+            output, past = self.model(input_ids)
+            output += abs(output.min())
+            out = torch.tensor(output[..., worst_token_index - 1, :].detach().numpy() * filt)  # predicts what comes after token, not whats there?
 
+            best_vals, best_is = out.topk(k)
+
+            if verbose: print("top k: ", best_vals, best_is)
+
+            choices = []
+            scores = []
+            for b in best_is[0]:
+                new_line = input_ids[0].tolist()
+                new_line[worst_token_index] = b.item()
+                choices.append(self.tokenizer.decode(new_line))
+                scores.append(self.score_line(choices[-1]))"""
+
+        if verbose: print("\nchoices", choices)
+        if verbose: print("scores", scores)
+
+        best_line = choices[np.argmin(scores)]
+        print(n, "best =", best_line, min(scores))
+
+        return self.iterative_improve_loss(template, meter, best_line, n=n-1, k=k, verbose=verbose)
+
+    def iterative_improve_mc(self, template, meter, line, n=1, k=5, selection="random", verbose=False):
+        if n == 0: return line
+        if type(template) != list: template = template.split()
+        if type(meter) != list: meter = meter.split("_")
 
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
-        worst_word = self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip()
-        worst_index = line.split().index(worst_word)
-        print("worst word was ", worst_word)
-        assert self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() == line.split()[worst_index]
 
-        """
-        # random options
-        choices = []
-        for i in range(5):
-            #assuming there's no punctuation
-            print("getting ", template[worst_index], meter[worst_index])
-            new_word = random.choice(self.sonnet_words(template[worst_index], meter[worst_index]))
-            new_line = input_ids[0].tolist()
-            new_line[worst_token_index] = self.mc_tokenizer.encode(" " + new_word)[0]
-            new_line += self.mc_tokenizer.encode('[CLS]')
-            #new_line = " ".join(new_line) + ' [CLS]'
-            choices.append(new_line)
-        """
-        choices = []
-        poss = set(self.sonnet_words(template[worst_index], meter[worst_index]))
-        print("possible replacements:", poss)
-        filt = np.array([int(x.strip("Ġ").lower() in poss) for x in self.tokenizer.encoder])
-        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
-        out = torch.tensor(self.model(input_ids)[0][0][worst_token_index].detach().numpy() * filt)
+        worst_index, worst_token_index = self.get_worst_suitable_word(template, meter, line, verbose=verbose)
+        if not worst_index: return line
 
-        best_vals, best_is = out.topk(5)
+        #assert self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() == line.split()[worst_index]
 
         self.load_mc_model()
 
-        for b in best_is:
-            new_line = input_ids[0].tolist()
-            new_line[worst_token_index] = b
-            new_line += self.mc_tokenizer.encode('[CLS]')
-            choices.append(new_line)
+        # random options
+        if selection == "random":
+            choices = []
+            for i in range(k):
+                #assuming there's no punctuation
+                if verbose: print(i, "getting ", template[worst_index], meter[worst_index])
+                new_word = random.choice(self.sonnet_words(template[worst_index].translate(str.maketrans('', '', string.punctuation)), meter[worst_index]))
+                new_line = input_ids[0].tolist()
+                #new_line[worst_token_index] = self.mc_tokenizer.encode(" " + new_word)[0]
+                new_line = new_line[:worst_token_index] + self.mc_tokenizer.encode(" " + new_word) + new_line[worst_token_index + 1:]
+                new_line += self.mc_tokenizer.encode('[CLS]')
+                #new_line = " ".join(new_line) + ' [CLS]'
+                choices.append(new_line)
 
-        print([self.mc_tokenizer.decode(c) for c in choices], choices)
+        else:
+            #top k options
+            choices = []
+            poss = self.sonnet_words(helper.remove_punc(template[worst_index]), meter[worst_index])
+            words = list(self.tokenizer.encoder.keys())
+            filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words])
+            output, past = self.model(input_ids)
+            output += abs(output.min())
+            out = torch.tensor(output[..., worst_token_index - 1, :].detach().numpy() * filt)  # predicts what comes after token, not whats there?
+
+            best_vals, best_is = out.topk(k)
+
+            for b in best_is[0]:
+                new_line = input_ids[0].tolist()
+                new_line[worst_token_index] = b.item()
+                new_line += self.mc_tokenizer.encode('[CLS]')
+                choices.append(new_line)
+
+        if verbose: print([self.mc_tokenizer.decode(c) for c in choices], choices)
 
         choice_scores = self.multiple_choice(choices)
 
-        print(choice_scores)
+        if verbose: print(choice_scores)
 
-        best_line = self.mc_tokenizer.decode(choices[torch.argmax(choice_scores).item()])
+        best_line = self.mc_tokenizer.decode(choices[torch.argmax(choice_scores).item()]).replace(" [CLS]", "")
 
-        print("best = ", best_line)
+        print(n, "best = ", best_line, self.score_line(best_line))
 
-    def iterative_improve_loss(self, template, meter, line, k=1, verbose=False):
-        if k == 0: return line
-        if type(template) != list: template = template.split()
-        if type(meter) != list: meter = meter.split("_")
-
-        words = line.translate(str.maketrans('', '', string.punctuation)).split()
-
-        print("line score before:", self.score_line(line))
-
-        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
-        if verbose: print([self.tokenizer.decode(t.item()) for t in input_ids[0]])
-
-        word_scores = self.get_word_scores(line)
-        if word_scores.min() < 0: word_scores -= word_scores.min()
-        worst_token_index = torch.argmax(word_scores).item()
-        worst_index = -1
-        while self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() not in words or worst_index >= 0 and len(self.sonnet_words(template[worst_index], meter[worst_index])) < 2:
-            if verbose: print("changing", self.tokenizer.decode(input_ids[0][worst_token_index].item()))
-            word_scores[worst_token_index] = 0
-            worst_token_index = torch.argmax(word_scores).item()
-            worst_word = self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip()
-            if worst_word in words: worst_index = words.index(worst_word)
-        if verbose: print("worst", worst_token_index)
-        if verbose: print("word scores:", word_scores.tolist())
-
-
-        if verbose: print("worst word was ", line.split()[worst_index], worst_word)
-
-        choices = []
-        scores = []
-        for i in range(5):
-            if verbose: print(i, "getting ", template[worst_index], meter[worst_index])
-            new_word = random.choice(self.sonnet_words(template[worst_index], meter[worst_index]))
-            new_line = input_ids[0].tolist()
-            new_line[worst_token_index] = self.tokenizer.encode(" " + new_word)[0]
-            choices.append(new_line)
-            scores.append(self.score_line(self.tokenizer.decode(new_line)))
-
-        if verbose: print([self.tokenizer.decode(c) for c in choices])
-        if verbose: print(scores)
-
-        best_line = self.tokenizer.decode(choices[np.argmin(scores)])
-        print(k, "best =", best_line)
-
-        return self.iterative_improve_loss(template, meter, best_line, k=k-1, verbose=verbose)
-
+        return self.iterative_improve_mc(template, meter, best_line, n=n-1, k=k, verbose=verbose)
 
 
     def multiple_choice(self, choices):

@@ -130,7 +130,7 @@ class Theme(poem_core.Poem):
             print(theme_word_dict)
             for p in theme_word_dict[theme]:
                 for w in theme_word_dict[theme][p]:
-                    theme_word_dict[theme][p][w] *= theme_word_dict[theme][p][w] * abs(helper.get_spacy_similarity(theme, w))#/max_val
+                    theme_word_dict[theme][p][w] *= abs(helper.get_spacy_similarity(theme, w))#/max_val
             with open(extras_file, 'wb') as f:
                 pickle.dump(extras, f)
         with open(theme_file, "wb") as pickle_in:
