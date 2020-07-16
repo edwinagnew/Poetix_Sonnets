@@ -78,8 +78,9 @@ class Poem:
         Get the set of POS category of a word. If we are unable to get the category, return None.
         """
         # Special case
+        word = helper.remove_punc(word)
         if word.upper() in self.special_words:
-            return [word.upper()]
+            return [word.upper()] + (self.words_to_pos[word] if word in self.words_to_pos else [])
         if word not in self.words_to_pos:
             return []
         return self.words_to_pos[word]
@@ -334,7 +335,7 @@ class Poem:
     def get_template_from_line(self, line):
         poss = self.templates
         for i, word in enumerate(line.split()):
-            poss = [p for p in poss if p[0].split()[i] in self.get_word_pos(word)]
+            poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(word)]
             if len(poss) == 1: return poss[0]
         return poss
 
