@@ -63,6 +63,7 @@ class Poem:
         self.api_url = 'https://api.datamuse.com/words'
 
         self.gpt = None
+        self.gpt_past = ""
 
     def get_meter(self, word):
         if word[-1] in ".,?;":
@@ -262,30 +263,29 @@ class Poem:
             #self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1/0)
-        print("\n")
+
         if "he" in self.gender or "she" in self.gender:
             template = template.replace("VBP", "VBZ").replace("DO", "DOES")
         else:
             template = template.replace("VBZ", "VBP").replace("DOES", "DO")
 
-        print(template, meter)
-        for i in range(n):
-            #print("generating with ", t_2, meter.split("_"), i)
-            print(self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose))
+        print("writing line", template, meter)
 
-    def write_line_random(self, template, meter, rhyme_word=None, n=1):
+        if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
+
+        return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose)
+
+    def write_line_random(self, template, meter, rhyme_word=None, n=1, verbose=False):
+        if "he" in self.gender or "she" in self.gender:
+            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+        else:
+            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+
         print("writing line", template, meter)
         if rhyme_word and type(rhyme_word) == list: rhyme_word = rhyme_word[-1]
         if rhyme_word: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
-
-        if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
-        else:
-            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
-
-
 
         if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
 
@@ -302,11 +302,11 @@ class Poem:
 
         new_word = ""
         while rhyme_word and not self.rhymes(new_word, rhyme_word):
-            print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_word)
+            if verbose: print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_word)
             old_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
             self.reset_letter_words()
             new_word = self.weighted_choice(template[-1], meter[-1], rhyme=rhyme_word).translate(str.maketrans('', '', string.punctuation))
-            print("got", new_word)
+            if verbose: print("got", new_word)
             if not new_word:
                 print("cant rhyme")
                 return 1/0
