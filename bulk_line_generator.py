@@ -75,6 +75,7 @@ class Bulk_Gen(poem_core.Poem):
 
         self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
         self.poem_model = poem_core.Poem()
+        print("my templates file is")
 
     #override
     def get_pos_words(self,pos, meter=None, phrase=()):
@@ -210,8 +211,6 @@ class Bulk_Gen(poem_core.Poem):
             while count < num_lines:
                 self.reset_number_words()
                 template, meter = temp
-                template = template.split()
-                meter = meter.split("_")
                 line = self.poem_model.write_line_random(template, meter)
                 if line:
                     lines[temp].append(line)
