@@ -489,7 +489,7 @@ class Poem:
             if word == "POS":
                 continue
             if word in self.special_words:
-                if (meter[i], word) not in self.dict_meters:
+                if (meter[i], word) not in self.meter_and_pos:
                     print("adding to dictionary the word, ", word, "with meter ", meter[i])
                     self.meter_and_pos[(meter[i], word)] = [word]
                 else:
@@ -515,7 +515,7 @@ class Poem:
 
         line = ""
         punc = ",.;?"
-
+        meters = []
         #my_meter_dict = self.get_poss_meters(template, "1010101010")
         my_meter_dict = self.get_poss_meters_forward(template, "01" * 5)
         for i in range(len(template)):
@@ -524,15 +524,15 @@ class Poem:
             if not next_word: input("no word for " + template[i] + my_meter)
             space = " " * int(line != "" and next_word not in (punc + "'s"))
             line += space + next_word
+            meters.append(my_meter)
             my_meter_dict = my_meter_dict[my_meter]
-
 
         new_word = ""
         while rhyme_word and not self.rhymes(new_word, rhyme_word):
-            if verbose: print("trying to rhyme", template[-1], meter[-1], new_word, "with", rhyme_word)
+            if verbose: print("trying to rhyme", template[-1], meters[-1], new_word, "with", rhyme_word)
             old_word = line.split()[-1].translate(str.maketrans('', '', string.punctuation))
             self.reset_letter_words()
-            new_word = self.weighted_choice(template[-1], meter[-1], rhyme=rhyme_word).translate(str.maketrans('', '', string.punctuation))
+            new_word = self.weighted_choice(template[-1], meters[-1], rhyme=rhyme_word).translate(str.maketrans('', '', string.punctuation))
             if verbose: print("got", new_word)
             if not new_word:
                 print("cant rhyme")
