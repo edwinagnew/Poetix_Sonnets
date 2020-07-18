@@ -281,9 +281,9 @@ class Poem:
             if not gpt_model: print("need a gpt model", 1/0)
 
         if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+            template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
         else:
-            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+            template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
 
         print("writing line", template, meter)
 
@@ -294,17 +294,17 @@ class Poem:
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
         if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+            template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
         else:
-            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+            template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
 
+        if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
         print("writing line", template, meter)
         if rhyme_word and type(rhyme_word) == list: rhyme_word = rhyme_word[-1]
         if rhyme_word and verbose: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
         if type(meter) == str: meter = meter.split("_")
 
-        if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
 
         line = ""
         punc = ",.;?"
@@ -377,9 +377,9 @@ class Poem:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
             return random.choice(self.templates)
         if "he" in self.gender or "she" in self.gender:
-            poss = [(p[0].replace("VBP", "VBZ"), p[1]) for p in poss]
+            poss = [(p[0].replace("VBP", "VBZ").replace(" DO ", " DOES "), p[1]) for p in poss]
         else:
-            poss = [(p[0].replace("VBZ", "VBP"), p[1]) for p in poss]
+            poss = [(p[0].replace("VBZ", "VBP").replace(" DOES ", " DO "), p[1]) for p in poss]
 
         if check_the_rhyme: poss = [p for p in poss if any(self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
         t = random.choice(poss)
@@ -498,23 +498,26 @@ class Poem:
     def write_line_dynamic_meter(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
         if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace("DO", "DOES")
+            template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
         else:
-            template = template.replace("VBZ", "VBP").replace("DOES", "DO")
+            template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
 
         self.check_template(template, meter)
+
+        if n > 1: return [self.write_line_dynamic_meter(template, meter, rhyme_word) for i in range(n)]
 
         print("writing line", template, " with dynamic meter")
         if rhyme_word and type(rhyme_word) == list: rhyme_word = rhyme_word[-1]
         if rhyme_word and verbose: print("rhyme word:", rhyme_word)
         if type(template) == str: template = template.split()
 
-        if n > 1: return [self.write_line_dynamic_meter(template, meter, rhyme_word) for i in range(n)]
+
 
         line = ""
         punc = ",.;?"
 
-        my_meter_dict = self.get_poss_meters(template, "1010101010")
+        #my_meter_dict = self.get_poss_meters(template, "1010101010")
+        my_meter_dict = self.get_poss_meters_forward(template, "01" * 5)
         for i in range(len(template)):
             my_meter = random.choice(list(my_meter_dict.keys()))
             next_word = self.weighted_choice(template[i], my_meter)
