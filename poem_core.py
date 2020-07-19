@@ -108,7 +108,7 @@ class Poem:
         pos - the POS you want
         meter - (optional) returns only words which fit the given meter, e.g. 101
         """
-        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if w in self.rhymes(w, rhyme)]
+        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
         #print("oi," , pos, meter, phrase)
         punc = [".", ",", ";", "?", ">"]
         #print("here2", pos, meter)
