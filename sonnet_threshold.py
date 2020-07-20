@@ -6,8 +6,7 @@ import random
 from py_files import line
 
 import string
-import bert_verb
-
+import bulk_line_generator
 import poem_core
 
 
@@ -45,7 +44,7 @@ class Sonnet_Gen(poem_core.Poem):
                 if meter not in self.end_pos[e]: self.end_pos[e].append(meter)
         if prompt:
             self.gen_poem_edwin(prompt)
-        self.scorer = bert_verb.Scenery_Gen(model="gpt_2")
+        self.scorer = bulk_line_generator.Bulk_Gen(model="gpt_2")
 
 
 

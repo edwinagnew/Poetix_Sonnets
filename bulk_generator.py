@@ -1,6 +1,5 @@
 import sonnet_basic
 import gpt_2_gen_bitdtfodb
-import bert_verb
 import sonnet_basic
 import bulk_line_generator
 import matplotlib
@@ -9,8 +8,8 @@ import matplotlib.pyplot as plt
 
 
 def generate_and_score():
-    s = bert_verb.Scenery_Gen(model="gpt_2")
-    s2 = bert_verb.Scenery_Gen()
+    s = bulk_line_generator.Bulk_Gen(model="gpt_2")
+    s2 = bulk_line_generator.Bulk_Gen()
     # generator = bulk_line_generator.Bulk_Gen(model="gpt_2",templates_file="poems/paired_templates.txt", paired_templates=True)
     generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/ben_modified_templates.txt")
     """
@@ -22,7 +21,7 @@ def generate_and_score():
        """
     #sonnet = generator.write_line_pairs_threshold(50, theme="trees") #takes a really long time to run
     #sonnet = generator.write_line_pairs(1000, theme="trees") #runs in a more reasonable amount of time
-    sonnet = generator.write_bulk_lines(1000, theme="death")  # change number to change number of lines generated
+    sonnet = generator.write_bulk_lines(10, theme="death")  # change number to change number of lines generated
 
     #sonnet_file = open("poems/poe.txt", "r")
     #sonnet = [line.strip() for line in sonnet_file.readlines()]
@@ -99,7 +98,7 @@ def generate_and_score():
 
 
 def score_templates():
-    s = bert_verb.Scenery_Gen(model="gpt_2")
+    s = bulk_line_generator.Scenery_Gen(model="gpt_2")
     # generator = bulk_line_generator.Bulk_Gen(model="gpt_2",templates_file="poems/paired_templates.txt", paired_templates=True)
     generator = bulk_line_generator.Bulk_Gen(model="gpt_2", templates_file="poems/jordan_templates.txt")
     template_lines = generator.write_bulk_lines_with_template(10)
@@ -126,8 +125,8 @@ def score_templates():
 
 if __name__ == '__main__':
 
-    #generate_and_score()
-    score_templates()
+    generate_and_score()
+    #score_templates()
 
     """
 
