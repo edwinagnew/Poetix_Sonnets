@@ -81,6 +81,7 @@ class Poem:
                 continue
 
     def get_meter(self, word):
+        if not word or len(word) == 0: return [""]
         if word[-1] in ".,?;":
             return self.get_meter(word[:-1])
         elif word[-1] == ">":
@@ -128,7 +129,8 @@ class Poem:
         elif pos not in self.pos_to_words:
             return []
         if meter:
-            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
+            if type(meter) == str: meter = [meter]
+            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and any(m in self.dict_meters[word] for m in meter)]
             return ret
         return [p for p in self.pos_to_words[pos]]
 
@@ -274,22 +276,31 @@ class Poem:
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
-    def write_line_gpt(self, template, meter, rhyme_word=None, n=1, gpt_model=None, verbose=False):
+    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, verbose=False):
         if not self.gpt:
             #self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1/0)
+
+        if template is None: template, meter = random.choice(self.templates)
 
         if "he" in self.gender or "she" in self.gender:
             template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
         else:
             template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
 
-        print("writing line", template, meter)
 
-        if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
+        self.check_template(template, meter)
+        meter_dict = self.get_poss_meters_forward(template, "01"*5)
+        print("writing flexible line", template, meter_dict)
 
-        return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose)
+        #if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
+
+        #return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose)
+
+        if n > 1: return [self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
+
+        return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose)
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
@@ -366,7 +377,8 @@ class Poem:
              #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
             if n % 4 == 3 or n == 13:
-                poss = [(p.replace("/,", ""), q) for p,q in poss if p[-1] in ">.?"]
+                #poss = [p for p in poss if p[0][-1] not in ",;" + string.ascii_uppercase]
+                poss = [(p.replace("/,", "").replace("<,/", "<"), q) for p,q in poss if p[-1] in ">.?"]
                 #print("last line of stanza so:", poss)
 
         if n % 4 == 0:
