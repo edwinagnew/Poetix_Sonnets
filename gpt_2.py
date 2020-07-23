@@ -1,4 +1,4 @@
-#import sonnet_basic
+import sonnet_basic
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2DoubleHeadsModel
 import torch
 import numpy as np
@@ -9,13 +9,14 @@ from py_files import helper
 
 class gpt_gen:
 
-    def __init__(self, seed=None, sonnet_method=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
-        if sonnet_method:
-            self.sonnet_words = sonnet_method
+    def __init__(self, seed=None, sonnet_object=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
+        if sonnet_object:
+            self.sonnet_words = sonnet_object.get_pos_words
+            self.sonnet_object = sonnet_object
         else:
-            print("didnt give me a sonnet_method, wont be able to generate lines")
-            #t = sonnet_basic.Sonnet_Gen()
-            #self.sonnet_words = t.get_pos_words
+            print("didnt give me a sonnet_method, making one myself")
+            self.sonnet_object = sonnet_basic.Sonnet_Gen()
+            self.sonnet_words = self.sonnet_object.get_pos_words
 
         self.model_size = model
 
@@ -26,6 +27,8 @@ class gpt_gen:
         self.model = GPT2LMHeadModel.from_pretrained(model)
         self.mc_model = None
         print("loaded", model)
+
+        print("remember to fix gpt.good_generation(template=\"PRP$ JJ NN MIGHT VB PRP$ NN\", meter=\"0_10_1_0_1_0_101\", rhyme_word=\"do\")" )
 
 
 
@@ -62,6 +65,7 @@ class gpt_gen:
         punc_next = False
 
         #for i in range(a, b):
+        sub_tokens = []
         i = a
         while i < b:
             if verbose: print(i)
@@ -69,7 +73,7 @@ class gpt_gen:
 
             if template:
                 output += abs(torch.min(output))  # makes all positive
-                if punc_next:
+                if punc_next and len(sub_tokens) == 0:
                     poss = set(punc_next)
                     punc_next = False
                     #i -= 1
@@ -92,12 +96,20 @@ class gpt_gen:
                     token = self.tokenizer.encode(space + list(poss)[0])[0]
                     dist = np.ones(len(words))
                 else:
-                    #TODO - check this could find multi token words
-                    filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words]) #"Ġ" is gpt-2's space character
+                    if len(sub_tokens) == 0:
+                        poss_tokens = [self.tokenizer.encode(" " + p) for p in poss] #+ [self.tokenizer.encode(p) for p in poss]
+                    checks = set([p[len(sub_tokens)] for p in poss_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
+                    #filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words]) #"Ġ" is gpt-2's space character
                     #filt = np.array([self.filt_score(x.strip("Ġ").lower(), poss, template[i]) for x in words])
+                    filt = np.array([int(i in checks) for i in range(len(words))])
                     ws = output[..., -1, :].detach().numpy() * filt
                     dist = helper.softmax(ws, exclude_zeros=True)#, k=np.percentile(words, 0)) #TODO think about not necessarily softmaxing all words?
                     token = np.random.choice(np.arange(len(words)), p=dist).item()
+                    if verbose: print(token, sub_tokens, poss_tokens)
+                    if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
+                        sub_tokens = []
+                    else:
+                        sub_tokens.append(token)
                 if verbose: print("for ", template[i], end=': ')
 
             else:
@@ -111,7 +123,7 @@ class gpt_gen:
             # context = token.unsqueeze(0)
             context = torch.tensor(token).unsqueeze(0)
 
-            i += int(not punc_next)
+            i += int(not punc_next and len(sub_tokens) == 0)
 
         if verbose: print("tokens: ", generated)
         sequence = self.tokenizer.decode(generated)
@@ -121,6 +133,103 @@ class gpt_gen:
             word_index = sequence.find(self.tokenizer.decode(generated[i]))
             if word_index - 1 > 0 and word_index - 1 != " " and sequence[word_index - 1] != "-":
                 sequence = sequence[:word_index] + " " + sequence[word_index:]"""
+
+        return sequence.replace(seed.strip(), "").strip()
+
+    def generation_flex_meter(self, template, meter_dict, seed="", rhyme_word=None, verbose=False):
+        if type(template) != list: template = template.split()
+
+        words = list(self.tokenizer.encoder.keys())
+
+        a, b = 0, len(template)  # write new line given previous ones
+
+        if verbose: print("tokenizing")
+        if not seed:
+            first_word = random.choice(self.sonnet_words(template[0], meter=list(meter_dict.keys())))
+            first_met = ""
+            while first_met not in meter_dict: first_met = random.choice(self.sonnet_object.get_meter(first_word))
+            meter_dict = meter_dict[first_met]
+            generated = self.tokenizer.encode(first_word)  # picks first word randomly
+            a = 1
+        else:
+            generated = self.tokenizer.encode(seed)
+
+
+        context = torch.tensor([generated])
+        past = None
+
+        punc = ",.;?"
+
+        punc_next = False
+
+        # for i in range(a, b):
+        sub_tokens = []
+        i = a
+        while i < b:
+            if verbose: print(i)
+            output, past = self.model(context, past=past)
+
+            if template:
+                output += abs(torch.min(output))  # makes all positive
+                if punc_next and len(sub_tokens) == 0:
+                    poss = set(punc_next)
+                    punc_next = False
+                else:
+                    if template[i][-1] == ">":
+                        template[i], punc_next = template[i].split("<")[0], template[i].split("<")[-1].strip(">").split("/")
+
+                    elif template[i][-1] in punc:
+                        template[i], punc_next = template[i][:-1], template[i][-1]
+                    poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys())))
+                    if i == b - 1: poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+
+                if len(poss) == 1:
+                    # choose token with right spacing
+                    space = " " * int(list(poss)[0] not in punc + "'s")
+                    token = self.tokenizer.encode(space + list(poss)[0])[0]
+                    dist = np.ones(len(words))
+                    assert len(meter_dict) <= 1
+                    if list(poss)[0] not in punc:
+                        meter = list(meter_dict.keys())[0] #there should only be one
+                        meter_dict = meter_dict[meter]
+                        if verbose: print("dictmeter now", meter_dict)
+                else:
+                    if len(sub_tokens) == 0:
+                        poss_tokens = [self.tokenizer.encode(" " + p) for p in poss]  # + [self.tokenizer.encode(p) for p in poss]
+                    checks = set([p[len(sub_tokens)] for p in poss_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
+                    filt = np.array([int(i in checks) for i in range(len(words))])
+                    ws = output[..., -1, :].detach().numpy() * filt
+                    dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
+                    token = np.random.choice(np.arange(len(words)), p=dist).item()
+                    if verbose: print("chose", token, sub_tokens, poss_tokens)
+                    if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
+                        word = self.tokenizer.decode(sub_tokens + [token]).strip()
+                        if word not in punc:
+                            meter = ""
+                            while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
+                            meter_dict = meter_dict[meter]
+                            if verbose: print("meter dict now", meter, word, meter_dict)
+                        sub_tokens = []
+                    else:
+                        sub_tokens.append(token)
+                if verbose: print("for ", template[i], end=': ')
+            else:
+                # token = torch.argmax(output[..., -1, :]).item()
+                dist = helper.softmax(output[..., -1, :].detach().numpy())
+                token = np.random.choice(np.arange(len(words)), p=dist).item()
+
+            if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(dist[token]))
+
+            generated += [token]  # .tolist()
+            # context = token.unsqueeze(0)
+            context = torch.tensor(token).unsqueeze(0)
+
+            i += int(not punc_next and len(sub_tokens) == 0)
+
+
+        if verbose: print("tokens: ", generated)
+        sequence = self.tokenizer.decode(generated)
+
 
         return sequence.replace(seed.strip(), "").strip()
 

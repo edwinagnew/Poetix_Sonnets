@@ -114,7 +114,8 @@ class Scenery_Gen(poem_core.Poem):
         if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
         if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter)
         else:
-            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
+            if type(meter) == str: meter = [meter]
+            ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and any(m in self.dict_meters[word] for m in meter)]
             phrases = []
             for word in ret:
                 phrase[0][phrase[1]] = word
@@ -194,6 +195,7 @@ class Scenery_Gen(poem_core.Poem):
         lines = []
         used_templates = []
         #first three stanzas
+        self.gpt_past = ""
 
         for i in range(3):
             print("\n\nwriting stanza", i+1)
@@ -259,7 +261,7 @@ class Scenery_Gen(poem_core.Poem):
         -------
 
         """
-        self.gpt_past = ""
+        #self.gpt_past = ""
         lines = []
         rhymes = []
 
