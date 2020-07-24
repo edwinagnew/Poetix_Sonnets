@@ -65,20 +65,9 @@ class Poem:
         self.gpt = None
         self.gpt_past = ""
 
-        self.meter_and_pos = {}
         self.possible_meters = ["1", "0", "10", "01", "101", "010", "1010", "0101", "10101", "01010", "101010",
                                 "010101"]  # the possible meters a word could have
-        possible_pos = list(self.pos_to_words.keys())
-        for pos in possible_pos:
-            for meter in self.possible_meters:
-                self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                    word in self.dict_meters and meter in self.dict_meters[word]]
-        for word in self.special_words:
-            if word in self.dict_meters:
-                meter = self.dict_meters[word]
-                self.meter_and_pos[(meter, word)] = [word]
-            else:
-                continue
+        self.reset_meter_pos_dict()
 
     def get_meter(self, word):
         if not word or len(word) == 0: return [""]
@@ -357,6 +346,24 @@ class Poem:
 
         self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
 
+    def reset_meter_pos_dict(self):
+        self.meter_and_pos = {}
+        possible_pos = list(self.pos_to_words.keys())
+        for pos in possible_pos:
+            for meter in self.possible_meters:
+                if "PRP" in pos:
+                    self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
+                                                        word in self.dict_meters and meter in self.dict_meters[word] and word in self.gender]
+                else:
+                    self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
+                                                        word in self.dict_meters and meter in self.dict_meters[word]]
+        for word in self.special_words:
+            if word in self.dict_meters:
+                meter = self.dict_meters[word]
+                self.meter_and_pos[(meter, word)] = [word]
+            else:
+                continue
+
     def get_template_from_line(self, line):
         poss = self.templates
         for i, word in enumerate(line.split()):
@@ -457,10 +464,11 @@ class Poem:
             return poss_meters
 
 
-    def get_poss_meters_forward(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
+    def get_poss_meters_forward(self, template, meter, rhyme_meters=None): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
         """
         :param template: A list of POS's and/or special words
         :param meter: The desired meter for the line, given forward as a string of the form "0101010101".
+        :param rhyme_meters: a list of the meters of possible rhyming words
         :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
         the next word can take on, given that meter assigned to the last word.
         """
@@ -473,12 +481,14 @@ class Poem:
             word_pos = word_pos[:-1]
 
         if word_pos == "POS":
-            temp = self.get_poss_meters_forward(template[1:], meter)
+            temp = self.get_poss_meters_forward(template[1:], meter, rhyme_meters)
             if temp != None:
-                return {"": self.get_poss_meters_forward(template[1:], meter)}
+                return {"": self.get_poss_meters_forward(template[1:], meter, rhyme_meters)}
 
         if len(template) == 1:
             if (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
+                return None
+            elif rhyme_meters and meter not in rhyme_meters:
                 return None
             else:
                 return {meter: {}} #should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
@@ -487,7 +497,7 @@ class Poem:
             for poss_meter in self.possible_meters:
                 #print("checking for ", word_pos, "with meter ", poss_meter)
                 if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(poss_meter, word_pos)]) > 0:
-                    temp = self.get_poss_meters_forward(template[1:], meter[len(poss_meter):])
+                    temp = self.get_poss_meters_forward(template[1:], meter[len(poss_meter):], rhyme_meters)
                     #print("made recursive call")
                     if temp != None:
                         #print("adding something to dict")
@@ -544,6 +554,9 @@ class Poem:
         meters = []
         #my_meter_dict = self.get_poss_meters(template, "1010101010")
         my_meter_dict = self.get_poss_meters_forward(template, "01" * 5)
+        if my_meter_dict == None:
+            print("uh oh, this template can't work")
+            return
         for i in range(len(template)):
             my_meter = random.choice(list(my_meter_dict.keys()))
             next_word = self.weighted_choice(template[i], my_meter)
