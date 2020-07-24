@@ -19,7 +19,6 @@ from nltk.corpus import wordnet as wn
 from nltk import PorterStemmer
 
 import poem_core
-import bert_verb
 
 class Bulk_Gen(poem_core.Poem):
     def __init__(self, model=None, postag_file='saved_objects/postag_dict_all+VBN.p',
@@ -190,10 +189,8 @@ class Bulk_Gen(poem_core.Poem):
         for i in range(num_lines):
             self.reset_number_words()
             template, meter = random.choice(self.templates)
-            template = template.split()
-            meter = meter.split("_")
             #line = self.write_line(template, meter, theme_words=theme_words)
-            line = self.poem_model.write_line_random(template, meter, rhyme_words=[])
+            line = self.poem_model.write_line_random(template, meter)
             if line:
                 lines.append(line)
 
