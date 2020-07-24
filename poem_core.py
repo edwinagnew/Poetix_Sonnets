@@ -58,6 +58,12 @@ class Poem:
             if curr not in self.all_names: self.all_names[curr] = []
             self.all_names[curr].append(n)
 
+        self.possible_meters = ["1", "0", "10", "01", "101", "010", "1010", "0101", "10101", "01010", "101010",
+                                "010101"]  # the possible meters a word could have
+
+        self.gender = []
+
+        self.set_meter_pos_dict()
         self.reset_gender()
 
         self.api_url = 'https://api.datamuse.com/words'
@@ -65,9 +71,6 @@ class Poem:
         self.gpt = None
         self.gpt_past = ""
 
-        self.possible_meters = ["1", "0", "10", "01", "101", "010", "1010", "0101", "10101", "01010", "101010",
-                                "010101"]  # the possible meters a word could have
-        self.reset_meter_pos_dict()
 
     def get_meter(self, word):
         if not word or len(word) == 0: return [""]
@@ -346,7 +349,9 @@ class Poem:
 
         self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
 
-    def reset_meter_pos_dict(self):
+        self.reset_meter_pos_dict()
+
+    def set_meter_pos_dict(self):
         self.meter_and_pos = {}
         possible_pos = list(self.pos_to_words.keys())
         for pos in possible_pos:
@@ -363,6 +368,14 @@ class Poem:
                 self.meter_and_pos[(meter, word)] = [word]
             else:
                 continue
+
+    def reset_meter_pos_dict(self):
+        possible_pos = [item for item in list(self.pos_to_words.keys()) if "PRP" in item]
+        for pos in possible_pos:
+            for meter in self.possible_meters:
+                    self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
+                                                        word in self.dict_meters and meter in self.dict_meters[word] and word in self.gender]
+
 
     def get_template_from_line(self, line):
         poss = self.templates
