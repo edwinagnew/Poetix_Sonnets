@@ -168,3 +168,5 @@ untaught 01
 urns 1
 usurper 110
 watchings 10
+their 0
+i 0
