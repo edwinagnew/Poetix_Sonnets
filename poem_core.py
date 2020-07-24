@@ -121,15 +121,15 @@ class Poem:
             return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
         if pos in self.special_words:
             return [pos.lower()]
+        if type(meter) == str: meter = [meter]
         if "PRP" in pos and "_" not in pos and meter:
-            ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(len(meter) == len(q) for q in self.get_meter(p)) ]
+            ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(q in meter for q in self.get_meter(p)) ]
             #if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
-            if len(ret) == 0: return [p for p in self.pos_to_words[pos] if meter in self.get_meter(p)]
+            #if len(ret) == 0: return [p for p in self.pos_to_words[pos] if any(m in self.get_meter(p) for m in meter)]
             return ret
         elif pos not in self.pos_to_words:
             return []
         if meter:
-            if type(meter) == str: meter = [meter]
             ret = [word for word in self.pos_to_words[pos] if word in self.dict_meters and any(m in self.dict_meters[word] for m in meter)]
             return ret
         return [p for p in self.pos_to_words[pos]]
@@ -276,38 +276,37 @@ class Poem:
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos for w in self.get_word_pos(word)) and any(t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if pos in self.end_pos)
 
-    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, verbose=False):
+    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=False, all_verbs=False, verbose=False):
         if not self.gpt:
             #self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1/0)
 
+        if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs, verbose=verbose) for i in range(n)]
+
         if template is None: template, meter = random.choice(self.templates)
 
-        if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
+        template = self.fix_template(template)
+
+        if all_verbs: template = template.replace("VB", "*VB")
+
+        if flex_meter:
+            self.check_template(template, meter)
+            meter_dict = self.get_poss_meters_forward(template, "01" * 5)
+            print("writing flexible line", template, meter_dict)
+            #if n > 1: return [self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
+
+            return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose)
+
         else:
-            template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
+            print("writing line", template, meter)
+            #if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
-
-        self.check_template(template, meter)
-        meter_dict = self.get_poss_meters_forward(template, "01"*5)
-        print("writing flexible line", template, meter_dict)
-
-        #if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
-
-        #return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose)
-
-        if n > 1: return [self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
-
-        return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose)
+            return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose)
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
-        if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
-        else:
-            template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
+        template = self.fix_template(template)
 
         if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
         print("writing line", template, meter)
@@ -371,8 +370,8 @@ class Poem:
         incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
-            if used_templates[-1][-1] == ".":
-                poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE"]]
+            if used_templates[-1][-1] in ".?":
+                poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS"]]
             #elif used_templates[-1][-1] in incomplete:
              #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
@@ -388,15 +387,32 @@ class Poem:
         if len(poss) == 0:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
             return random.choice(self.templates)
-        if "he" in self.gender or "she" in self.gender:
-            poss = [(p[0].replace("VBP", "VBZ").replace(" DO ", " DOES "), p[1]) for p in poss]
-        else:
-            poss = [(p[0].replace("VBZ", "VBP").replace(" DOES ", " DO "), p[1]) for p in poss]
+
 
         if check_the_rhyme: poss = [p for p in poss if any(self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
         t = random.choice(poss)
-        if "<" in t: t = t.split("<")[0] + random.choice(t.split("<")[-1].strip(">").split("/"))
-        return t
+        if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
+        return self.fix_template(t[0]), t[1]
+
+    def fix_template(self, template):
+        if "he" in self.gender or "she" in self.gender:
+            template = template.replace(" VBP", " VBZ").replace(" DO ", " DOES ")
+        else:
+            template = template.replace(" VBZ", " VBP").replace(" DOES ", " DO ")
+
+        template = template.replace("UVBZ", "VBZ")
+
+        if "VBC" in template and "PRPS" in template.split("VBC")[0]:  #if PRPS comes before PRPS
+            if "he" in self.gender or "she" in self.gender:
+                self.pos_to_words["VBC"] = ["does", "seems", "appears", "looks"] + ["was"]
+
+            elif "i" in self.gender:
+                self.pos_to_words["VBC"] = ["do", "seem", "appear", "look"] + ["was"]
+
+            else:
+                self.pos_to_words["VBC"] = ["do", "seem", "appear", "look"] + ["were"]
+
+        return template
 
     def get_poss_meters(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged (but backward)
         """
@@ -504,15 +520,13 @@ class Poem:
                 if (meter[i], word) not in self.meter_and_pos:
                     print("adding to dictionary the word, ", word, "with meter ", meter[i])
                     self.meter_and_pos[(meter[i], word)] = [word]
+                    self.dict_meters[word.lower()].append(meter[i])
                 else:
                     self.meter_and_pos[(meter[i], word)].append([word])
 
     def write_line_dynamic_meter(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
-        if "he" in self.gender or "she" in self.gender:
-            template = template.replace("VBP", "VBZ").replace(" DO ", " DOES ")
-        else:
-            template = template.replace("VBZ", "VBP").replace(" DOES ", " DO ")
+        template = self.fix_template(template)
 
         self.check_template(template, meter)
 
