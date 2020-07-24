@@ -91,6 +91,11 @@ class Scenery_Gen(poem_core.Poem):
         #    return [word + p for word in self.get_pos_words(pos[:-1], meter=meter, rhyme=rhyme)]
         #print("here", pos, meter, rhyme)
         #similar/repeated word management
+        if "*VB" in pos:
+            ps = []
+            for po in ["VB", "VBZ", "VBG", "VBD", "VBN", "VBP"]:
+                ps += self.get_pos_words(po, meter=meter, rhyme=rhyme, phrase=phrase)
+            return ps
         if pos not in self.pos_to_words and "_" in pos:
             sub_pos = pos.split("_")[0]
             word = self.weighted_choice(sub_pos, meter=meter, rhyme=rhyme)
@@ -111,7 +116,7 @@ class Scenery_Gen(poem_core.Poem):
                     return poss
 
             return [word]
-        if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
+        #if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
         if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter)
         else:
             if type(meter) == str: meter = [meter]
