@@ -185,7 +185,12 @@ class gpt_gen:
                 elif template[i][-1] in punc:
                     template[i], punc_next = template[i][:-1], template[i][-1]
                 poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys())))
-                if i == b - 1: poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+                if i == b - 1 and rhyme_word:
+                    poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+                    if verbose: print("restricting to rhymes", rhyme_word, poss)
+                    if len(poss) == 0:
+                        print('cant rhyme')
+                        return None
 
             if len(poss) <= 1:
                 # choose token with right spacing
