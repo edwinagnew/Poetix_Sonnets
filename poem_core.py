@@ -18,7 +18,7 @@ class Poem:
                  top_file='saved_objects/words/top_words.txt',
                  mistakes_file=None):
         while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
-        keep_scores = "byron" in words_file
+        keep_scores = False#"byron" in words_file
         self.pos_to_words, self.words_to_pos = helper.get_new_pos_dict(words_file, mistakes_file=mistakes_file, keep_scores=keep_scores)
         self.backup_words = None
         try:
@@ -284,8 +284,22 @@ class Poem:
 
         if flex_meter:
             self.check_template(template, meter)
-            meter_dict = self.get_poss_meters_forward(template, "01" * 5)
-            print("writing flexible line", template, meter_dict)
+            rhyme_pos = helper.remove_punc(template.split()[-1])
+            if rhyme_word:
+                rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word)
+                r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if x in self.get_meter(w)]) if rhyme_word else None
+                if len(r) == 0 or len(rhyme_words) == 0:
+                    if verbose: print("couldn't get a rhyme here:", template, rhyme_word)
+                    return None
+                #if verbose: print(rhyme_words, r)
+            else:
+                r = None
+
+            meter_dict = self.get_poss_meters_forward(template, "01" * 5, r)
+            if not meter_dict:
+                if verbose: print("couldn't get a rhyme there:", template, rhyme_word)
+                return None
+            print("writing flexible line", template, meter_dict, rhyme_word)
             #if n > 1: return [self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose)
@@ -386,6 +400,7 @@ class Poem:
 
 
     def get_next_template(self, used_templates, check_the_rhyme=None):
+        if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
         poss = self.templates
         incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
@@ -424,13 +439,13 @@ class Poem:
 
         if "VBC" in template and "PRPS" in template.split("VBC")[0]:  #if PRPS comes before PRPS
             if "he" in self.gender or "she" in self.gender:
-                self.pos_to_words["VBC"] = ["does", "seems", "appears", "looks"] + ["was"]
+                self.pos_to_words["VBC"] = {x:1 for x in ["does", "seems", "appears", "looks"] + ["was"]}
 
             elif "i" in self.gender:
-                self.pos_to_words["VBC"] = ["do", "seem", "appear", "look"] + ["was"]
+                self.pos_to_words["VBC"] = {x:1 for x in ["do", "seem", "appear", "look"] + ["was"]}
 
             else:
-                self.pos_to_words["VBC"] = ["do", "seem", "appear", "look"] + ["were"]
+                self.pos_to_words["VBC"] = {x:1 for x in ["do", "seem", "appear", "look"] + ["were"]}
 
         return template
 
