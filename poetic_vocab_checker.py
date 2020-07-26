@@ -11,8 +11,8 @@ words = {}
 for line in words_file:
     w, *z, n = line.split()
     if "[" in w or "]" in w: continue
-    if w not in words: words[w] = 0
-    words[w] += int(n)
+    if w.lower() not in words: words[w.lower()] = 0
+    words[w.lower()] += int(n)
 
 
 extra_file = open("saved_objects/words/poetic_word_pos.txt", "a")
@@ -23,7 +23,6 @@ print("you've got", len([w for w in words if w not in already_checked and (w not
 print("loaded. type quit when it asks for pos to quit")
 print("type nothing to delete any word")
 for word in words:
-    word = word.lower()
     if word not in already_checked:
         met = ""
         pos = ""
