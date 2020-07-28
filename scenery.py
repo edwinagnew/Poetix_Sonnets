@@ -254,7 +254,7 @@ class Scenery_Gen(poem_core.Poem):
 
         #return lines
 
-    def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True):
+    def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False):
         if not self.gpt: print("I dont have a gpt object", 1 / 0)
         self.reset_gender()
         self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
@@ -268,7 +268,10 @@ class Scenery_Gen(poem_core.Poem):
             if verbose and line_number % 4 == 0: print("\n\nwriting stanza", 1 + line_number/4)
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
-            template, meter = self.get_next_template(used_templates)
+            if random_templates:
+                template, meter = self.get_next_template(used_templates)
+            else:
+                template, meter = self.templates[line_number]
             r = None
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number-2].split()[-1])
@@ -279,8 +282,19 @@ class Scenery_Gen(poem_core.Poem):
 
             self.gpt_past = "\n".join(lines)
             if verbose: print("\nwriting line", line_number)
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose)
-            if line:
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs)
+            if line and rhyme_lines and not random_templates:
+                rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
+                if any(self.rhymes(line.split()[-1], w) for w in self.get_pos_words(rhyme_pos)):
+                    if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                    if verbose: print("wrote line", line)
+                    lines.append(line)
+                    used_templates.append(template)
+                    line_number += 1
+                else:
+                    if verbose: print("wasnt going to get a rhyme")
+                    #self.pos_to_words[template.split()[-1]][line.split()[-1]] /= 2
+            elif line:
                 if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                 if verbose: print("wrote line", line)
                 lines.append(line)
@@ -289,7 +303,7 @@ class Scenery_Gen(poem_core.Poem):
             else:
                 if verbose: print("no line", template, r)
                 if random.random() < (1 / len(self.templates) * 2):
-                    if verbose: print("resetting ")
+                    if verbose: print("so resetting randomly")
                     if line_number == 13: line_number = 12
                     else: line_number -= 2
 
