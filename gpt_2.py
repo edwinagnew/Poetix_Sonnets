@@ -171,7 +171,7 @@ class gpt_gen:
         i = a
         while i < b:
             output, past = self.model(context, past=past)
-            if verbose: print(i)
+            if verbose: print(i, "(" + str(len(sub_tokens)) + ")")
 
 
             output += abs(torch.min(output))  # makes all positive
@@ -185,12 +185,27 @@ class gpt_gen:
                 elif template[i][-1] in punc:
                     template[i], punc_next = template[i][:-1], template[i][-1]
                 poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys())))
+                r = None
                 if i == b - 1 and rhyme_word:
+                    r = rhyme_word
                     poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
                     if verbose: print("restricting to rhymes", rhyme_word, poss)
-                    if len(poss) == 0:
-                        print('cant rhyme')
-                        return None
+
+            if len(poss) == 0:
+                if "sc" in template[i]:
+                    if verbose: print("there arent any words so removing sc from", template[i])
+                    template[i] = template[i].replace("sc", "")
+
+                    poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=r))
+
+                if self.sonnet_object.backup_words:
+                    if verbose: print("getting backup words")
+                    poss = set(self.sonnet_object.get_backup_pos_words(template[i], list(meter_dict.keys()), rhyme=r))
+
+
+                if len(poss) == 0: #still
+                    if verbose: print("there arent any words so giving up")
+                    return None
 
             if len(poss) <= 1:
                 # choose token with right spacing
@@ -199,11 +214,6 @@ class gpt_gen:
                 poss_tokens = [self.tokenizer.encode(space + list(poss)[0])]
                 token = poss_tokens[0][len(sub_tokens)]
                 dist = np.ones(len(words))
-                #assert len(meter_dict) <= 1
-                # if list(poss)[0] not in punc:
-                #    meter = list(meter_dict.keys())[0] #there should only be one
-                #    meter_dict = meter_dict[meter]
-                #    if verbose: print("dictmeter now", meter_dict)
             else:
                 if len(sub_tokens) == 0:
                     space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
@@ -211,15 +221,17 @@ class gpt_gen:
                 checks = set([p[len(sub_tokens)] for p in poss_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
                 theme_words = self.sonnet_object.pos_to_words[helper.remove_punc(template[i])]
                 if any(v != 1 for v in theme_words.values()):
-                    theme_tokens = {self.tokenizer.encode(" " + t)[len(sub_tokens)]: v for t, v in theme_words.items() if len(self.tokenizer.encode(" " + t)) > len(sub_tokens) and self.tokenizer.encode(" " + t)[:len(sub_tokens)] == sub_tokens}
-                    theme_scores = np.array(theme_tokens[t.strip("Ġ").lower()] if t.strip("Ġ").lower() in theme_tokens else 0 for t in words)
+                    theme_tokens = {self.tokenizer.encode(space + t)[len(sub_tokens)]: v for t, v in theme_words.items() if len(self.tokenizer.encode(space + t)) > len(sub_tokens)}
+                    theme_scores = np.array([theme_tokens[t] if t in theme_tokens else 0 for t in range(len(words))])
+                    #if verbose: print("theme_scores", theme_scores.sum(), len(theme_scores.nonzero()[0]), theme_scores)
                 else:
                     theme_scores = np.ones(len(words))
                 filt = np.array([int(i in checks) for i in range(len(words))]) * theme_scores
+                #if verbose: print("filt", filt.sum(), len(filt.nonzero()[0]), filt)
                 ws = output[..., -1, :].detach().numpy() * filt
                 dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
-                if verbose: print("chose", token, sub_tokens, poss_tokens)
+                #if verbose: print("chose", token, sub_tokens, poss_tokens)
 
             if verbose: print("for ", template[i], end=': ')
 
@@ -229,7 +241,7 @@ class gpt_gen:
                 word = self.tokenizer.decode(sub_tokens + [token]).strip()
                 if word not in punc:
                     meter = ""
-                    #print("getting meter", meter, word, meter_dict)
+                    print("getting meter", meter, word, meter_dict)
                     while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
                     meter_dict = meter_dict[meter]
                     if verbose: print("meter dict now", meter, word, meter_dict)
