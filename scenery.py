@@ -203,15 +203,14 @@ class Scenery_Gen(poem_core.Poem):
         self.gpt_past = ""
 
         for i in range(3):
-            print("\n\nwriting stanza", i+1)
+            if verbose: print("\n\nwriting stanza", i+1)
             next_templates = []
             if not random_templates:
                 next_templates = self.templates[i*4:(i+1)*4]
             else:
                 while(len(next_templates) < 4):
                     template, meter = self.get_next_template(used_templates)
-                    rhyme_pos, rhyme_met = next_templates[-2][0].split()[-1], next_templates[-2][1].split("_")[-1]
-                    if not rhyme_lines or len(next_templates) < 2 or self.can_rhyme((rhyme_pos, rhyme_met), (template.split()[-1], meter.split("_")[-1])):
+                    if not rhyme_lines or len(next_templates) < 2 or self.can_rhyme((next_templates[-2][0].split()[-1], next_templates[-2][1].split("_")[-1]), (template.split()[-1], meter.split("_")[-1])):
                         next_templates.append((template, meter))
                         used_templates.append(template)
                         if verbose: print(len(next_templates), template, meter, "worked")
@@ -254,13 +253,14 @@ class Scenery_Gen(poem_core.Poem):
 
         #return lines
 
-    def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False):
+    def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, k=3):
         if not self.gpt: print("I dont have a gpt object", 1 / 0)
         self.reset_gender()
         self.update_theme_words(self.theme_gen.get_theme_words(theme, verbose=False))
 
         lines = []
         used_templates = []
+        choices = []
         # first three stanzas
         self.gpt_past = ""
         line_number = 0
@@ -283,23 +283,34 @@ class Scenery_Gen(poem_core.Poem):
             self.gpt_past = "\n".join(lines)
             if verbose: print("\nwriting line", line_number)
             line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs)
-            if line and rhyme_lines and not random_templates:
+            if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
-                if any(self.rhymes(line.split()[-1], w) for w in self.get_pos_words(rhyme_pos)):
+                #if any(self.rhymes(line.split()[-1], w) for w in self.get_pos_words(rhyme_pos)):
+                if len(self.get_pos_words(rhyme_pos, rhyme=line.split()[-1])) > 0.001 * len(self.get_pos_words(rhyme_pos)):
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
-                    if verbose: print("wrote line", line)
-                    lines.append(line)
-                    used_templates.append(template)
-                    line_number += 1
+                    if verbose: print("wrote line which rhymes with", rhyme_pos, ":", line)
+                    choices.append((self.gpt.score_line(line), line, template))
+                    if len(choices) == k:
+                        if verbose: print("out of", len(choices), "chose", min(choices))
+                        lines.append(min(choices)[1])
+                        used_templates.append(min(choices)[2])
+                        line_number += 1
+                        choices = []
                 else:
-                    if verbose: print("wasnt going to get a rhyme")
+                    if verbose: print(line_number, "wasnt going to get a rhyme with", rhyme_pos)
                     #self.pos_to_words[template.split()[-1]][line.split()[-1]] /= 2
             elif line:
                 if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                 if verbose: print("wrote line", line)
-                lines.append(line)
-                used_templates.append(template)
-                line_number += 1
+                choices.append((self.gpt.score_line(line), line, template))
+                if len(choices) == k:
+                    if verbose:
+                        print(choices)
+                        print(line_number, ":out of", len(choices), "chose", min(choices))
+                    lines.append(min(choices)[1])
+                    used_templates.append(min(choices)[2])
+                    line_number += 1
+                    choices = []
             else:
                 if verbose: print("no line", template, r)
                 if random.random() < (1 / len(self.templates) * 2):
