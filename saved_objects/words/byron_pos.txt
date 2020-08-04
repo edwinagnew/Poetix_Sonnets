@@ -65,7 +65,6 @@ crags NNS 1
 croesus N 11
 curs NNS 1
 cypresses NNS 100
-d NN 
 damming damning 
 decking VBG 
 dependants NNS 010
@@ -77,7 +76,6 @@ dominators NNS 1010
 dost NN 
 dramatis NN 010
 dst NN 11
-e NN 
 eaglets NNS 10
 earthless JJ 10
 eigher NN 11
@@ -120,15 +118,11 @@ holdest VB 10
 honours  10
 hooting VBG 00
 humbleness NN 100
-i NN 
-ii  11
-iii  11
 imperishable JJ 01000
 inborn JJ 
 incantation NN 
 increaseth VBZ 110
 interruptedly RB 10101
-iv  11
 jocund NN 11
 jove NN 1
 jungfrau NN 11

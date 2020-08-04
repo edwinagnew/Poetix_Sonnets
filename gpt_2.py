@@ -237,11 +237,12 @@ class gpt_gen:
 
 
             if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(dist[token]))
-            if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
+            #if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
+            if any(p == sub_tokens + [token] for p in poss_tokens):
                 word = self.tokenizer.decode(sub_tokens + [token]).strip()
                 if word not in punc:
                     meter = ""
-                    print("getting meter", meter, word, meter_dict)
+                    if verbose: print("getting meter", meter, word, meter_dict)
                     while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
                     meter_dict = meter_dict[meter]
                     if verbose: print("meter dict now", meter, word, meter_dict)
