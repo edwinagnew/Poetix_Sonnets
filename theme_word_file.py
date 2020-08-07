@@ -38,7 +38,7 @@ class Theme(poem_core.Poem):
 
 
 
-    def get_theme_words(self, theme, k=1, verbose=True, max_val=20, theme_file="saved_objects/theme_words.p", extras_file='saved_objects/extra_adjs.p'):
+    def get_theme_words(self, theme, k=1, verbose=False, max_val=20, theme_file="saved_objects/theme_words.p", extras_file='saved_objects/extra_adjs.p'):
         if not theme or len(theme) == 0: return {}
         try:
             with open(theme_file, "rb") as pickle_in:
@@ -59,14 +59,9 @@ class Theme(poem_core.Poem):
         if theme not in theme_word_dict:
             print(theme, "not in file. Generating...")
 
-            syn = wn.synsets(theme)
-            theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
-            cases = []
-            for poem in self.poems: #find poems which have theme syns
-                if any(word in poem for word in theme_syns):
-                    for line in poem.split("\n"): #find lines which have theme syns
-                        if any(word in line for word in theme_syns):
-                            cases.append(line)
+
+            cases = self.get_cases(theme)
+
             if verbose:
                 print("theme_syns" , theme_syns)
                 print(cases)
@@ -75,7 +70,7 @@ class Theme(poem_core.Poem):
                 words = case.split()
                 for i in range(len(words)):
                     if words[i] in theme_syns:
-                        good_pos = ['JJ', 'JJR', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS']
+                        good_pos = ['JJ', 'JJR', 'JJS', 'RB', 'VB', 'VBP', 'VBD', 'VBZ', 'VBG', 'NN', 'NNS', 'ABNN']
                         punct = string.punctuation
                         new_words = [words[i]]
                         left = i - 1
@@ -148,3 +143,14 @@ class Theme(poem_core.Poem):
         for p in self.most_recent_theme_words[theme]:
             if word in self.most_recent_theme_words[theme][p]: return self.most_recent_theme_words[theme][p][word]
         return 0
+
+    def get_cases(self, theme):
+        syn = wn.synsets(theme)
+        theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
+        cases = []
+        for poem in self.poems:  # find poems which have theme syns
+            if any(word in poem for word in theme_syns):
+                for line in poem.split("\n"):  # find lines which have theme syns
+                    if any(word in line for word in theme_syns):
+                        cases.append(line)
+        return cases

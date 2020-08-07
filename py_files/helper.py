@@ -316,5 +316,5 @@ def get_finer_pos_words():
      'ALONG', 'INTO', 'BOTH', 'EITHER', 'WILL', 'IN',
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
-     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "ARE", "OH",
+     'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "AM", "ARE", "OH",
     "EVEN", "DO", "DOES", "BE", "OFT", "TOO", "ANOTHER", "IT", "WAS"}
