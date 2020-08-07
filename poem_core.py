@@ -444,18 +444,18 @@ class Poem:
     def get_next_template(self, used_templates, check_the_rhyme=None):
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
         poss = self.templates
-        incomplete = ",;" + string.ascii_lowercase
+        #incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if
-                        p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS"]]
+                        p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
             # elif used_templates[-1][-1] in incomplete:
             #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
             if n % 4 == 3 or n == 13:
                 # poss = [p for p in poss if p[0][-1] not in ",;" + string.ascii_uppercase]
-                poss = [(p.replace("/,", "").replace("<,/", "<"), q) for p, q in poss if p[-1] in ">.?"]
+                poss = [(p.replace("/,", "").replace("<,/", "<"), q) for p, q in poss if p[-1] in ">."]
                 # print("last line of stanza so:", poss)
 
             if n % 4 == 0:
@@ -475,11 +475,13 @@ class Poem:
 
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
-        t = random.choice(poss)
+        t = self.fix_template(random.choice(poss))
+        #t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
-        return self.fix_template(t[0]), t[1]
+        return t[0], t[1]
 
     def fix_template(self, template):
+        if type(template) == tuple: return self.fix_template(template[0]), template[1]
         if "he" in self.gender or "she" in self.gender:
             template = template.replace(" VBP", " VBZ").replace(" DO ", " DOES ")
         else:
@@ -496,6 +498,13 @@ class Poem:
 
             else:
                 self.pos_to_words["VBC"] = {x: 1 for x in ["do", "seem", "appear", "look"] + ["were"]}
+
+        if "<IS/AM>" in template:
+            if "i" in self.gender: template = template.replace("<IS/AM>", "AM")
+
+            elif "he" in self.gender or "she" in self.gender: template = template.replace("<IS/AM>", "IS")
+
+            else: template = template.replace("<IS/AM>", "ARE")
 
         return template
 

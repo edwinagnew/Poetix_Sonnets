@@ -1,0 +1,1651 @@
+accost VB 
+acrostic  011
+acrostics NNS 011
+ageing JJ 10
+amber JJ 
+anyone NN 
+anything NN 
+asunder JJ 
+adelphi FW 
+ah FW 
+aha FW 
+ain  quit
+aloud FW 
+alway FW 10
+anyhow 011 
+babel NN 
+baith FW 1
+banns NNS 1
+bantam FW 
+barrow NN 
+baseness  10
+battlement NN 
+bawn FW 1
+beautifying JJ 1010
+belle NN 
+betide FW 
+bezique FW 11
+bided VBD 10
+bitterness NN 
+blotting VBG 
+blubber NN 
+bodying FW 101
+bogies FW 11
+bombastes FW 11
+boucicault FW 11
+bradshaw FW 
+brocken FW 11
+brogue NN 1
+brook NN 
+broom NN 
+brownie NN 
+byckerment FW 11
+byron FW 
+bytte FW 11
+ca FW 
+cam NN 
+camden FW 
+canst FW 11
+cantab FW 11
+canto FW 
+carpette FW 11
+carroll FW 
+case NN 
+casted VBD 10
+ceremonious  10100
+chace FW 
+chaffs NNS 1
+chance NN 
+charmer NN 
+chattered VBD 10
+chawed FW 11
+chumped  quit
+boon FW 
+boote FW 
+clamour NN 
+clara FW 
+claret  10
+clerkly FW 10
+cloistered VBD 
+clove NN 1
+colleen FW 
+comer FW 
+cometh FW 
+compactly  010
+coon FW 
+coop NN 
+coorted FW 11
+coortin FW 11
+cordiality  11001
+corks NNS 
+coronach FW 11
+couldn  11
+couldst FW 11
+counselled VBD 10
+countrie FW 11
+craze NN 
+criticise  101
+crones NNS 1
+cruets NNS 01
+crystal NN 
+curtail VB 
+cyclopaedia FW 11
+d FW 
+daddy NN 
+dainties NNS 11
+de FW 
+deadlie FW 11
+deceivers  011
+deemest FW 11
+deliberation NN 
+descry FW 11
+devonshire FW 
+didn FW 11
+didna FW 11
+diluter NN 010
+dilution NN 
+din FW 
+dinna FW 11
+dirge FW 
+dit FW 11
+doe NN 
+doggie NN 
+dolorum FW 11
+doon FW 1
+dost FW 
+downy JJ 
+dozen JJ 
+draught FW 
+dreads NNS 
+dream NN 
+dressy JJ 
+duckling NN 
+due NN 
+dulcet JJ 
+dullard NN 10
+duller 10 
+dundreary FW 11
+duodecimo FW 11
+dusky  01
+dyscomfyture FW 11
+e FW 
+eleven FW 
+ellen FW 
+england FW 
+enquire VB 
+enquires FW 11
+ent Fw 
+envye FW 11
+epicure FW 
+er FW 
+ere Fw 
+erthrown FW 11
+especial FW 
+esquire NN 
+essayed  11
+ether FW 
+euclid JJ 
+eve NN 
+excelsior NN 
+exception NN 
+exempli FW 11
+fairish FW 11
+familiars  010
+fay FW 
+fayre NN 10
+fays FW 1
+few FW 
+fibs NNS 1
+fidgety JJ 100
+fifteen FW 
+firelight NN 101
+fives FW 
+fleecy FW 
+fleecye FW 11
+flickered 101 
+flimsie FW 10
+flurry NN 
+folk NN 
+footed FW 
+forbear  11
+forest NN 
+forty FW 
+fourthly FW 
+frae FW 11
+furioso FW 11
+fytte FW 11
+fyve FW 11
+gae FW 
+gaieties FW 11
+galatea FW 
+gane FW 11
+gape VB 
+gar FW 
+geese NNS 
+gentler JJN 
+ghosteses FW 11
+ghoul NN 
+gibber FW 11
+gibbered FW 11
+gibbering FW 11
+gie FW 11
+gilbert FW 
+gladness  10
+glare NN, VB 
+glittered VBD 
+glooming JJ 10
+gormandising FW 11
+gowd FW 11
+grain NN 
+grant NN 
+gratia FW 11
+guy NN 
+hadn FW 11
+hark FW 
+harked VBD 1
+harvey FW 
+hat NN 
+headye FW 11
+hearthrug  quit
+heavenward  quit
+french FW 
+hiawatha FW 
+hoarsely  11
+hollowed JJ, VBD 
+hoofs NNS 
+howd FW 11
+huddle NN, VB 
+hundredweight 11 
+hys FW 11
+ii FW 1
+iii FW 11
+im FW 
+inconsiderate  10100
+india NN 
+indices FW 
+inexpressive  1010
+inly FW 11
+inns NNS 
+irish FW 
+isn FW 11
+iv FW 11
+j FW 
+jacky Fw 
+jangled FW 
+jawe FW 11
+jingle NN, VB 
+john FW 
+johnny FW 
+johnson FW 
+jolly JJ 
+jones FW 
+joyed FW 11
+keenest JJS 
+keepest VB 11
+kelpie FW 11
+kevil FW 11
+kevils FW 11
+kind JJ 
+king NN 
+knyghte FW 11
+kobold FW 11
+lacketh FW 11
+ladye FW 11
+lang FW 
+langer FW 
+larder FW 
+leafy FW 
+leander FW 
+leers  11
+leprechaun NN 
+lest FW 
+lettered VBD 
+lewis FW 
+ll FW 11
+loathly 11 11
+loe FW 
+loveth VB 01
+lyghte FW 11
+m FW 
+mair FW 
+maist FW 11
+malignity NN 1001
+marion FW 
+mark NN 
+markable FW 11
+massy FW 11
+matted  10
+maxim FW 
+mazy FW 11
+meekness NN 10
+meerschaum FW 11
+melancholetta FW 11
+melody NN 
+merriment  011
+methinks FW 11
+miles NNS 
+mindless JJ 
+moderator NN 
+morn NN 
+morrow NN 
+mountebanks FW 11
+mouthfuls NNS 01
+mr FW 
+mysel FW 11
+n FW 
+nae FW 11
+nap NN 
+napoleon NN 
+naps NNS 
+nascitur FW 11
+nay FW 
+ne FW 
+needeth VB 10
+newton FW 
+nobility NN 
+noe FW 
+non FW 
+none FW 
+noon NN 
+nought FW 11
+nouryture FW 11
+nutriment FW 11
+o FW 
+oblongs FW 11
+omnium NN 011
+orbed JJ 10
+own JJ 
+paeans FW 
+pane NN 
+pant VB 
+pantomimes FW 11
+parallelepiped FW 11
+parleying FW 11
+parte FW 
+partook VB 01
+passe FW 
+pearl NN 
+penny NN 
+peri FW 11
+phantasmagoria FW 
+photographers NNS 
+photographic JJ 
+photographing VBG 
+pilfered VBD 
+piteous  110
+pixy NN 01
+plato NN 
+playne FW 11
+pleasance FW 11
+pluralest FW 11
+poeta FW 11
+poltergeist NN 
+popinjay FW 11
+porridge NN 
+porringer FW 11
+porter NN 
+posteses FW 11
+practising  11
+prate FW 11
+prepaid JJ 
+pretence  11
+prince NN 
+prithee FW 11
+prophesy 100 100
+punning VBG 10
+pygmalion NN 
+quaffed FW 
+quartered  10
+queer FW 
+quenched FW 1
+quicken VB 
+quittedst FW 11
+quondam FW 11
+re FW 
+redden VB 
+renown FW 
+repast FW 11
+researchers NNS 
+rest VB 
+rill FW 
+ringlet NN 10
+rinnin FW 11
+river NN 
+robinson FW 
+roman JJ 
+rose NN 
+royal JJ 
+rt FW 11
+ruffian  110
+ruskin FW 
+russ FW 
+ryghte FW 11
+s FW 
+saddel FW 11
+sadler JJ 
+sae FW 11
+sages NNS 
+salads NNS 
+sall FW 
+sally FW 
+sanded VBD 
+sate VB 
+sayde FW 11
+scarmoges FW 11
+sceptic  11
+scoure FW 11
+scrubby JJ 
+scrumptious JJ 10
+seene FW 11
+semi FW 
+shaft NN 
+shakspeare FW 11
+shally FW 11
+shaming VBG 
+shilly FW 11
+shrimpers NNS 
+shufflings FW 11
+sic FW 
+sigh NN 
+simper VB 
+simpers  11
+sire FW 
+sixteen FW 
+skirting NN 
+sky NN 
+slavey FW 11
+sleepest VB 10
+sma FW 11
+smirked VBD 1
+snaky  11
+snores FW 11
+sobs NNS 
+soddayne FW 11
+soe FW 11
+something NN 
+sort VB 
+soundest JJS 
+soundless JJ 10
+souvenaunce FW 11
+sparely FW 11
+spectres  11
+sportive  11
+st FW 11
+standeth FW 11
+stanzas NNS 
+steeds NNS 
+stout JJ 
+strangeness NN 
+strew FW 
+sty NN 
+styrruppes FW 11
+sublyme NN 01
+suet FW 11
+summer NN 
+sunlit JJ 
+sup FW 
+supple JJ 
+surds FW 11
+swinge FW 11
+swinish  10
+syllogistic FW 11
+syne FW 11
+syr FW 11
+t 11 
+tae FW 
+taen FW 11
+tak FW 
+tapers FW 
+tare FW 11
+telled FW 11
+tema FW 11
+tempests FW 11
+tender JJ 
+tenderest  101
+tennyson FW 
+terminus  11
+terry JJ 
+thae FW 11
+theyre FW 11
+thirteen FW 
+thirty FW 
+thrall FW 
+throng NN 
+thunders NNS 
+thys FW 11
+tibbets NNS 
+tibbs FW 
+tinge NN 
+tirled FW 11
+tirleth FW 11
+tirls FW 11
+tis FW 
+toasteses FW 11
+toothsome FW 11
+topers FW 11
+topmost  01
+trace VB, NN 
+transgressed VBD 
+trembles VB 01
+tret FW 11
+trilled FW 11
+troup FW 
+trow FW 
+trundled FW 
+trystyng FW 11
+twas FW 
+twere FW 11
+twill FW 
+twine fw 
+twould FW 11
+tyll FW 11
+tyme NN 1
+unerringly  11
+unfurled VBD 
+unpitying JJ 0110
+unresisting JJ 0110
+unrestrainedly RB 01100
+unwhispered VBD 010
+upraised JJ 01
+utter FW 
+v FW 
+vapoury FW 11
+variazioni FW 11
+ve FW 
+ven  11
+venice FW 
+venison NN 
+ventilate VB 
+veriest FW 11
+vermin NN 
+vi FW 
+viand FW 11
+victual FW 11
+vii FW 11
+wad NN 
+waesome FW 11
+wainscotings FW 11
+waistcoat  11
+wasna FW 11
+wavier JJR 010
+wee FW 
+ween VB 1
+weepest FW 11
+wells NNS 
+weltered FW 11
+west NN 
+wha FW 11
+whate FW 
+wheaten FW 
+whence FW 
+wherefore FW 11
+whet FW 
+whilk FW 11
+whilst FW 
+whimpers  10
+wi FW 11
+wile FW 
+winkles FW 
+winter NN 
+witticism  1010
+woe NN 
+wolfish JJ 10
+wooer NN 10
+woote FW 11
+wot FW 11
+wouldn FW 11
+wow FW 
+wraith NN 1
+wreath NN 
+wretches  10
+wyll FW 11
+wyth FW 11
+yawn NN 
+ye FW 
+yea FW 
+yearns FW 
+yn FW 11
+yore FW 
+yours FW 
+yowled VBD 1
+ys 11 11
+yt FW 11
+yts FW 11
+abode FW 
+abominably  01001
+abounding VBG 
+absented VBD 101
+absenting VBG 100
+accordant JJ 010
+accustomary FW 11
+acquirements  quit
+acquits 01 
+actuated  1001
+adieu FW 
+adieus FW 11
+adjourned VBD 
+advantageously  10100
+affability NN 10100
+affluence NN 
+affront FW 
+affronted VBD 
+afterpiece NN 011
+agatha FW 
+agathas FW 11
+agitating VBG 
+agitations NNS 101
+agreeableness FW 11
+ague FW 11
+airs NNS 
+akin FW 
+alacrity FW 
+albion FW 
+alehouses NNS 110
+allot VB 
+allowably RB 0101
+alloyed  11
+almshouses  110
+alternation alteration 
+amelia FW 
+america FW 
+amiableness NN 10000
+amore FW 
+amplifying amplify 
+anderson FW 
+andersons FW 
+angel NN 
+anhalt FW 
+animating  1010
+antigua FW 
+antwerp FW 
+anybody NN 
+anywise FW 11
+apoplexy NN 
+apparents FW 11
+appeased VBD 
+appertaining  11
+apprehensively  10101
+apricot NN 
+april NN 
+arbiters NNS 
+arcturus FW 
+ardour  11
+ardours FW 11
+artless  10
+artlessly  101
+asia NN 
+assail VB 
+assented  010
+assiduities FW 11
+assiduous JJ 
+atoned VBD 
+attentiveness NN 
+augur FW 
+august NN 
+augusta NN 
+austen FW 
+authorise VB 101
+authorised  101
+authorising FW 1011
+autumn NN 
+avarice NN 
+avowedly RB 
+awkwardest JJS 101
+awkwardnesses NNS 1011
+ay FW 
+aylmers FW 11
+b FW 
+baddeley FW 11
+baize FW 
+baker NN 
+banbury FW 
+bandbox FW 11
+baronetcy NN 1001
+barouche FW 11
+beachey FW 11
+beautified VBD 100
+becomingness NN 0101
+bedford FW 
+beginner NN 
+behindhand FW 11
+belles NNS 
+benumbed FW 11
+bertram FW 
+bertrams FW 11
+betsey FW 
+bewailing VBG 010
+bewitching  110
+biassed FW 11
+bickerings NNS 100
+birthright NN 
+blackguard FW 11
+blair FW 
+blamelessly RB 101
+blaze NN 
+blessedness NN 
+blest FW 
+blockhead NN 
+blundered VBD 
+boatswain NN 
+bon FW 
+branxholm FW 11
+braved VBD 
+breakfasted  11
+bridgets FW 11
+briefly RB 
+brighton FW 
+brilliancy  100
+brisker JJR 
+browne FW 
+buckingham FW 
+buffoonery  11
+buns NNS 
+bustle NN 
+bustles NNS 10
+bye FW 
+c FW 
+calico JJ 
+cambridge FW 
+campbell FW 
+candour  10
+canopus FW 11
+cant FW 
+canter FW 
+canvass FW 
+canvassed FW 
+capriciousness NN 0101
+cart NN 
+cassel FW 
+cassiopeia FW 11
+catchword NN 
+cetera FW 
+chapels  10
+chaperons FW 11
+chaplains NNS 
+chapman FW 
+charles FW 
+chase VB 
+cheerer NN 10
+cheerfullest FW 11
+cheerlessness FW 11
+cheltenham FW 11
+chequered  11
+chiefly FW 
+christopher FW 
+chuse FW 
+chuser FW 11
+chuses FW 11
+chusing FW 11
+circumstanced VBD 1010
+civilities  1000
+clatter NN 
+cleopatra NN 
+cling VBG 
+clothe FW 
+coachmanship NN 101
+coarser JJR 
+collation  11
+collectedly  0101
+colours  10
+comfortless JJ 100
+commendations  0100
+commonest  101
+complacency NN 
+complainer NN 
+complaisance FW 11
+complaisant FW 
+compliance NN 
+composedly  11
+composure NN 
+compton FW 
+conceit NN 
+conceits  01
+conciliating FW 11
+condescensions  quit
+conduce  quit
+confederates  quit
+confessedly  quit
+congratulation NN 
+conjectured  010
+conjectures NNS 
+consequent JJ 
+considerately  01001
+consistence NN 
+consolation NN 
+consolatory  10010
+consumptive JJ 010
+continuance NN 
+contrives  01
+contriving  010
+conveyance NN 
+cookery  101
+coolness NN 
+copses  10
+cornwall FW 
+cottager NN 100
+countenance NN 
+countenanced VBD 
+counteracted VBD 
+counteraction FW 11
+counteractions FW 11
+countrywoman FW 1010
+courteously  1001
+courtship NN 
+cowper FW 
+coxcomb FW 11
+coze FW 11
+crabbe FW 
+crawford FW 
+crawfords FW 11
+cribbage FW 
+cromwell FW 
+crowds NNS 
+crowsfoot NN 11
+culpable JJ 
+cumberland FW 
+curate VB 
+curricle FW 11
+curtsey  11
+daemon NN 
+dairymaid NN 101
+damask JJ 
+darker JJR 
+dash VB 
+dawdle VB 
+dawdling VBG 
+deadened  10
+deanery FW 11
+debar FW 11
+debarred VBD 11
+debatings NNS 010
+debility FW 
+deckers FW 11
+dejection NN 010
+demesnes FW 11
+departures NNS 
+deplored VBD 
+deportment NN 
+depreciating VBG 
+depreciation NN 
+descried  11
+desirableness NN 01001
+desirably RB 0100
+despaired VBD 
+despatch  quit
+despatched  quit
+despatches  quit
+despondence  quit
+desponding  quit
+destiny NN 
+detaching  110
+determinate VB 
+determinateness FW 11
+detestable  0110
+devotedly  0100
+devotions  010
+devourer NN 0100
+dick FW 
+diffidence FW 11
+diffusely FW 11
+diffusion NN 
+dilapidations NNS 01010
+direful FW 11
+disapprobation FW 11
+discernment NN 
+disclaimed VBD 
+discomposed  11
+discomposure  11
+disconcert 11 
+discontent JJ 
+discouragement NN 
+disdained VBD 
+disdaining FW 
+disesteem FW 11
+disfavour FW 11
+disheartened VBD 
+dishonourably FW 11
+disinclined JJ 
+disinterestedly FW 11
+disinterestedness FW 11
+dismount VB 01
+disoblige VB 001
+disparagement  0100
+disproportion NN 0110
+disquieted VBD 0100
+disrespectfully  10100
+dissimilarity NN 
+distinctness NN 010
+distresses NNS 
+distressfully  0101
+distrusted VBD 
+distrusting  010
+disturber NN 010
+doat FW 11
+dockyard NN 
+doctoring VBG 
+doer FW 
+doge FW 
+doted VBD 01
+douglas FW 
+downstairs NN 
+dr FW 
+drakes FW 
+dramatis NN 
+drawer NN 
+drew FW 
+dropt FW 1
+du FW 
+duberley FW 11
+duenna FW 11
+duke NN 
+durability NN 
+eagerness NN 
+earnestness NN 
+easton FW 
+eatable JJ 
+ecclesford FW 11
+eclaircissement FW 11
+eclat NN 01
+edinburgh FW 
+edmund FW 
+effusion FW 11
+eighteen FW 
+ejaculation FW 
+eleanors FW 11
+elegancies NNS 1000
+eligibly FW 11
+elizabeth FW 
+ellis FW 
+eloped VBD 01
+elopement NN 010
+else FW 
+elucidation FW 11
+employments NNS 
+encroach VB 
+encumbrance  11
+endeavoured  010
+endeavouring  0100
+endeavours  010
+endymion FW 11
+english FW 
+engross FW 
+enjoyment NN 
+enjoyments NNS 
+enormity NN 
+entreat  01
+entreated  010
+entreaty 011 
+envying  100
+envyings NNS 100
+epicurism FW 11
+epilogue NN 
+equalled  11
+errand NN 
+esprit FW 
+esteeming FW 010
+esteems FW 01
+et FW 
+etc FW 
+eton FW 
+etourderie FW 11
+eulogium FW 11
+europe FW 
+evanescent JJ 
+everingham FW 
+everybody NN 
+evincing  11
+exactness NN 010
+exciter FW 11
+exhaustless FW 11
+exigeant FW 11
+expatiated  11
+expediency FW 
+exultation NN 0101
+fagged FW 11
+familiarised FW 11
+fancying VBG 100
+fanny 11 
+fatiguing VBG 
+faultless  10
+favourable  1000
+favourably  11
+favoured  11
+favouring  11
+fearfully  110
+fearfulness NN 100
+feebleness NN 
+felicities  0100
+felicity NN 
+festoons FW 11
+fidget VB 
+fidgeted VBD 100
+fidgetings FW 11
+fifty FW 
+finery NN 
+firmness NN 
+fitter JJR 
+fixedly  101
+flavour  10
+flirtation NN 
+flirted VBD 
+fluctuation NN 
+fonder JJR 
+footing NN 
+footmen  11
+footstool NN 11
+forbearing NN 110
+forded FW 11
+forerunner NN 
+foresight NN 
+forestalled VBD 
+forwarder JJR 
+fountainhead NN 101
+fourteen FW 
+fox NN 
+fracas FW 
+frances FW 
+frank FW 
+fraser FW 
+frasers FW 11
+frederick FW 
+freehold NN 
+frenchwoman FW 11
+fretfulness NN 100
+friday FW 
+friendless  11
+friendliness FW 
+frugality NN 
+furlong FW 
+furlongs FW 11
+g FW 
+gaiety  101
+gainer NN 
+gallantries  100
+gamester NN 10
+gayer FW 
+gentilities NNS 1101
+gentlemanlike JJ 1000
+george FW 
+geraniums NNS 
+german FW 
+gibraltar FW 
+gilding VBG 
+giver NN 
+godmother NN 
+gouty JJ 
+gradation FW 
+gradations FW 
+grander JJ 
+gratifications  10010
+graver JJR 
+greediness NN 101
+greenroom FW 11
+gregorys FW 11
+grey JJ 
+grog FW 
+grudged FW 11
+guiltless JJ 
+h FW 
+ha FW 
+hallooed FW 11
+hallooing FW 11
+handbarrow NN 110
+handsomer JJR 100
+handsomest  100
+hanover JJS 
+harangue FW 
+harboured FW 11
+harding FW 
+harmonised FW 11
+harmony NN 
+harrison FW 
+hashes NNS 
+haunch FW 11
+hawkins FW 
+hay NN 
+hazarded  100
+heartache NN 
+heartburnings FW 11
+heartiest JJS 
+heath FW 
+heaven NN 
+heavenly JJ 
+hedgerow FW 11
+heedless  10
+heightenings NN 100
+henceforth FW 
+henry FW 
+hereabouts FW 
+hereafter FW 
+hers FW 
+hesitatingly  11
+hesitation NN 
+holford FW 
+holla FW 11
+homestall FW 11
+hon FW 
+honourably FW 
+honouring  11
+horseback FW 
+horsemanship FW 
+horsewoman FW 11
+hospitably  1101
+housemaid  11
+housemaids NNS 11
+humoured  11
+humouredly FW 11
+humph FW 
+humphing FW 11
+hunter NN 
+huntingdon FW 
+hurtful JJ 
+hymen FW 
+idler NN 
+illumined VBD 
+imbibed VBD 
+immortalised FW 11
+importunity FW 11
+impropriety NN 
+improver NN 110
+imprudence NN 
+imprudent JJ 
+impudence  010
+impudent  010
+imputed VBD 
+imputing VBG 010
+inarticulately RB 101000
+inasmuch FW 
+inattention NN 
+incitements NNS 
+incommoded  11
+incompetency NN 
+inconceivably RB 00100
+inconsiderable  001000
+inconsiderately  010000
+inconstancy FW 
+inconstant FW 11
+incurably RB 0101
+indecorous FW 11
+indecorum NN 1010
+indefensible JJ 
+indelicacy NN 01000
+indescribably  10100
+indiaman FW 11
+indian FW 
+indignation NN 
+indisposed JJ 101
+indisposition FW 11
+indolence FW 11
+indubitable  11
+indubitably  11
+inestimable  11000
+infallibly  11
+infamously  1100
+infatuating JJ 
+infelicity NN 10100
+ingenuousness  11
+ingratitude  0101
+inhale NN 
+injudiciously FW 11
+inkstand NN 11
+inmate NN 
+insensibility NN 010100
+insipidity FW 11
+inspirit FW 11
+institutionary JJ 101000
+instructress NN 110
+insufferably  01000
+insuperable FW 11
+intelligences  11
+intercourse NN 
+intermission NN 
+interposed  11
+interposing  11
+interposition FW 11
+intimacies  1000
+intimation NN 
+inured FW 
+invective JJ 
+ireland FW 
+irregularly RB 
+irreproachably FW 11
+irreverently  01000
+italy FW 
+ix FW 11
+jackson FW 
+jacksons FW 
+james FW 
+jane FW 
+janet FW 
+january FW 
+jefferies FW 
+jellies NNS 
+jointure FW 11
+journey NN 
+jove NN 
+julia FW 
+julius FW 
+july FW 
+june FW 
+junior FW 
+juster FW 
+keenness  11
+kindheartedness NN 1100
+kindnesses  110
+knack NN 
+knave FW 
+knoll FW 
+l4th FW 11
+la FW 
+labourers  11
+labouring  11
+lacey FW 
+ladyship NN 101
+lamentations  1010
+laments 01 
+landholder NN 
+lane NN 
+languidly  100
+languor FW 11
+larch FW 
+lascelle FW 11
+latterly  11
+laurel NN 
+lawns NNS 
+leant FW 
+ledge NN 
+lee FW 
+leet FW 
+lessingby FW 11
+levity NN 
+lieu FW 
+lieutenants NNS 
+likening NN 
+littleness NN 100
+liturgy NN 
+liveable JJ 110
+liveliness NN 
+liverpool FW 
+loathings NNS 10
+lolling FW 
+london FW 
+lookings FW 10
+loudness NN 10
+lounger  11
+loveliness NN 
+lubberly FW 11
+lucy FW 
+ma FW 
+macartney FW 
+macbeth FW 
+maddison FW 
+maddox FW 
+maddoxes FW 11
+madeira FW 
+maidservant NN 110
+mainmast FW 11
+manoeuvre  11
+manoeuvring FW 11
+manorial FW 11
+mansfield FW 
+manteau FW 11
+mantelpiece  101
+marauding VBG 
+margaret FW 
+maria FW 
+marshall FW 
+mary FW 
+maxwell FW 
+meadow NN 
+meagreness FW 11
+meanness NN 
+meditated  101
+menus NNS 
+methodists FW 11
+michaelmas FW 11
+midshipman NN 
+miller FW 
+miracle NN 
+misinterpreting VBG 
+mislaid FW 
+misleads FW 
+moderated VBD 
+modernised FW 11
+modestest JJS 100
+modulation NN 
+monasteries NNS 
+monday FW 
+mortification NN 
+mortify VB 
+mortifying JJ 1010
+mot FW 11
+motes FW 
+motherbank FW 11
+mrs FW 
+nanny NN 
+napkins NNS 
+nearness NN 10
+neatness NN 
+necessaries  11
+necked VBD 
+needlefuls FW 11
+negus FW 
+newbury FW 
+newmarket FW 
+newness FW 
+news NN 
+niceness NN 
+nineteen FW 
+nobleness NN 100
+norris FW 
+norval FW 11
+notched JJ, VBD 
+nowadays FW 
+nurseries NNS 
+nurseryman NN 
+obligingness NN 0100
+obtrusiveness NN 0100
+obviate FW 
+occasioning  11
+occupier NN 
+offence  11
+oftenest  11
+oliver FW 
+olivers FW 11
+omissions NNS 
+orderliness NN 
+ostentation NN 
+othello FW 
+ours FW 
+outdo FW 
+overacting JJ 1010
+overborne FW 11
+owen FW 
+owens FW 
+paleness NN 10
+palliation FW 11
+paltry JJ 
+pang FW 
+pangloss FW 
+parasols  101
+pardonable  1000
+parley FW 
+parsonage NN 
+parsons NNS 
+particularise FW 11
+passionnees FW 11
+paul FW 
+peaceably RB 
+pelisses FW 11
+penance NN 
+penknife  11
+pennyworth FW 11
+perchance FW 
+peremptorily FW 11
+perfections  010
+permanence NN 
+permanency NN 1011
+perseveres FW 
+persisting VBG 
+persona NN 
+personae FW 
+persuadableness FW 11
+peterborough FW 
+petulance NN 
+pews NNS 
+pheasant NN 
+philanthropic JJ 
+phoo FW 11
+pianoforte NN 01010
+pink JJ 
+plaisirs FW 11
+playfellow  quit
+pleasanter  quit
+pleasantness  quit
+pleasantry NN 
+plenty NN 
+pointedness NN 100
+pony NN 
+portsmouth NN 
+postchaise FW 11
+postmark NN 
+poulterer FW 11
+practicability FW 11
+pre FW 
+prearranged JJ 
+preassured FW 11
+preciseness NN 010
+predetermination NN 001010
+preeminently RB 10110
+preferment FW 010
+prepossessing  0010
+prescott FW 
+presentiment FW 11
+presentiments FW 11
+prettily  101
+prettiness  100
+principled JJ 
+printers NNS 
+privateer  101
+privation NN 
+prizing VBG 10
+prognostications FW 
+promise NN 
+promotes VBZ 
+prompter  10
+properer FW 11
+properest FW 11
+propria FW 11
+prosing VBG 10
+prosperously RB 1000
+protege NN 
+protegee NN 110
+protestation NN 
+provocation NN 
+pug NN 
+purer JJR 
+quarrelled  10
+quarrelling  100
+queen NN 
+quickness NN 
+quiescent JJ 
+quieted VBD 
+quietness NN 
+r FW 
+ramsgate FW 11
+rapidity NN 
+raptures  10
+rash JJ 
+ravenshaw FW 11
+ravenshaws FW 11
+readiest JJS 100
+reasonings  100
+rebecca FW 
+reciter NN 010
+reckoner NN 100
+reckonings NNS 100
+recommenced FW 11
+recommendatory FW 11
+reconciling VBG 
+reddening  100
+redundancies NNS 
+reentered VBD 
+regale FW 11
+regardful JJ 011
+regulators NNS 
+rehearsals NNS 
+rehearsers NNS 011
+relenting VBG 
+remedied VBD 
+remembrancer FW 11
+remissness NN 010
+remonstrance FW 11
+remonstrances  11
+removal FW 
+removals NNS 
+rencontre FW 11
+renter NN 
+repenting VBG 
+repine  11
+reprimand NN 
+reprimanding JJ 1010
+reproached  01
+reproaches  010
+reproachful  010
+reproaching  010
+reprobated VBD 0110
+reprobation 0111 0100
+reproof FW 01
+reproved VBD 01
+repton FW 11
+repulses VBZ 010
+requisition aquisition 
+requited VBZ 011
+reseated VBD 010
+respectability respectable 
+restlessness rest 
+retentive  010
+retook 01 
+retrench 01 
+retrospection NN 1010
+reurging NN 010
+reverie NN 
+reversion NN 
+rhapsodising FW 11
+richard FW 
+richmond FW 
+robert FW 
+roofs NNS 
+roomy JJ 
+ross FW 
+rouses  10
+rushworth FW 11
+rushworths FW 11
+russia FW 
+rusticities FW 111
+rusticity NN 1000
+saddler NN 
+sagacity FW 11
+salutations  11
+sam FW 
+sameness NN 
+sandcroft FW 11
+sashes NNS 
+sated VBD 
+saturday FW 
+sauntered  10
+scarlet JJ 
+scholey FW 
+scorns VBZ 
+scotland FW 
+scottish FW 
+scruple NN 
+scrupled JJ 10
+scrupulousness FW 11
+seamanship  101
+selfishly  100
+september FW 
+serenity NN 
+seventeen FW 
+seventy FW 
+several JJ 
+severest JJS 
+severus FW 11
+sewell FW 
+shakespeare FW 
+shamefaced FW 11
+shew FW 
+shewed FW 11
+shewing FW 11
+shewn FW 11
+shews FW 11
+shilling NN 
+shins NNS 1
+shrubberies NNS 100
+shrubbery NN 
+shudderings NNS 100
+shylock FW 
+shyness NN 
+sicily FW 
+sickroom NN 10
+sidegate NN 10
+similes  11
+sincere JJ 
+sincerest  010
+sinned VBD 
+sisterly  100
+slattern FW 11
+slatternly FW 11
+slaving VBG 10
+sloop 11 
+sly JJ 
+slyly RB 
+sneyd FW 11
+sneyds FW 11
+soberer JJR 100
+soberness NN 100
+sofas NNS 
+solicitation NN 
+solicitudes FW 11
+soliloquies  11
+solitariness NN 
+sombre FW 11
+sorrowfull JJ 100
+sorrowfully  1000
+sorrowing  11
+sotherton FW 11
+speakingly FW 11
+spiritless JJ 100
+spithead FW 11
+splendour  11
+spoilt  11
+spunging FW 11
+spurning 11 
+stammering  100
+stampt FW 11
+stander 11 
+stanwix FW 11
+sc FW
+scard FW
+siptippidist FW
+stepd FW
+teemd FW
+tls FW
+tom FW
+tr FW
+trac FW
+tracd FW
+tragedie FW
+twixt FW
+undefil FW
+unds FW 11
+une FW
+unfathomd FW
+unfinishd FW
+unfledg FW
+unformd FW
+uninspird FW
+unlockd FW
+unloos FW
+unmov FW
+unmovd FW
+unnam FW
+unnervd FW
+unnorganizd FW
+upcott FW
+urgd FW
+uri FW
+urizen FW
+urizens FW
+v FW
+vala FW
+vandyke FW
+vanloo FW
+vanni FW
+vanquishd FW
+varia FW
+venusea FW
+venusia FW
+ver FW
+vernal FW
+vic FW
+viewd FW
+vig FW
+vii FW
+viia FW
+viii FW
+viol FW
+viscomi FW
+viz FW
+vo FW
+voi FW
+voicd FW
+vorte FW
+vu FW
+vulgo FW
+w FW
+waild FW
+walketh FW
+walld FW
+warrd FW
+warwick FW
+washd FW
+wat FW
+watchd FW
+waterd FW
+wav FW
+wavd FW
+wb FW
+wblake FW
+webbe FW
+weighd FW
+welcomd FW
+wezel FW
+whate FW
+wateer FW
+whe FW
+whelmd FW
+whencesoe FW
+whereeer FW
+wingd FW
+zenith FW

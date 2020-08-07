@@ -25,6 +25,9 @@ class gpt_gen:
 
         print("1")
         self.model = GPT2LMHeadModel.from_pretrained(model)
+        if torch.cuda.is_available():
+            print("putting to gpu")
+            self.model.to('cuda')
         self.mc_model = None
         print("loaded", model)
 
@@ -159,7 +162,7 @@ class gpt_gen:
             generated = self.tokenizer.encode(seed)
 
 
-        context = torch.tensor([generated])
+        context = torch.tensor([generated]).to(self.model.device)
         past = None
 
         punc = ",.;?"
@@ -170,7 +173,9 @@ class gpt_gen:
         sub_tokens = []
         i = a
         while i < b:
-            output, past = self.model(context, past=past)
+            with torch.no_grad():
+                output, past = self.model(context, past=past)
+                #past = past.to(self.model.device)
             if verbose: print(i, "(" + str(len(sub_tokens)) + ")")
 
 
@@ -209,7 +214,7 @@ class gpt_gen:
 
             if len(poss) <= 1:
                 # choose token with right spacing
-                if verbose: print(poss, template[i], meter_dict)
+                #if verbose: print(poss, template[i], meter_dict)
                 space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
                 poss_tokens = [self.tokenizer.encode(space + list(poss)[0])]
                 token = poss_tokens[0][len(sub_tokens)]
@@ -228,7 +233,7 @@ class gpt_gen:
                     theme_scores = np.ones(len(words))
                 filt = np.array([int(i in checks) for i in range(len(words))]) * theme_scores
                 #if verbose: print("filt", filt.sum(), len(filt.nonzero()[0]), filt)
-                ws = output[..., -1, :].detach().numpy() * filt
+                ws = output[..., -1, :].cpu().detach().numpy() * filt
                 dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
                 #if verbose: print("chose", token, sub_tokens, poss_tokens)
@@ -242,16 +247,16 @@ class gpt_gen:
                 word = self.tokenizer.decode(sub_tokens + [token]).strip()
                 if word not in punc:
                     meter = ""
-                    if verbose: print("getting meter", meter, word, meter_dict)
+                    if verbose: print("getting meter", meter, word)
                     while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
                     meter_dict = meter_dict[meter]
-                    if verbose: print("meter dict now", meter, word, meter_dict)
+                    #if verbose: print("meter dict now", meter, word, meter_dict)
                 sub_tokens = []
             else:
                 sub_tokens.append(token)
             generated += [token]  # .tolist()
             # context = token.unsqueeze(0)
-            context = torch.tensor(token).unsqueeze(0)
+            context = torch.tensor(token).unsqueeze(0).to(self.model.device)
 
             i += int(not punc_next and len(sub_tokens) == 0)
 
@@ -262,29 +267,19 @@ class gpt_gen:
 
         return sequence.replace(seed.strip(), "").strip()
 
-    def filt_score(self, word, pos):
-        #return 1
-        #print(word, pos, end="")
-        if pos in self.sonnet_object.special_words:
-        #    print(int(word == pos.lower()))
-            return int(word == pos.lower())
-        if word not in self.sonnet_object.pos_to_words[pos]:
-         #   print(0, "O")
-            return 0
-       # print(self.sonnet_object.pos_to_words[pos][word])
-        return self.sonnet_object.pos_to_words[pos][word]
-
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
-        outputs = self.model(input_ids, labels=input_ids)
+        with torch.no_grad():
+            outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
         #loss, logits = outputs[:2]
         return outputs[0].item()
 
     def get_word_scores(self, line):
         if type(line) == list: return [self.get_word_scores(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
-        outputs = self.model(input_ids)
+        with torch.no_grad():
+            outputs = self.model(input_ids)
         return torch.tensor([outputs[0][0][max(0,i-1)][input_ids[0][i]] for i in range(len(input_ids[0]))]) #gets the score of each original word in the line
 
     def get_worst_suitable_word(self, template, meter, line, verbose=False, keep_last=True, p=0.2):
@@ -428,7 +423,8 @@ class gpt_gen:
             poss = self.sonnet_words(helper.remove_punc(template[worst_index]), meter[worst_index])
             words = list(self.tokenizer.encoder.keys())
             filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words])
-            output, past = self.model(input_ids)
+            with torch.no_grad():
+                output, past = self.model(input_ids)
             output += abs(output.min())
             out = torch.tensor(output[..., worst_token_index - 1, :].detach().numpy() * filt)  # predicts what comes after token, not whats there?
 
@@ -458,7 +454,8 @@ class gpt_gen:
         input_ids = torch.tensor(choices).unsqueeze(0)  # Batch size: 1, number of choices: 2
         mc_token_ids = torch.tensor([cls_token_location])  # Batch size: 1
 
-        outputs = self.mc_model(input_ids, mc_token_ids=mc_token_ids)
+        with torch.no_grad():
+            outputs = self.mc_model(input_ids, mc_token_ids=mc_token_ids)
         lm_prediction_scores, mc_prediction_scores = outputs[:2]
 
         return mc_prediction_scores
