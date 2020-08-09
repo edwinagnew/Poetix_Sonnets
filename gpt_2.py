@@ -9,7 +9,7 @@ from py_files import helper
 
 class gpt_gen:
 
-    def __init__(self, sonnet_object=None,  model="gpt2-large"):
+    def __init__(self, sonnet_object=None,  model="gpt2"):
         if sonnet_object:
             self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
@@ -190,8 +190,11 @@ class gpt_gen:
                 poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys())))
                 r = None
                 if i == b - 1 and rhyme_word:
-                    r = rhyme_word
-                    poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+                    if "__" in rhyme_word:
+                        poss = set([rhyme_word.strip("__")])
+                    else:
+                        r = rhyme_word
+                        poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
                     if verbose: print("restricting to rhymes", rhyme_word, poss)
 
             if len(poss) == 0:
