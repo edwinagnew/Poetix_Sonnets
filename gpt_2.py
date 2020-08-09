@@ -9,7 +9,7 @@ from py_files import helper
 
 class gpt_gen:
 
-    def __init__(self, seed=None, sonnet_object=None,  model="gpt2-large", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_")):
+    def __init__(self, sonnet_object=None,  model="gpt2-large"):
         if sonnet_object:
             self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
@@ -32,8 +32,6 @@ class gpt_gen:
         print("loaded", model)
 
 
-
-        if seed: print(self.good_generation(seed, template, meter))
 
     def good_generation(self, seed="", template="FROM JJS NNS, PRPS VBP NN".split(), meter="0_10_10_1_01_01".split("_"), rhyme_word=None, b=6, verbose=False):
         """if not tokenizer or not model:
