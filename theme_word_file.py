@@ -61,6 +61,8 @@ class Theme(poem_core.Poem):
 
 
             cases = self.get_cases(theme)
+            syn = wn.synsets(theme)
+            theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
 
             if verbose:
                 print("theme_syns" , theme_syns)
@@ -122,7 +124,7 @@ class Theme(poem_core.Poem):
 
             #keep only the ones that come up as synonyms for at least two?
             theme_word_dict[theme] = theme_words
-            print(theme_word_dict)
+            if verbose: print(theme_word_dict)
             for p in theme_word_dict[theme]:
                 for w in theme_word_dict[theme][p]:
                     theme_word_dict[theme][p][w] *= abs(helper.get_spacy_similarity(theme, w))#/max_val

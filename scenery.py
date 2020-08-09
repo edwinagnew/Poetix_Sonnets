@@ -1,5 +1,3 @@
-import time
-
 
 import random
 import torch
@@ -12,6 +10,7 @@ import pandas as pd
 from py_files import helper
 
 import theme_word_file
+import gpt_2
 
 
 
@@ -254,11 +253,19 @@ class Scenery_Gen(poem_core.Poem):
         #return lines
 
     def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5):
-        if not self.gpt: print("I dont have a gpt object", 1 / 0)
+        if not self.gpt:
+            if verbose: print("getting gpt")
+            self.gpt = gpt_2.gpt_gen(sonnet_object=self)
         self.reset_gender()
         self.update_theme_words(None, theme)
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
         if verbose: print(len(theme_contexts), random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
+
+        rhymes = list(self.getRhymes([theme], words=self.words_to_pos.keys()).keys())
+        if len(rhymes) < 7:
+            print("not enough:", rhymes)
+            return 1/0
+        #random.shuffle(rhymes)
 
         lines = []
         used_templates = []
@@ -270,15 +277,21 @@ class Scenery_Gen(poem_core.Poem):
             if verbose and line_number % 4 == 0: print("\n\nwriting stanza", 1 + line_number/4)
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
-            if random_templates:
-                template, meter = self.get_next_template(used_templates)
-            else:
-                template, meter = self.templates[line_number]
-            r = None
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number-2].split()[-1])
             elif rhyme_lines and line_number == 13:
                 r = helper.remove_punc(lines[12].split()[-1])
+            else:
+                r = "__" + random.choice(rhymes)
+
+            if random_templates:
+                template, meter = self.get_next_template(used_templates, end=r)
+                if not template:
+                    if verbose: print("didnt work out for", used_templates, r)
+                    continue
+            else:
+                template, meter = self.templates[line_number]
+
 
             #if r and len()
 
@@ -314,6 +327,7 @@ class Scenery_Gen(poem_core.Poem):
                     used_templates.append(min(choices)[2])
                     line_number += 1
                     choices = []
+                    if r in rhymes: rhymes.remove(r)
             else:
                 if verbose: print("no line", template, r)
                 if random.random() < (1 / len(self.templates) * 2) * (1/k):

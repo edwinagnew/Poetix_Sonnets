@@ -290,6 +290,7 @@ def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
 
 
 def remove_punc(s):
+    if type(s) == list: return [remove_punc(t) for t in s]
     return s.translate(str.maketrans('', '', string.punctuation))
 
 

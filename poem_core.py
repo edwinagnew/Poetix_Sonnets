@@ -318,13 +318,14 @@ class Poem:
             self.check_template(base_template, meter)
             rhyme_pos = helper.remove_punc(template.split()[-1])
             if rhyme_word:
-                rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word)
-                r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
-                         x in self.get_meter(w)]) if rhyme_word else None
-                if len(r) == 0 or len(rhyme_words) == 0:
-                    if verbose: print("couldn't get a rhyme here:", template, rhyme_word)
-                    return None
-                # if verbose: print(rhyme_words, r)
+                if "__" in rhyme_word:
+                    r = set(self.get_meter(rhyme_word.strip("__")))
+                else:
+                    rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word)
+                    r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if x in self.get_meter(w)]) if rhyme_word else None
+                    if len(r) == 0 or len(rhyme_words) == 0:
+                        if verbose: print("couldn't get a rhyme here:", template, rhyme_word)
+                        return None
             else:
                 r = None
 
@@ -441,7 +442,19 @@ class Poem:
                 if len(poss) == 1: return poss
         return poss
 
-    def get_next_template(self, used_templates, check_the_rhyme=None):
+    def get_next_template(self, used_templates, check_the_rhyme=None, end=""):
+        """
+
+        Parameters
+        ----------
+        used_templates
+        check_the_rhyme
+        end - makes sure the template could have that word at the end (but only if it starts with __)
+
+        Returns
+        -------
+
+        """
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
         poss = self.templates
         #incomplete = ",;" + string.ascii_lowercase
@@ -475,6 +488,11 @@ class Poem:
 
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
+        if "__" in end:
+            pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
+            poss = [(p,q) for p,q in poss if helper.remove_punc(p.split()[-1]) in pos]
+
+        if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))
         #t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
