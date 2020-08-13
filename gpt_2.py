@@ -1,5 +1,5 @@
 import sonnet_basic
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2DoubleHeadsModel
+from transformers import GPT2LMHeadModel, GPT2Tokenizer#, GPT2DoubleHeadsModel
 import torch
 import numpy as np
 import random
