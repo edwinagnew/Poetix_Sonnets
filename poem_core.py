@@ -209,14 +209,8 @@ class Poem:
         :param theme: an array of either [prompt] or [prompt, line_theme] to find similar words to. JUST PROMPT FOR NOW
         :return: all words which rhyme with similar words to the theme in format {similar word: [rhyming words], similar word: [rhyming words], etc.}
         """
-        if type(theme) != list:
-            theme = [theme]
-        if len(theme) > 1:
-            prompt = theme[0]
-            tone = theme[1:]
-        else:
-            prompt = theme[0]
-            tone = "NONE"
+        #if type(theme) != list:
+        #    theme = [theme]
         try:
             with open("saved_objects/saved_rhymes", "rb") as pickle_in:
                 mydict = pickle.load(pickle_in)
@@ -225,12 +219,11 @@ class Poem:
             with open("saved_objects/saved_rhymes", "wb") as pickle_in:
                 mydict = {}
                 pickle.dump(mydict, pickle_in)
-        if prompt not in mydict.keys():
-            mydict[prompt] = {}
-        if tone not in mydict[prompt].keys():
+        if theme not in mydict.keys():
+            mydict[theme] = {}
             print("havent stored anything for ", theme, "please wait...")
             print(" (ignore the warnings) ")
-            words = helper.get_similar_word_henry(theme, n_return=30, word_set=set(words))
+            words = helper.get_similar_word_henry(theme.lower().split(), n_return=40, word_set=set(words))
             w_rhyme_dict = {w3: {word for word in helper.get_rhyming_words_one_step_henry(self.api_url, w3) if
                                  word in self.words_to_pos and word in self.dict_meters and word not in self.top_common_words[
                                                                                                         :70]} for
@@ -238,11 +231,11 @@ class Poem:
                             w3 in words if w3 not in self.top_common_words[:70] and w3 in self.dict_meters}
 
             # if len(w_rhyme_dict) > 0:
-            mydict[prompt][tone] = {k: v for k, v in w_rhyme_dict.items() if len(v) > 0}
-
+            mydict[theme] = {k: v for k, v in w_rhyme_dict.items() if len(v) > 0}
+        elif "NONE" in mydict[theme]: print("the code for this bit has changed. Please delete saved_objects/saved_rhymes and start again", 1/0)
         with open("saved_objects/saved_rhymes", "wb") as pickle_in:
             pickle.dump(mydict, pickle_in)
-        return mydict[prompt][tone]
+        return mydict[theme]
 
     def last_word_dict(self, rhyme_dict,
                        scheme={1: 'A', 2: 'B', 3: 'A', 4: 'B', 5: 'C', 6: 'D', 7: 'C', 8: 'D', 9: 'E', 10: 'F', 11: 'E',
@@ -488,9 +481,11 @@ class Poem:
 
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
-        if "__" in end:
+        if end and "__" in end:
             pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
             poss = [(p,q) for p,q in poss if helper.remove_punc(p.split()[-1]) in pos]
+
+        poss = [(p,q) for p,q in poss if used_templates.count(p) < 2]
 
         if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))

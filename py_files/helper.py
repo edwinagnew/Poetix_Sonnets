@@ -104,6 +104,9 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
     <return>:
     a list of words of length arg <n_return> most similar to <arg> words
     """
+    #saved = pickle.load(open("saved_objects/saved_rhyme_words.p", "rb"))
+    #if words in saved: return saved[words]
+
     ps = nltk.stem.PorterStemmer()
     punct = re.compile(r'[^\w\s]')
 
@@ -117,7 +120,7 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
             for synset in wn.synsets(word):
                 clean_def = remove_stopwords(punct.sub('', synset.definition()))
                 word_set.update(clean_def.lower().split())
-            word_set.update({dic["word"] for dic in requests.get(api_url, params={'rel_syn': "grace"}).json()})
+            word_set.update({dic["word"] for dic in requests.get(api_url, params={'rel_syn': word}).json()})
 
     if weights == 1:
         weights = [1] * len(words)
