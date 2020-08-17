@@ -761,4 +761,4 @@ class Scenery_Gen(poem_core.Poem):
         return mydict[theme]
 
     def get_close_words(self, positive, negative=None):
-        return [item[0] for item in self.sim_model.most_similar(positive, negative, topn=100)] 
+        return [item[0] for item in self.sim_model.most_similar(positive, negative, topn=100)]
