@@ -138,7 +138,6 @@ class Scenery_Gen(poem_core.Poem):
         """
         Given the rhyme sets, extract all possible last words from the rhyme set
         dictionaries.
-
         Parameters
         ----------
         rhyme_dict: dictionary
@@ -149,7 +148,6 @@ class Scenery_Gen(poem_core.Poem):
         -------
         dictionary
             Format is {1: ['apple', 'orange'], 2: ['apple', orange] ... }
-
         """
         scheme = {1: 'A', 2: 'B', 3: 'A', 4: 'B'}
         last_word_dict = {}
@@ -367,10 +365,8 @@ class Scenery_Gen(poem_core.Poem):
         ----------
         theme - what the theme words should be about
         checks - a list of POS to check that a phrase exists in the corpus
-
         Returns
         -------
-
         """
         #self.gpt_past = ""
         lines = []
@@ -765,4 +761,4 @@ class Scenery_Gen(poem_core.Poem):
         return mydict[theme]
 
     def get_close_words(self, positive, negative=None):
-        return [item[0] for item in self.sim_model.most_similar(positive, negative, topn=100)]
+        return [item[0] for item in self.sim_model.most_similar(positive, negative, topn=100)] 
