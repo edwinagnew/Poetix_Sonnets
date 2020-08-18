@@ -11,6 +11,9 @@ from py_files import helper
 
 import theme_word_file
 import gpt_2
+import fasttext_simfinder
+
+from collections import Counter
 
 
 
@@ -67,6 +70,8 @@ class Scenery_Gen(poem_core.Poem):
         #self.gender = random.choice([["he", "him", "his", "himself"], ["she", "her", "hers", "herself"]])
 
         self.theme_gen = theme_word_file.Theme()
+
+        self.fasttext = fasttext_simfinder.Sim_finder()
 
     #override
     def get_pos_words(self,pos, meter=None, rhyme=None, phrase=()):
@@ -262,16 +267,20 @@ class Scenery_Gen(poem_core.Poem):
         if verbose and theme_lines: print(len(theme_contexts), random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
         if theme:
-            rhymes = list(self.getRhymes(theme, words=self.words_to_pos.keys()).keys())
-            theme_words = rhymes[:10].copy()
+            #rhymes = list(self.getRhymes(theme, words=self.words_to_pos.keys()).keys())
+            n = 25
+            rhymes = [theme]
+            while len(set(rhymes)) < 60:
+                n += 25
+                rhymes += [x for x in self.fasttext.get_close_words(random.choice(rhymes), n=n) if x in self.words_to_pos and any(m in ["1", "01", "101", "0101", "10101"] for m in self.get_meter(x))]
+            if verbose: print("rhymes", len(rhymes), rhymes)
+            c = Counter(rhymes)
+            theme_words = [k[0] for k in c.most_common(10)]
             #rhymes = helper.get_similar_word_henry(theme.lower().split(), n_return=50, word_set=set(self.words_to_pos.keys()))
-            if verbose:
-                print("rhymes", rhymes)
-            if len(rhymes) < 7:
-                print("not enough:", rhymes)
-                return 1/0
+
         else:
             rhymes = []
+            theme_words = []
         #random.shuffle(rhymes)
 
         lines = []
@@ -288,8 +297,9 @@ class Scenery_Gen(poem_core.Poem):
                 r = helper.remove_punc(lines[line_number-2].split()[-1])
             elif rhyme_lines and line_number == 13:
                 r = helper.remove_punc(lines[12].split()[-1])
-            elif theme:
-                r = "__" + random.choice(rhymes)
+            elif rhyme_lines and theme:
+                #r = "__" + random.choice(rhymes)
+                r = set(rhymes) #rhymes.copy()
             else:
                 r = None
 
@@ -306,8 +316,9 @@ class Scenery_Gen(poem_core.Poem):
 
             #self.gpt_past = str(theme_lines and theme.upper() + "\n") + "\n".join(lines) #bit weird but begins with prompt if trying to be themey
             self.gpt_past = " ".join(theme_words) + "\n" + "\n".join(lines)
-            if verbose: print("\nwriting line", line_number)
-            print(template, meter, r)
+            if verbose:
+                print("\nwriting line", line_number)
+                print(template, meter, r)
             line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs)
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
@@ -338,7 +349,8 @@ class Scenery_Gen(poem_core.Poem):
                     used_templates.append(min(choices)[2])
                     line_number += 1
                     choices = []
-                    if r in rhymes: rhymes.remove(r)
+                    last = helper.remove_punc(lines[-1].split()[-1])
+                    if last in rhymes: rhymes.remove(last)
             else:
                 if verbose: print("no line", template, r)
                 if random.random() < (1 / len(self.templates) * 2) * (1/k):

@@ -191,10 +191,14 @@ class gpt_gen:
                 r = None
                 if i == b - 1 and rhyme_word:
                     if "__" in rhyme_word:
-                        poss = set([rhyme_word.strip("__")])
+                        poss = {rhyme_word.strip("__")}
                     else:
                         r = rhyme_word
-                        poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+                        if type(rhyme_word) == str:
+                            poss = set(self.sonnet_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+                        else:
+                            assert len(meter_dict.keys()) == 1, meter_dict
+                            poss = [r for r in rhyme_word if any(met in meter_dict for met in self.sonnet_object.get_meter(r))]
                     if verbose: print("restricting to rhymes", rhyme_word, poss)
 
             if len(poss) == 0:
