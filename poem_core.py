@@ -314,7 +314,7 @@ class Poem:
                 if "__" in rhyme_word:
                     r = set(self.get_meter(rhyme_word.strip("__")))
                 else:
-                    rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word)
+                    rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
                     r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if x in self.get_meter(w)]) if rhyme_word else None
                     if len(r) == 0 or len(rhyme_words) == 0:
                         if verbose: print("couldn't get a rhyme here:", template, rhyme_word)
@@ -481,8 +481,9 @@ class Poem:
 
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
-        if end and "__" in end:
-            pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
+        if end and type(end) == set:
+            #pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
+            pos = set([self.get_word_pos(w)[0] for w in end])
             poss = [(p,q) for p,q in poss if helper.remove_punc(p.split()[-1]) in pos]
 
         poss = [(p,q) for p,q in poss if used_templates.count(p) < 2]

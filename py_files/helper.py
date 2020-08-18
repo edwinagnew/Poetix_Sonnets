@@ -76,9 +76,6 @@ def create_pos_syllables(pos_to_words, dict_meters):
     pos_syllables['.'].add(0)
     return pos_syllables
 
-
-
-
 def get_rhyming_words_one_step_henry(api_url, word, max_syllables=5):
     """
     get the rhyming words of <arg> word returned from datamuse api
@@ -88,7 +85,6 @@ def get_rhyming_words_one_step_henry(api_url, word, max_syllables=5):
     a set of words
     """
     return set(d['word'] for d in requests.get(api_url, params={'rel_rhy': word}).json() if " " not in d['word'] and d['numSyllables'] <= max_syllables)
-
 
 def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set=None, api_url='https://api.datamuse.com/words'):
     """
@@ -135,7 +131,6 @@ def get_similar_word_henry(words, seen_words=[], weights=1, n_return=1, word_set
     syn_score_list.sort(key=lambda x: x[1], reverse=True)
 
     return [e[0] for e in syn_score_list[:n_return]]
-
 
 def get_spacy_similarity(word1, word2):
     global spacy_nlp
@@ -199,7 +194,6 @@ def template_sylls_checking(pos_set, sylls_set, template_curr, num_sylls_curr, p
     if len(continue_flag)==0: continue_flag=False
     return continue_flag
 
-
 def sylls_bounds(partial_template, pos_sylls_mode):
     """
     Return upper and lower bounds of syllables in a POS template.
@@ -227,7 +221,7 @@ def softmax(x, exclude_zeros=False, k=0):
     """Compute softmax values for each sets of scores in x.
        exclude_zeros (bool) retains zero elements
     """
-    if len(x) == 1: return [1]
+    #if len(x) == 1: return [1]
     if type(x) != list and x.shape[0] == 1: return softmax(x[0], exclude_zeros=exclude_zeros)
     if exclude_zeros and max(x) <=0:
         print("max <=0 so retrying without exclusion")
@@ -296,9 +290,6 @@ def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
 def remove_punc(s):
     if type(s) == list: return [remove_punc(t) for t in s]
     return s.translate(str.maketrans('', '', string.punctuation))
-
-
-
 
 
 def get_finer_pos_words():

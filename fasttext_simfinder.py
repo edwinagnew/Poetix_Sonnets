@@ -9,9 +9,9 @@ class Sim_finder:
     def __init__(self, model_file="saved_objects/fasttext/wiki-news-300d-1M.vec", pick_file="saved_objects/fasttext/model.p"):
         try:
             self.model = pickle.load(open(pick_file, "rb"))
-            print("loaded model from pickle")
+            print("loaded fasttext from pickle")
         except:
-            print("loading the model for the first time")
+            print("loading fasttext for the first time")
             self.model = KeyedVectors.load_word2vec_format(model_file)
             print("saving with pickle")
             pickle.dump(self.model, open(pick_file, "wb"))
