@@ -262,7 +262,7 @@ class Scenery_Gen(poem_core.Poem):
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
         self.reset_gender()
-        self.update_theme_words(theme=theme)
+        if theme_lines > 0: self.update_theme_words(theme=theme)
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
         if verbose and theme_lines: print(len(theme_contexts), random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
@@ -350,7 +350,7 @@ class Scenery_Gen(poem_core.Poem):
                     line_number += 1
                     choices = []
                     last = helper.remove_punc(lines[-1].split()[-1])
-                    if last in rhymes: rhymes.remove(last)
+                    if last in rhymes: rhymes = [r for r in rhymes if r != last]
             else:
                 if verbose: print("no line", template, r)
                 if random.random() < (1 / len(self.templates) * 2) * (1/k):
@@ -359,12 +359,13 @@ class Scenery_Gen(poem_core.Poem):
                     else: line_number -= 2
 
         print("")
-        print("         ---", theme.upper(), "---       ")
+        ret = ("         ---", theme.upper(), "---       \n")
         for cand in range(len(lines)):
-            print(lines[cand])
-            if ((cand + 1) % 4 == 0): print("")
+            ret += (lines[cand]) + "\n"
+            if ((cand + 1) % 4 == 0): ret+=("\n")
+        print(ret)
 
-        #return lines
+        return ret
 
 
     def write_stanza(self, templates, line_method, checks=("RB", "NNS"), rhyme_lines=True, verbose=False):
