@@ -31,7 +31,7 @@ class Scenery_Gen(poem_core.Poem):
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 templates_file="poems/jordan_templates.txt",
+                 templates_file=('poems/jordan_templates.txt', "poems/rhetorical_templates.txt"),
                  #templates_file='poems/number_templates.txt',
                  mistakes_file=None):
 
@@ -255,14 +255,14 @@ class Scenery_Gen(poem_core.Poem):
             print(lines[cand])
             if ((cand + 1) % 4 == 0): print("")
 
-        #return lines
-
+    #TODO - repetition templates, alliteration etc, grammar fixing
     def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
+            #self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2-large")
         self.reset_gender()
-        self.update_theme_words(theme=theme)
+        if theme_lines > 0: self.update_theme_words(theme=theme)
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
         if verbose and theme_lines: print(len(theme_contexts), random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
@@ -274,6 +274,7 @@ class Scenery_Gen(poem_core.Poem):
                 n += 25
                 rhymes += [x for x in self.fasttext.get_close_words(random.choice(rhymes), n=n) if x in self.words_to_pos and any(m in ["1", "01", "101", "0101", "10101"] for m in self.get_meter(x))]
             if verbose: print("rhymes", len(rhymes), rhymes)
+            if len(theme.split()) > 1: rhymes.remove(theme)
             c = Counter(rhymes)
             theme_words = [k[0] for k in c.most_common(10)]
             #rhymes = helper.get_similar_word_henry(theme.lower().split(), n_return=50, word_set=set(self.words_to_pos.keys()))
@@ -316,6 +317,7 @@ class Scenery_Gen(poem_core.Poem):
 
             #self.gpt_past = str(theme_lines and theme.upper() + "\n") + "\n".join(lines) #bit weird but begins with prompt if trying to be themey
             self.gpt_past = " ".join(theme_words) + "\n" + "\n".join(lines)
+            self.reset_letter_words()
             if verbose:
                 print("\nwriting line", line_number)
                 print(template, meter, r)
@@ -350,7 +352,7 @@ class Scenery_Gen(poem_core.Poem):
                     line_number += 1
                     choices = []
                     last = helper.remove_punc(lines[-1].split()[-1])
-                    if last in rhymes: rhymes.remove(last)
+                    if last in rhymes: rhymes = [r for r in rhymes if r != last]
             else:
                 if verbose: print("no line", template, r)
                 if random.random() < (1 / len(self.templates) * 2) * (1/k):
@@ -359,12 +361,13 @@ class Scenery_Gen(poem_core.Poem):
                     else: line_number -= 2
 
         print("")
-        print("         ---", theme.upper(), "---       ")
+        ret = ("         ---" + theme.upper() + "---       \n") if theme else ""
         for cand in range(len(lines)):
-            print(lines[cand])
-            if ((cand + 1) % 4 == 0): print("")
+            ret += str(lines[cand]) + "\n"
+            if ((cand + 1) % 4 == 0): ret+=("\n")
+        print(ret)
 
-        #return lines
+        return ret
 
 
     def write_stanza(self, templates, line_method, checks=("RB", "NNS"), rhyme_lines=True, verbose=False):

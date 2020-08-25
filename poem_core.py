@@ -13,7 +13,7 @@ from os import path
 
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
-                 templates_file='poems/jordan_templates.txt',
+                 templates_file=('poems/jordan_templates.txt', "poems/rhetorical_templates.txt"),
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
@@ -26,15 +26,18 @@ class Poem:
         self.backup_words = None
         if "byron" in words_file:
             self.backup_words, _ = helper.get_new_pos_dict('saved_objects/tagged_words.p')
-        try:
-            with open(templates_file) as tf:
-                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                  "#" not in line and len(line) > 1]
-        except:
-            print(templates_file, " does not exist so reading from poems/jordan_templates.txt instead")
-            with open("poems/jordan_templates.txt") as tf:
-                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                  "#" not in line and len(line) > 1]
+        if type(templates_file) == str: templates_file = [templates_file]
+        self.templates = []
+        for t in templates_file:
+            try:
+                with open(t) as tf:
+                    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                                       "#" not in line and len(line) > 1]
+            except:
+                print(t, " does not exist so reading from poems/jordan_templates.txt instead")
+                with open("poems/jordan_templates.txt") as tf:
+                    self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                                      "#" not in line and len(line) > 1]
 
         self.special_words = helper.get_finer_pos_words()
 
@@ -209,7 +212,7 @@ class Poem:
         :param theme: an array of either [prompt] or [prompt, line_theme] to find similar words to. JUST PROMPT FOR NOW
         :return: all words which rhyme with similar words to the theme in format {similar word: [rhyming words], similar word: [rhyming words], etc.}
         """
-        #if type(theme) != list:
+        # if type(theme) != list:
         #    theme = [theme]
         try:
             with open("saved_objects/saved_rhymes", "rb") as pickle_in:
@@ -232,7 +235,8 @@ class Poem:
 
             # if len(w_rhyme_dict) > 0:
             mydict[theme] = {k: v for k, v in w_rhyme_dict.items() if len(v) > 0}
-        elif "NONE" in mydict[theme]: print("the code for this bit has changed. Please delete saved_objects/saved_rhymes and start again", 1/0)
+        elif "NONE" in mydict[theme]:
+            print("the code for this bit has changed. Please delete saved_objects/saved_rhymes and start again", 1 / 0)
         with open("saved_objects/saved_rhymes", "wb") as pickle_in:
             pickle.dump(mydict, pickle_in)
         return mydict[theme]
@@ -298,42 +302,48 @@ class Poem:
             if not gpt_model: print("need a gpt model", 1 / 0)
 
         if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
-                                              verbose=verbose) for i in range(n)]
+                                              verbose=verbose) for _ in range(n)]
 
         if template is None: template, meter = random.choice(self.templates)
 
         template = self.fix_template(template)
-
         if all_verbs: template = template.replace("VB", "*VB")
 
         if flex_meter:
             base_template = template.replace("*VB", "VB").replace("sc", "")
             self.check_template(base_template, meter)
-            rhyme_pos = helper.remove_punc(template.split()[-1])
+            rhyme_pos = helper.remove_punc(template.split()[-1]).split("_")[-1]
+            # if "_" in rhyme_pos
             if rhyme_word:
                 if "__" in rhyme_word:
+                    input("here" + rhyme_word)
                     r = set(self.get_meter(rhyme_word.strip("__")))
                 else:
                     rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
-                    r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if x in self.get_meter(w)]) if rhyme_word else None
+                    r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
+                             x in self.get_meter(w)]) if rhyme_word else None
                     if len(r) == 0 or len(rhyme_words) == 0:
-                        if verbose: print("couldn't get a rhyme here:", template, rhyme_word)
+                        if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words, r)
                         return None
             else:
                 r = None
 
-            meter_dict = self.get_poss_meters_forward(base_template, "01" * 5, r)
+            if "_" in base_template:
+                meter_dict = {}
+                for m in meter.split("_")[::-1]:
+                    meter_dict = {m: meter_dict.copy()}
+            else:
+                meter_dict = self.get_poss_meters_forward(base_template, "01" * 5, r)
             if not meter_dict:
                 if verbose: print("couldn't get a meter_dict:", template, rhyme_word)
                 return None
-            print("writing flexible line", template, meter_dict, rhyme_word)
-            # if n > 1: return [self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past, rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
+            if verbose: print("writing flexible line", template, meter_dict, rhyme_word)
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past,
                                                   rhyme_word=rhyme_word, verbose=verbose)
 
         else:
-            print("writing line", template, meter)
+            if verbose: print("writing line", template, meter)
             # if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
             return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"),
@@ -430,7 +440,7 @@ class Poem:
                 poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(word)]
                 if len(poss) == 1: return poss
         else:
-            for i in range(-1, -len(words)-1, -1):
+            for i in range(-1, -len(words) - 1, -1):
                 poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(words[i])]
                 if len(poss) == 1: return poss
         return poss
@@ -450,12 +460,13 @@ class Poem:
         """
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
         poss = self.templates
-        #incomplete = ",;" + string.ascii_lowercase
+        # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if
-                        p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
+                        p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD",
+                                                "IN"]]
             # elif used_templates[-1][-1] in incomplete:
             #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
@@ -467,13 +478,15 @@ class Poem:
             if n % 4 == 0:
                 poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND", "OR"]]
 
+            if n % 4 > 1 or n == 13:
+                poss = [(p, q) for p, q in poss if "_" not in p.split()[-1]]
+
         else:
             # starting templates taken from google doc
-            poss = [("VBZ THE NN OF PRP$ NN;", "01_0_10_1_0_101"),
-                    ("A JJ NN VBD IN NNS OF NN<./,>", "0_10_10_1_0_1_0_1"),
-                    ("VBZ BACK THE JJ NN OF PRP$ NN.", "0_1_0_10_10_1_0_1"),
+            poss = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
                     ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
-                    ("VBG A NN WHERE NNS VB,", "01_0_10_1_010_1"), ("WHAT JJ NN VBZ PRP$ NN?", "0_1010_10_1_0_1")]
+                    ("WHAT JJ NN VBZ PRP$ NN?", "0_1010_10_1_0_1"),
+                    ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101")]
 
         if len(poss) == 0:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
@@ -482,15 +495,15 @@ class Poem:
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
         if end and type(end) == set:
-            #pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
+            # pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
             pos = set([self.get_word_pos(w)[0] for w in end])
-            poss = [(p,q) for p,q in poss if helper.remove_punc(p.split()[-1]) in pos]
+            poss = [(p, q) for p, q in poss if helper.remove_punc(p.split()[-1]) in pos]
 
-        poss = [(p,q) for p,q in poss if used_templates.count(p) < 2]
+        poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
 
         if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))
-        #t = self.fix_template(t[0]), t[1]
+        # t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
         return t[0], t[1]
 
@@ -514,11 +527,14 @@ class Poem:
                 self.pos_to_words["VBC"] = {x: 1 for x in ["do", "seem", "appear", "look"] + ["were"]}
 
         if "<IS/AM>" in template:
-            if "i" in self.gender: template = template.replace("<IS/AM>", "AM")
+            if "i" in self.gender:
+                template = template.replace("<IS/AM>", "AM")
 
-            elif "he" in self.gender or "she" in self.gender: template = template.replace("<IS/AM>", "IS")
+            elif "he" in self.gender or "she" in self.gender:
+                template = template.replace("<IS/AM>", "IS")
 
-            else: template = template.replace("<IS/AM>", "ARE")
+            else:
+                template = template.replace("<IS/AM>", "ARE")
 
         return template
 
@@ -615,7 +631,8 @@ class Poem:
             return poss_meters
 
     def check_template(self, template,
-                       meter, verbose=True):  # makes sure any special words are in the meter dictionary, takes (template and meter as lists)
+                       meter,
+                       verbose=True):  # makes sure any special words are in the meter dictionary, takes (template and meter as lists)
         """
         :param template: takes a template
         :param meter: takes the meter paired with the template, with words separated by _'s
