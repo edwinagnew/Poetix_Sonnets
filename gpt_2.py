@@ -107,7 +107,7 @@ class gpt_gen:
                     dist = helper.softmax(ws, exclude_zeros=True)#, k=np.percentile(words, 0)) #TODO think about not necessarily softmaxing all words?
                     token = np.random.choice(np.arange(len(words)), p=dist).item()
                     if verbose: print(token, sub_tokens, poss_tokens)
-                    if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
+                    if any(p == sub_tokens + [token] for p in poss_tokens):
                         sub_tokens = []
                     else:
                         sub_tokens.append(token)
@@ -148,7 +148,7 @@ class gpt_gen:
         a, b = 0, len(template)  # write new line given previous ones
 
         if verbose: print("tokenizing")
-        if not seed:
+        if not seed or not seed.strip():
             first_word = random.choice(self.sonnet_words(template[0], meter=list(meter_dict.keys())))
             first_met = ""
             while first_met not in meter_dict: first_met = random.choice(self.sonnet_object.get_meter(first_word))
@@ -244,7 +244,6 @@ class gpt_gen:
                 #if verbose: print("chose", token, sub_tokens, poss_tokens)
 
             if verbose: print("for ", template[i], end=': ')
-
 
             if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(dist[token]))
             #if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
