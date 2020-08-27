@@ -295,14 +295,14 @@ class Poem:
             pos in self.end_pos)
 
     def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=False,
-                       all_verbs=False, verbose=False):
+                       all_verbs=False, verbose=False, alliteration=None):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1 / 0)
 
         if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
-                                              verbose=verbose) for _ in range(n)]
+                                              verbose=verbose, alliteration=alliteration) for _ in range(n)]
 
         if template is None: template, meter = random.choice(self.templates)
 
@@ -340,7 +340,7 @@ class Poem:
             if verbose: print("writing flexible line", template, meter_dict, rhyme_word)
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past,
-                                                  rhyme_word=rhyme_word, verbose=verbose)
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration)
 
         else:
             if verbose: print("writing line", template, meter)
@@ -477,6 +477,9 @@ class Poem:
 
             if n % 4 == 0:
                 poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND", "OR"]]
+            elif sum([int("_" in t) for t in used_templates]) > 1:
+                poss = [(p,q) for p,q in poss if "_" not in p]
+
 
             if n % 4 > 1 or n == 13:
                 poss = [(p, q) for p, q in poss if "_" not in p.split()[-1]]
