@@ -240,7 +240,7 @@ class gpt_gen:
                     theme_scores = np.ones(len(words))
                 if len(sub_tokens) == 0 and alliteration:
                     wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in alliteration) for x in words])
-                    theme_scores[wws == 1] *= 3 #maybe make more or += ___
+                    theme_scores[wws == 1] *= 2 #maybe make more or += ___
                     if verbose: print("alliterating", alliteration, sum(wws))
                 filt = np.array([int(i in checks) for i in range(len(words))]) * theme_scores
                 #if verbose: print("filt", filt.sum(), len(filt.nonzero()[0]), filt)

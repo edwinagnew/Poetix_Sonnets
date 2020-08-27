@@ -258,7 +258,7 @@ class Scenery_Gen(poem_core.Poem):
     #TODO - repetition templates, alliteration etc, grammar fixing
     #TODO - alliteration, sibilance at most once per stanza 80/20 stanza
     #TODO - seed start with lines not words
-    def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5):
+    def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -274,7 +274,7 @@ class Scenery_Gen(poem_core.Poem):
             rhymes = [theme]
             while len(set(rhymes)) < 60:
                 n += 25
-                rhymes += [x for x in self.fasttext.get_close_words(random.choice(rhymes), n=n) if x in self.words_to_pos and any(m in ["1", "01", "101", "0101", "10101"] for m in self.get_meter(x))]
+                rhymes += [x for x in self.fasttext.get_close_words(random.choice(rhymes), n=n) if len(x) > 3 and x in self.words_to_pos and any(m in ["1", "01", "101", "0101", "10101"] for m in self.get_meter(x))]
             if verbose: print("rhymes", len(rhymes), rhymes)
             if len(theme.split()) > 1: rhymes.remove(theme)
             c = Counter(rhymes)
@@ -298,7 +298,12 @@ class Scenery_Gen(poem_core.Poem):
         self.gpt_past = ""
         line_number = 0
         while line_number < 14:
-            if verbose and line_number % 4 == 0: print("\n\nwriting stanza", 1 + line_number/4)
+            if line_number % 4 == 0:
+                if verbose: print("\n\nwriting stanza", 1 + line_number/4)
+                else:
+                    if line_number > 0: print("done")
+                    print("\nwriting stanza", 1 + line_number/4, end=" ...")
+                alliterated = not alliteration
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
             if rhyme_lines and line_number % 4 >= 2:
@@ -308,9 +313,7 @@ class Scenery_Gen(poem_core.Poem):
             elif rhyme_lines and theme:
                 #r = "__" + random.choice(rhymes)
                 r = set(rhymes) #rhymes.copy()
-                alliterated = False
             else:
-                alliterated = False
                 r = None
 
             if random_templates:
@@ -323,9 +326,9 @@ class Scenery_Gen(poem_core.Poem):
 
 
             #if r and len()
-            alliterating = "_" not in template and not alliterated
+            alliterating = "_" not in template and not alliterated and random.random() < 0.5
             if alliterating:
-                if random.random() < 0.8:
+                if random.random() < 0.85:
                     letters = string.ascii_lowercase
                 else:
                     letters = "s"
@@ -343,12 +346,12 @@ class Scenery_Gen(poem_core.Poem):
                 print("alliterating", alliterating, letters)
                 print(template, meter, r)
             line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters)
+            if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
                 #if any(self.rhymes(line.split()[-1], w) for w in self.get_pos_words(rhyme_pos)):
                 if len(self.get_pos_words(rhyme_pos, rhyme=line.split()[-1])) > 0.001 * len(self.get_pos_words(rhyme_pos)):
-                    line_arr = line.split()
-                    if "a" in line_arr and line_arr[line_arr.index("a")][0] in "aeiou": line = line.replace("a ", "an ")
+                    if "a" in line_arr and line_arr[line_arr.index("a") + 1][0] in "aeiou": line = line.replace("a ", "an ")
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     if verbose: print("wrote line which rhymes with", rhyme_pos, ":", line)
                     #score = self.gpt.score_line("\n".join(random.sample(theme_contexts, min(len(theme_contexts), theme_lines))) + line)
@@ -361,10 +364,12 @@ class Scenery_Gen(poem_core.Poem):
                         used_templates.append(best[2])
                         line_number += 1
                         choices = []
+                        if best[3]: alliterated = True
                 else:
                     if verbose: print(line_number, "probably wasnt going to get a rhyme with", rhyme_pos)
                     #self.pos_to_words[template.split()[-1]][line.split()[-1]] /= 2
             elif line:
+                if "a" in line_arr and line_arr[line_arr.index("a") + 1][0] in "aeiou": line = line.replace("a ", "an ")
                 if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                 if verbose: print("wrote line", line)
                 choices.append((self.gpt.score_line(line), line, template, alliterating))
@@ -387,7 +392,7 @@ class Scenery_Gen(poem_core.Poem):
                     if line_number == 13: line_number = 12
                     else: line_number -= 2
 
-        print("")
+        print("done")
         ret = ("         ---" + theme.upper() + "---       \n") if theme else ""
         for cand in range(len(lines)):
             ret += str(lines[cand]) + "\n"

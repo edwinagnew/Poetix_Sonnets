@@ -464,9 +464,7 @@ class Poem:
         n = len(used_templates)
         if n > 0:
             if used_templates[-1][-1] in ".?":
-                poss = [p for p in poss if
-                        p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD",
-                                                "IN"]]
+                poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
             # elif used_templates[-1][-1] in incomplete:
             #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
