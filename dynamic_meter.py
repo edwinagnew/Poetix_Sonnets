@@ -103,6 +103,7 @@ class Dynamic_Meter(poem_core.Poem):
         """
         :param template: A list of POS's and/or special words
         :param meter: The desired meter for the line, given forward as a string of the form "0101010101".
+        rhet_dict: a dictionary where the keys are words that have a required meter, and the values are that meter.
         :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
         the next word can take on, given that meter assigned to the last word.
         """
