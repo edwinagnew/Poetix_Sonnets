@@ -256,6 +256,8 @@ class Scenery_Gen(poem_core.Poem):
             if ((cand + 1) % 4 == 0): print("")
 
     #TODO - repetition templates, alliteration etc, grammar fixing
+    #TODO - alliteration, sibilance at most once per stanza 80/20 stanza
+    #TODO - seed start with lines not words
     def write_poem_flex(self, theme="forest", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5):
         if not self.gpt:
             if verbose: print("getting gpt")
@@ -276,7 +278,7 @@ class Scenery_Gen(poem_core.Poem):
             if verbose: print("rhymes", len(rhymes), rhymes)
             if len(theme.split()) > 1: rhymes.remove(theme)
             c = Counter(rhymes)
-            theme_words = [k[0] for k in c.most_common(10)]
+            sample = [k[0] for k in c.most_common(10)]
             #rhymes = helper.get_similar_word_henry(theme.lower().split(), n_return=50, word_set=set(self.words_to_pos.keys()))
 
         else:
@@ -284,10 +286,15 @@ class Scenery_Gen(poem_core.Poem):
             theme_words = []
         #random.shuffle(rhymes)
 
+        sample = "\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else ""
+        #rhymes = []
+        #theme = None
+
         lines = []
         used_templates = []
         choices = []
         # first three stanzas
+
         self.gpt_past = ""
         line_number = 0
         while line_number < 14:
@@ -301,7 +308,9 @@ class Scenery_Gen(poem_core.Poem):
             elif rhyme_lines and theme:
                 #r = "__" + random.choice(rhymes)
                 r = set(rhymes) #rhymes.copy()
+                alliterated = False
             else:
+                alliterated = False
                 r = None
 
             if random_templates:
@@ -314,43 +323,61 @@ class Scenery_Gen(poem_core.Poem):
 
 
             #if r and len()
+            alliterating = "_" not in template and not alliterated
+            if alliterating:
+                if random.random() < 0.8:
+                    letters = string.ascii_lowercase
+                else:
+                    letters = "s"
+                    #letters = string.ascii_lowercase
+            else:
+                letters = None
+
 
             #self.gpt_past = str(theme_lines and theme.upper() + "\n") + "\n".join(lines) #bit weird but begins with prompt if trying to be themey
-            self.gpt_past = " ".join(theme_words) + "\n" + "\n".join(lines)
+            #self.gpt_past = " ".join(theme_words) + "\n" + "\n".join(lines)
+            self.gpt_past = sample + "\n" + "\n".join(lines)
             self.reset_letter_words()
             if verbose:
                 print("\nwriting line", line_number)
+                print("alliterating", alliterating, letters)
                 print(template, meter, r)
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs)
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters)
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
                 #if any(self.rhymes(line.split()[-1], w) for w in self.get_pos_words(rhyme_pos)):
                 if len(self.get_pos_words(rhyme_pos, rhyme=line.split()[-1])) > 0.001 * len(self.get_pos_words(rhyme_pos)):
+                    line_arr = line.split()
+                    if "a" in line_arr and line_arr[line_arr.index("a")][0] in "aeiou": line = line.replace("a ", "an ")
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     if verbose: print("wrote line which rhymes with", rhyme_pos, ":", line)
-                    score = self.gpt.score_line("\n".join(random.sample(theme_contexts, min(len(theme_contexts), theme_lines))) + line)
+                    #score = self.gpt.score_line("\n".join(random.sample(theme_contexts, min(len(theme_contexts), theme_lines))) + line)
+                    score = self.gpt.score_line(line)
                     choices.append((score, line, template)) #scores with similarity to a random other line talking about it
                     if len(choices) == k:
-                        if verbose: print("out of", len(choices), "chose", min(choices))
-                        lines.append(min(choices)[1])
-                        used_templates.append(min(choices)[2])
+                        best = min(choices)
+                        if verbose: print("out of", len(choices), "chose", best)
+                        lines.append(best[1])
+                        used_templates.append(best[2])
                         line_number += 1
                         choices = []
                 else:
-                    if verbose: print(line_number, "wasnt going to get a rhyme with", rhyme_pos)
+                    if verbose: print(line_number, "probably wasnt going to get a rhyme with", rhyme_pos)
                     #self.pos_to_words[template.split()[-1]][line.split()[-1]] /= 2
             elif line:
                 if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                 if verbose: print("wrote line", line)
-                choices.append((self.gpt.score_line(line), line, template))
+                choices.append((self.gpt.score_line(line), line, template, alliterating))
                 if len(choices) == k:
+                    best = min(choices)
                     if verbose:
                         print(choices)
-                        print(line_number, ":out of", len(choices), "chose", min(choices))
-                    lines.append(min(choices)[1])
-                    used_templates.append(min(choices)[2])
+                        print(line_number, ":out of", len(choices), "chose", best)
+                    lines.append(best[1])
+                    used_templates.append(best[2])
                     line_number += 1
                     choices = []
+                    if best[3]: alliterated = True
                     last = helper.remove_punc(lines[-1].split()[-1])
                     if last in rhymes: rhymes = [r for r in rhymes if r != last]
             else:

@@ -140,7 +140,7 @@ class gpt_gen:
 
         return sequence.replace(seed.strip(), "").strip()
 
-    def generation_flex_meter(self, template, meter_dict, seed="", rhyme_word=None, verbose=False):
+    def generation_flex_meter(self, template, meter_dict, seed="", rhyme_word=None, verbose=False, alliteration=None):
         if type(template) != list: template = template.split()
 
         words = list(self.tokenizer.encoder.keys())
@@ -166,6 +166,8 @@ class gpt_gen:
         punc = ",.;?"
 
         punc_next = False
+
+        first_lets = set()
 
         # for i in range(a, b):
         sub_tokens = []
@@ -236,6 +238,10 @@ class gpt_gen:
                     #if verbose: print("theme_scores", theme_scores.sum(), len(theme_scores.nonzero()[0]), theme_scores)
                 else:
                     theme_scores = np.ones(len(words))
+                if len(sub_tokens) == 0 and alliteration:
+                    wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in alliteration) for x in words])
+                    theme_scores[wws == 1] *= 3 #maybe make more or += ___
+                    if verbose: print("alliterating", alliteration, sum(wws))
                 filt = np.array([int(i in checks) for i in range(len(words))]) * theme_scores
                 #if verbose: print("filt", filt.sum(), len(filt.nonzero()[0]), filt)
                 ws = output[..., -1, :].cpu().detach().numpy() * filt
@@ -256,6 +262,9 @@ class gpt_gen:
                     meter_dict = meter_dict[meter]
                     #if verbose: print("meter dict now", meter, word, meter_dict)
                 sub_tokens = []
+                first_lets.add(word[0])
+                alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
+                #alliteration = alliteration if alliteration is None else first_lets
             else:
                 sub_tokens.append(token)
             generated += [token]  # .tolist()
