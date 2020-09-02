@@ -49,16 +49,16 @@ class Dynamic_Meter(poem_core.Poem):
         for pos in possible_pos:
             for meter in self.possible_meters:
                 self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
+                if meter == "1":
+                    self.meter_and_pos[("0", pos)] = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
+                if meter == "0":
+                    self.meter_and_pos[("1", pos)] = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
         for word in self.special_words:
             if word in self.dict_meters:
                 meter = self.dict_meters[word]
                 self.meter_and_pos[(meter, word)] = [word]
             else:
                 continue
-        for item in self.meter_and_pos["0"]:
-            self.meter_and_pos["1"].append(item)
-        for item in self.meter_and_pos["1"]:
-            self.meter_and_pos["0"].append(item)
 
     def get_poss_meters(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged (but backward)
         """
