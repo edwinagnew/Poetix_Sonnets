@@ -329,14 +329,13 @@ class Poem:
                 r = None
 
             if "_" in base_template:
-                #EDWIN add """ after this line
+                """
                 meter_dict = {}
                 for m in meter.split("_")[::-1]:
                     meter_dict = {m: meter_dict.copy()}
                 """
-                meter_dict = self.get_poss_meters_forward_rhet(base_template, "".join(meter.split("_"), {}, r))
-                """
-                #EDWIN delete """ above this line
+                meter_dict = self.get_poss_meters_forward_rhet(base_template, "".join(meter.split("_")), {}, r)
+
             else:
                 meter_dict = self.get_poss_meters_forward(base_template, "01" * 5, r)
             if not meter_dict:
