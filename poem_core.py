@@ -87,6 +87,7 @@ class Poem:
         elif word[-1] == ">":
             return self.get_meter(word.split("<")[0])
         if word not in self.dict_meters: return []
+        if len(self.dict_meters[word][0]) == 1: return ["0", "1"]
         return self.dict_meters[word]
 
     def get_word_pos(self, word):
@@ -121,7 +122,9 @@ class Poem:
             return [word + p for word in self.get_pos_words(pos[:-1], meter=meter)]
         if pos in self.special_words:
             return [pos.lower()]
-        if meter and type(meter) == str: meter = [meter]
+        if meter and type(meter) == str:
+            meter = [meter]
+        if meter and len(meter) == 1: meter = ["0", "1"]
         if "PRP" in pos and "_" not in pos and meter:
             ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(q in meter for q in self.get_meter(p))]
             # if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
@@ -645,7 +648,7 @@ class Poem:
 
     def check_template(self, template,
                        meter,
-                       verbose=True):  # makes sure any special words are in the meter dictionary, takes (template and meter as lists)
+                       verbose=False):  # makes sure any special words are in the meter dictionary, takes (template and meter as lists)
         """
         :param template: takes a template
         :param meter: takes the meter paired with the template, with words separated by _'s
