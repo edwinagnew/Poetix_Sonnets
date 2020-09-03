@@ -14,5 +14,5 @@ word_corpus/
 glove.6B/
 local_*
 py_files/.ipynb_checkpoints/
-wiki-news-300d-1M.vec
+saved_objects/fasttext/wiki-news-300d-1M.vec
 saved_objects/fasttext/

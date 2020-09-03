@@ -49,12 +49,23 @@ class Dynamic_Meter(poem_core.Poem):
         for pos in possible_pos:
             for meter in self.possible_meters:
                 self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if word in self.dict_meters and meter in self.dict_meters[word]]
+
         for word in self.special_words:
             if word in self.dict_meters:
                 meter = self.dict_meters[word]
                 self.meter_and_pos[(meter, word)] = [word]
             else:
                 continue
+
+        for meter,pos in list(self.meter_and_pos.keys()):
+            if meter == "1":
+                self.meter_and_pos[("0", pos)] += self.meter_and_pos[(meter,pos)]
+                self.meter_and_pos[("0", pos)] = list(set(self.meter_and_pos[("0", pos)]))
+            if meter == "0":
+                self.meter_and_pos[("1", pos)] += self.meter_and_pos[(meter,pos)]
+                self.meter_and_pos[("1", pos)] = list(set(self.meter_and_pos[("0", pos)]))
+
+
 
     def get_poss_meters(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged (but backward)
         """
@@ -98,12 +109,12 @@ class Dynamic_Meter(poem_core.Poem):
                 return None
             return poss_meters
 
-
-    def get_poss_meters_forward_rhet(self, template, meter, rhet_dict): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
+    def get_poss_meters_forward_rhet(self, template, meter, rhet_dict,
+                                rhyme_meters=None):  # template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
         """
         :param template: A list of POS's and/or special words
         :param meter: The desired meter for the line, given forward as a string of the form "0101010101".
-        rhet_dict: a dictionary where the keys are words that have a required meter, and the values are that meter.
+        :param rhyme_meters: a list of the meters of possible rhyming words
         :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
         the next word can take on, given that meter assigned to the last word.
         """
@@ -114,49 +125,53 @@ class Dynamic_Meter(poem_core.Poem):
         word_pos = template[0]
         if word_pos[-1] == ">":
             word_pos = word_pos.split("<")[0]
-        elif word_pos[-1] in [",", ".", ":", ";",">", "?"]:
+        elif word_pos[-1] in [",", ".", ":", ";", ">", "?"]:
             word_pos = word_pos[:-1]
         if "_" in word_pos:
             rhet_info = word_pos.split("_")
             word_pos = rhet_info[0]
             pair_info = rhet_info[1]
 
-
         if word_pos == "POS":
-            temp = self.get_poss_meters_forward_rhet(template[1:], meter, rhet_dict)
+            temp = self.get_poss_meters_forward_rhet(template[1:], meter, rhet_dict, rhyme_meters)
             if temp != None:
-                return {"": self.get_poss_meters_forward_rhet(template[1:], meter, rhet_dict)}
+                return {"": self.get_poss_meters_forward_rhet(template[1:], meter, rhet_dict, rhyme_meters)}
 
         if len(template) == 1:
             if (pair_info != None and meter != rhet_dict[pair_info]) or (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
                 return None
+            elif rhyme_meters and meter not in rhyme_meters:
+                return None
             else:
-                return {meter: {}} #should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
+                return {meter: {}}  # should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
         else:
             poss_meters = {}
             for poss_meter in self.possible_meters:
-                #print("checking for ", word_pos, "with meter ", poss_meter)
-                if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(poss_meter, word_pos)]) > 0:
+                # print("checking for ", word_pos, "with meter ", poss_meter)
+                if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(
+                        self.meter_and_pos[(poss_meter, word_pos)]) > 0:
                     if pair_info != None and pair_info in rhet_dict and rhet_dict[pair_info] != poss_meter:
                         continue
                     if pair_info != None:
                         temp_dict = rhet_dict.copy()
                         temp_dict[pair_info] = poss_meter
-                        temp = self.get_poss_meters_forward_rhet(template[1:], meter[len(poss_meter):], temp_dict)
+                        temp = self.get_poss_meters_forward_rhet(template[1:], meter[len(poss_meter):], temp_dict, rhyme_meters)
                     else:
-                        temp = self.get_poss_meters_forward_rhet(template[1:], meter[len(poss_meter):], rhet_dict)
-                    #print("made recursive call")
+                        temp = self.get_poss_meters_forward_rhet(template[1:], meter[len(poss_meter):], rhet_dict, rhyme_meters)
+                    # print("made recursive call")
                     if temp != None:
-                        #print("adding something to dict")
+                        # print("adding something to dict")
                         poss_meters[poss_meter] = temp
             if len(poss_meters) == 0:
                 return None
             return poss_meters
 
-    def get_poss_meters_forward(self, template, meter): #template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
+    def get_poss_meters_forward(self, template, meter,
+                                rhyme_meters=None):  # template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
         """
         :param template: A list of POS's and/or special words
         :param meter: The desired meter for the line, given forward as a string of the form "0101010101".
+        :param rhyme_meters: a list of the meters of possible rhyming words
         :return: A dictionary with meters as keys mapping possible meter values for the last word in template to dicts in which the keys are the possible values
         the next word can take on, given that meter assigned to the last word.
         """
@@ -165,28 +180,32 @@ class Dynamic_Meter(poem_core.Poem):
         word_pos = template[0]
         if word_pos[-1] == ">":
             word_pos = word_pos.split("<")[0]
-        elif word_pos[-1] in [",", ".", ":", ";",">", "?"]:
+        elif word_pos[-1] in [",", ".", ":", ";", ">", "?"]:
             word_pos = word_pos[:-1]
 
         if word_pos == "POS":
-            temp = self.get_poss_meters_forward(template[1:], meter)
+            temp = self.get_poss_meters_forward(template[1:], meter, rhyme_meters)
             if temp != None:
-                return {"": self.get_poss_meters_forward(template[1:], meter)}
+                return {"": self.get_poss_meters_forward(template[1:], meter, rhyme_meters)}
 
         if len(template) == 1:
             if (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
                 return None
+            elif rhyme_meters and meter not in rhyme_meters:
+                return None
             else:
-                return {meter: {}} #should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
+                return {
+                    meter: {}}  # should return a list of meters for the next word to take. in base case there is no next word, so dict is empty
         else:
             poss_meters = {}
             for poss_meter in self.possible_meters:
-                #print("checking for ", word_pos, "with meter ", poss_meter)
-                if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(self.meter_and_pos[(poss_meter, word_pos)]) > 0:
-                    temp = self.get_poss_meters_forward(template[1:], meter[len(poss_meter):])
-                    #print("made recursive call")
+                # print("checking for ", word_pos, "with meter ", poss_meter)
+                if meter.find(poss_meter) == 0 and (poss_meter, word_pos) in self.meter_and_pos and len(
+                        self.meter_and_pos[(poss_meter, word_pos)]) > 0:
+                    temp = self.get_poss_meters_forward(template[1:], meter[len(poss_meter):], rhyme_meters)
+                    # print("made recursive call")
                     if temp != None:
-                        #print("adding something to dict")
+                        # print("adding something to dict")
                         poss_meters[poss_meter] = temp
             if len(poss_meters) == 0:
                 return None
