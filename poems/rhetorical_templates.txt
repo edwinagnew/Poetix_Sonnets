@@ -2,7 +2,7 @@
 VB_a, VB_a THE NN OF PRP$ NN<./!/;/,> 1_1_0_10_1_0_101
 OH NN_a, NN_a, NN_a<./!/;/,> 0_101_101_101
 NN_a, NN_a, NN_a IN THE NNS<./!/;/,> 01_01_01_0_1_01
-NN_a, NN_a, NN_a IN THE JJ NN<./!/;/,> 01_01_01_0_1_0_1
+JJ_a, JJ_a, JJ_a IN THE JJ NN<./!/;/,> 01_01_01_0_1_0_1
 #Ploce:
 AND PRPS_a, EVEN PRPS_a, VBP TO THE NN. 0_1_01_1_1_0_1_01
 THE NN_a, THE NN_a PRPS VBZ, VBG RB. 0_1_0_1_0_1_010_1

@@ -42,7 +42,7 @@ class Theme(poem_core.Poem):
         if not theme or len(theme) == 0: return {}
         try:
             with open(theme_file, "rb") as pickle_in:
-                print("loading from file")
+                print("loading words from file")
                 theme_word_dict = pickle.load(pickle_in)
             with open(extras_file, "rb") as p_in:
                 extras = pickle.load(p_in)
@@ -124,7 +124,7 @@ class Theme(poem_core.Poem):
 
             #keep only the ones that come up as synonyms for at least two?
             theme_word_dict[theme] = theme_words
-            if verbose: print(theme_word_dict)
+            if verbose: print("got themes", theme_word_dict)
             for p in theme_word_dict[theme]:
                 for w in theme_word_dict[theme][p]:
                     theme_word_dict[theme][p][w] *= abs(helper.get_spacy_similarity(theme, w))#/max_val

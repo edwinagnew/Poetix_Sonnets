@@ -124,7 +124,7 @@ class Poem:
             return [pos.lower()]
         if meter and type(meter) == str:
             meter = [meter]
-        if meter and len(meter) == 1: meter = ["0", "1"]
+        #if meter and len(meter) == 1: meter = ["0", "1"]
         if "PRP" in pos and "_" not in pos and meter:
             ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(q in meter for q in self.get_meter(p))]
             # if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
@@ -133,8 +133,7 @@ class Poem:
         elif pos not in self.pos_to_words:
             return []
         if meter:
-            ret = [word for word in self.pos_to_words[pos] if
-                   word in self.dict_meters and any(m in self.dict_meters[word] for m in meter)]
+            ret = [word for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
             return ret
         return [p for p in self.pos_to_words[pos]]
 
@@ -298,14 +297,14 @@ class Poem:
             pos in self.end_pos)
 
     def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=False,
-                       all_verbs=False, verbose=False, alliteration=None):
+                       all_verbs=False, verbose=False, alliteration=None, theme_words=[]):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1 / 0)
 
         if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
-                                              verbose=verbose, alliteration=alliteration) for _ in range(n)]
+                                              verbose=verbose, alliteration=alliteration, theme_words=theme_words) for _ in range(n)]
 
         if template is None: template, meter = random.choice(self.templates)
 
@@ -347,7 +346,7 @@ class Poem:
             if verbose: print("writing flexible line", template, meter_dict, rhyme_word)
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past,
-                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration)
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words)
 
         else:
             if verbose: print("writing line", template, meter)
@@ -749,7 +748,7 @@ class Poem:
                 return {"": self.get_poss_meters_forward_rhet(template[1:], meter, rhet_dict, rhyme_meters)}
 
         if len(template) == 1:
-            if (pair_info != None and meter != rhet_dict[pair_info]) or (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
+            if (pair_info != None and meter != rhet_dict[helper.remove_punc(pair_info)]) or (meter, word_pos) not in self.meter_and_pos or len(self.meter_and_pos[(meter, word_pos)]) == 0:
                 return None
             elif rhyme_meters and meter not in rhyme_meters:
                 return None
