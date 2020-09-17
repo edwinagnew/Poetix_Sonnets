@@ -258,7 +258,7 @@ class Scenery_Gen(poem_core.Poem):
             if ((cand + 1) % 4 == 0): print("")
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -381,7 +381,7 @@ class Scenery_Gen(poem_core.Poem):
                 print("\nwriting line", line_number)
                 print("alliterating", alliterating, letters)
                 print(template, meter, r)
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=theme_words[theme])
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=theme_words[theme], theme_threshold=theme_threshold)
             if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
