@@ -140,7 +140,7 @@ class gpt_gen:
 
         return sequence.replace(seed.strip(), "").strip()
 
-    def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.5, rhyme_word=None, verbose=False, alliteration=None):
+    def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None, verbose=False, alliteration=None):
         """
 
         Some parameter for uncertainty - above which it does what it wants, below which we choose

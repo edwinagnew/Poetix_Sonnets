@@ -297,14 +297,14 @@ class Poem:
             pos in self.end_pos)
 
     def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=False,
-                       all_verbs=False, verbose=False, alliteration=None, theme_words=[]):
+                       all_verbs=False, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1 / 0)
 
         if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
-                                              verbose=verbose, alliteration=alliteration, theme_words=theme_words) for _ in range(n)]
+                                              verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold) for _ in range(n)]
 
         if template is None: template, meter = random.choice(self.templates)
 
@@ -346,7 +346,7 @@ class Poem:
             if verbose: print("writing flexible line", template, meter_dict, rhyme_word)
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past,
-                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words)
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
 
         else:
             if verbose: print("writing line", template, meter)
