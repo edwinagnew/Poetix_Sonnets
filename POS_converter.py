@@ -4,6 +4,7 @@ from nltk.corpus import wordnet as wn
 import pickle
 import poem_core
 
+
 class POS_changer():
 
     def __init__(self, model_file="saved_objects/fasttext/wiki-news-300d-1M.vec", pick_file="saved_objects/fasttext/model.p"):
@@ -19,7 +20,10 @@ class POS_changer():
 
 
     def close_adv(self, input, num=5, model_topn=50):
-        positive = [input, 'happily']
+        if type(input) == str:
+            positive = input.split() + ['happily']
+        else:
+            positive = input + ["happily"]
         negative = [       'happy']
         all_similar = self.model.most_similar(positive, negative, topn=model_topn)
 
@@ -32,8 +36,20 @@ class POS_changer():
         return close[:num]
 
     def close_jj(self, input, num=5, model_topn=50):
-        positive = [input, 'dark']
+        #positive = [input, 'dark']
         negative = [       'darkness']
+        if type(input) == str:
+            positive = input.split() + ['dark']
+        else:
+            positive = input + ["darkness"]
+        all_similar = self.model.most_similar(positive, negative, topn=model_topn)
+        close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["JJ"]]
+
+        return close
+
+    def close_jj_from_verb(self, input, num=5, model_topn=50):
+        positive = [input, 'burnt']
+        negative = [       'burn']
         all_similar = self.model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["JJ"]]
 
