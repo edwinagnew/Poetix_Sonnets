@@ -195,7 +195,7 @@ class Scenery_Gen(poem_core.Poem):
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and"):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -208,7 +208,7 @@ class Scenery_Gen(poem_core.Poem):
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
         if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.", random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
-        if theme == "love":
+        if " " in theme:
             theme_words = {}
             theme_words[theme] = {}
             """
@@ -218,14 +218,18 @@ class Scenery_Gen(poem_core.Poem):
                                  'compassion', 'devotion', 'adoration', 'fondness', 'mate', 'compassion', 'dream',
                                  'soul', 'kiss', 'joy', 'wish', 'intimacy', 'attachment', 'amour', 'essence', 'pair',
                                  'crush', 'affection']
-            #theme_words[theme]["JJ"] = ['fond', 'affectionate', 'intimate', 'soulful', 'joyful', 'good', 'great']
-            theme_words[theme]["JJ"] = self.close_jj(theme)
-            #theme_words[theme]["VB"] = ['adore', 'wonder', 'dream', 'cherish', 'wish', 'care', 'lust', 'kiss', 'caress',
-            #                     'desire', 'hunger', 'thirst', 'devote', 'pair', 'like', 'need', 'want']
+            theme_words[theme]["JJ"] = ['fond', 'affectionate', 'intimate', 'soulful', 'joyful', 'good', 'great']
+            #theme_words[theme]["JJ"] = self.close_jj(theme)
+            theme_words[theme]["VB"] = ['adore', 'wonder', 'dream', 'cherish', 'wish', 'care', 'lust', 'kiss', 'caress',
+                                 'desire', 'hunger', 'thirst', 'devote', 'pair', 'like', 'need', 'want']
             """
             for pos in ['NN', 'JJ', 'RB']:
-                theme_words[theme][pos] = self.get_diff_pos(theme, pos, 10)
-                if verbose: print(pos, ": ", theme_words[theme][pos])
+                if pos not in theme_words[theme]: theme_words[theme][pos] = []
+                if theme_choice == "and":
+                    theme_words[theme][pos] += self.get_diff_pos(theme, pos, 10)
+                else:
+                    theme_words[theme][pos] += self.get_diff_pos(theme.split()[0], pos, 10) + self.get_diff_pos(theme.split()[1], pos, 10)
+                if verbose: print("theme words, ", pos, ": ", len(theme_words[theme][pos]), theme_words[theme][pos])
             rhymes = [] #i think??
 
         elif theme:
@@ -480,64 +484,6 @@ class Scenery_Gen(poem_core.Poem):
             self.pos_to_words["sc" + pos] = word_dict[pos]
 
 
-    def phrase_in_poem(self, words, ret_lines=False, include_syns=False):
-        """
-        Checks poems database to see if given pair of words exists. If more than two words splits into all pairs
-        Parameters
-        ----------
-        words (string or list) of words to check
-        ret_lines (optional) - whether or not to return the lines in which the phrase occurs. Only used for testing
-        include_syns (optional) - whether or not to also check for synonyms of phrase words
-        """
-        if type(words) == list:
-            if len(words) == 1: return True
-            words = " ".join(words)
-        words_arr = words.split()
-        if len(words_arr) > 2: return self.phrase_in_poem(words_arr[:2]) and self.phrase_in_poem(words_arr[1:])
-        if words_arr[0] == words_arr[1]: return True
-        if words_arr[0] in self.gender: return True #?
-       # words = " "+ words + " "
-
-        #print("evaluating", words)
-
-
-        cases = []
-        if include_syns:
-            syns = []
-            for j in range(len(words_arr)):
-                syns.append([l.name() for s in wn.synsets(words_arr[j]) for l in s.lemmas() if l.name() in self.dict_meters])
-            contenders = [words.split()[0] + " " + w for w in syns[1]]
-            contenders += [w + " " + words.split()[1] for w in syns[0]]
-
-        for poem in self.poems:
-            poem = " " + poem.lower() + " " #in case its right at beginning or end since we check one before and one after occurence
-            i = poem.find(words)
-            if i != -1 and poem[i-1] not in string.ascii_lowercase and poem[i+len(words)] not in string.ascii_lowercase: #poem has phrase and characters before and after phrase arent letters (ie spaces or punctuation)
-                if not ret_lines: return True
-                else:
-                    for line in poem.split("\n"):
-                        line = " " + line.lower() + " "
-                        i = line.find(words)
-                        if i != -1 and line[i - 1] not in string.ascii_lowercase and line[i + len(words)] not in string.ascii_lowercase:
-                            cases.append(line)
-            if include_syns:
-                indexes = [poem.find(ws) for ws in contenders]
-                if any([indexes[i] != -1 and poem[indexes[i] - 1] not in string.ascii_lowercase and poem[indexes[i] + len(contenders[i])] not in string.ascii_lowercase for i in range(len(indexes))]):
-                    if not ret_lines: return True
-                    else:
-                        correct = contenders[np.argmax(indexes)]
-                        for line in poem.split("\n"):
-                            line = " " + line.lower() + " "
-                            i = line.find(correct)
-                            if i != -1 and line[i - 1] not in string.ascii_lowercase and line[i + len(correct)] not in string.ascii_lowercase:
-                                cases.append(line)
-
-
-
-
-        if len(cases) == 0: return False
-        return cases
-
     def phrase_in_poem_fast(self, words, include_syns=False):
         if type(words) == list:
             if len(words) <= 1: return True
@@ -620,7 +566,7 @@ class Scenery_Gen(poem_core.Poem):
 
         return close
 
-    def get_diff_pos(self, word, desired_pos, n):
+    def get_diff_pos(self, word, desired_pos, n=10):
         closest_words = [noun for noun in self.fasttext.get_close_words(word) if (noun in self.pos_to_words["NN"] or noun in self.pos_to_words["NNS"])]
         if desired_pos == "JJ":
             index = 0
@@ -638,4 +584,4 @@ class Scenery_Gen(poem_core.Poem):
                 index += 1
             return list(words)
 
-        return closest_words
+        return [w for w in closest_words if desired_pos in self.get_word_pos(w)]
