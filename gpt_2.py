@@ -178,6 +178,7 @@ class gpt_gen:
 
         # for i in range(a, b):
         sub_tokens = []
+        theme_tokens = []
         i = a
         while i < b:
             with torch.no_grad():
