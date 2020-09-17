@@ -1,10 +1,22 @@
 from gensim.models.keyedvectors import KeyedVectors
 from difflib import SequenceMatcher
+from nltk.corpus import wordnet as wn
+import pickle
+import poem_core
 
 class POS_changer():
 
-    def __init__(self, glove_filename = 'glove-word2vec.6B.100d.txt'):
-        self.model = KeyedVectors.load_word2vec_format(glove_filename, binary=False)
+    def __init__(self, model_file="saved_objects/fasttext/wiki-news-300d-1M.vec", pick_file="saved_objects/fasttext/model.p"):
+        try:
+            self.model = pickle.load(open(pick_file, "rb"))
+            print("loaded fasttext from pickle")
+        except:
+            print("loading fasttext for the first time")
+            self.model = KeyedVectors.load_word2vec_format(model_file)
+            print("saving with pickle")
+            pickle.dump(self.model, open(pick_file, "wb"))
+        self.poem = poem_core.Poem()
+
 
     def close_adv(self, input, num=5, model_topn=50):
         positive = [input, 'happily']
@@ -19,3 +31,25 @@ class POS_changer():
         close = sorted([(word, score(word)) for word, _ in all_similar], key=lambda x: -x[1])
         return close[:num]
 
+    def close_jj(self, input, num=5, model_topn=50):
+        positive = [input, 'dark']
+        negative = [       'darkness']
+        all_similar = self.model.most_similar(positive, negative, topn=model_topn)
+        close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["JJ"]]
+
+        return close
+
+    def nltk_JJ(self, wordtoinv):
+        s = []
+        winner = ""
+        for ss in wn.synsets(wordtoinv):
+            for lemmas in ss.lemmas():  # all possible lemmas.
+                s.append(lemmas)
+
+        for pers in s:
+            posword = pers.pertainyms()[0].name()
+            if posword[0:3] == wordtoinv[0:3]:
+                winner = posword
+                break
+
+        return winner
