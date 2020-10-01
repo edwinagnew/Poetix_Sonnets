@@ -140,7 +140,7 @@ class gpt_gen:
 
         return sequence.replace(seed.strip(), "").strip()
 
-    def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None, verbose=False, alliteration=None):
+    def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None, verbose=False, alliteration=None, weight_repetition=True):
         """
 
         Some parameter for uncertainty - above which it does what it wants, below which we choose
@@ -260,6 +260,19 @@ class gpt_gen:
                 ws = output[..., -1, :].cpu().detach().numpy() * filt
                 if ws.shape[0] == 1: ws = ws[0]
 
+                if weight_repetition:
+                    seed_words = helper.remove_punc(seed).split()
+                    for j, p in enumerate(poss):
+                        if seed_words.count(p) > 2:
+                            if verbose: print(p, "was repeated ", seed_words.count(p), "times")
+                            try:
+                                repeated_token = poss_tokens[j][len(sub_tokens)]
+                                ws[repeated_token] /= 2
+                            except:
+                                pass
+                            if verbose: print("so deweighted", repeated_token, self.tokenizer.decode(repeated_token))
+
+
                 theme_scores = []
                 if theme_tokens: theme_scores = [(ws[x],x) for x in range(len(ws)) if x in theme_checks]
 
@@ -280,6 +293,8 @@ class gpt_gen:
                     if verbose: print("after", len(ws.nonzero()))
                 dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
+
+
                 #if verbose: print("chose", token, sub_tokens, poss_tokens)
 
             if verbose: print("for ", template[i], end=': ')
@@ -289,16 +304,37 @@ class gpt_gen:
             #if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
             if any(p == sub_tokens + [token] for p in poss_tokens):
                 word = self.tokenizer.decode(sub_tokens + [token]).strip()
-                if word not in punc:
-                    meter = ""
-                    if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
-                    while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
-                    meter_dict = meter_dict[meter]
-                    #if verbose: print("meter dict now", meter, word, meter_dict)
-                sub_tokens = []
-                first_lets.add(word[0])
-                alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
-                #alliteration = alliteration if alliteration is None else first_lets
+
+                # while self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.2
+                #if word not in punc and not punc_next and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, theme_words["NN"][:5]) < 0.3:
+                if word not in punc and not punc_next and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.3:
+                    if verbose: print("fasttext didnt like", word, template[i], "so trying again")
+
+                    del self.sonnet_object.pos_to_words[template[i]][word]
+                    generated = generated[:-len(sub_tokens)]
+                    token = generated.pop(-1)
+                    sub_tokens = []
+
+                    i -= 1
+                    #fix puncutation!!!!!
+
+
+                    #do some punctuation
+                    #token = np.random.choice(np.arange(len(words)), p=dist).item()
+                    #word = self.tokenizer.decode(sub_tokens + [token]).strip()
+
+                else:
+
+                    if word not in punc:
+                        meter = ""
+                        if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
+                        while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
+                        meter_dict = meter_dict[meter]
+                        #if verbose: print("meter dict now", meter, word, meter_dict)
+                    sub_tokens = []
+                    first_lets.add(word[0])
+                    alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
+                    #alliteration = alliteration if alliteration is None else first_lets
             else:
                 sub_tokens.append(token)
             generated += [token]  # .tolist()
