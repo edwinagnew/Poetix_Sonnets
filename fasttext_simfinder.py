@@ -24,3 +24,9 @@ class Sim_finder:
     def get_close_words(self, positive, negative=None, n=50):
         if type(positive) == str: positive = positive.split()
         return [item[0] for item in self.model.most_similar(positive, negative, topn=n)]
+
+    def word_similarity(self, word1, word2, choice=max):
+        if type(word1) == list: return choice(self.word_similarity(w, word2) for w in word1)
+        if type(word2) == list: return choice(self.word_similarity(word1, w) for w in word2)
+
+        return self.model.similarity(word1, word2)

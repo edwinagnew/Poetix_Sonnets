@@ -76,6 +76,8 @@ class Scenery_Gen(poem_core.Poem):
 
         self.fasttext = fasttext_simfinder.Sim_finder()
 
+        self.theme = ""
+
     #override
     def get_pos_words(self,pos, meter=None, rhyme=None, phrase=()):
         """
@@ -203,6 +205,7 @@ class Scenery_Gen(poem_core.Poem):
         self.reset_gender()
 
         self.pos_to_words = self.vocab_orig.copy()
+        self.theme = theme
 
         if theme_lines > 0: self.update_theme_words(theme=theme)
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
