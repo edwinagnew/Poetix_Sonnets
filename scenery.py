@@ -211,7 +211,7 @@ class Scenery_Gen(poem_core.Poem):
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
         if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.", random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
-        if " " in theme:
+        if theme:
             theme_words = {}
             theme_words[theme] = {}
             """
@@ -231,11 +231,12 @@ class Scenery_Gen(poem_core.Poem):
                 if theme_choice == "and":
                     theme_words[theme][pos] += self.get_diff_pos(theme, pos, 10)
                 else:
-                    theme_words[theme][pos] += self.get_diff_pos(theme.split()[0], pos, 10) + self.get_diff_pos(theme.split()[1], pos, 10)
+                    for t in theme.split():
+                        theme_words[theme][pos] += self.get_diff_pos(t, pos, 10)
                 if verbose: print("theme words, ", pos, ": ", len(theme_words[theme][pos]), theme_words[theme][pos])
             rhymes = [] #i think??
 
-        elif theme:
+            """elif theme:
             #rhymes = list(self.getRhymes(theme, words=self.words_to_pos.keys()).keys())
             n = 25
             rhymes = [theme]
@@ -261,7 +262,7 @@ class Scenery_Gen(poem_core.Poem):
             #c = Counter(rhymes)
             #sample = [k[0] for k in c.most_common(10)]
             #rhymes = helper.get_similar_word_henry(theme.lower().split(), n_return=50, word_set=set(self.words_to_pos.keys()))
-
+            """
         else:
             rhymes = []
             theme_words = []

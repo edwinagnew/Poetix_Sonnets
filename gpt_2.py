@@ -264,13 +264,13 @@ class gpt_gen:
                     seed_words = helper.remove_punc(seed).split()
                     for j, p in enumerate(poss):
                         if seed_words.count(p) > 2:
-                            if verbose: print(p, "was repeated ", seed_words.count(p), "times")
-                            try:
+                            if len(poss_tokens[j]) > len(sub_tokens) and poss_tokens[j][len(sub_tokens)] in checks: #fix
+                                if verbose: print(p, "was repeated ", seed_words.count(p), "times")
                                 repeated_token = poss_tokens[j][len(sub_tokens)]
-                                ws[repeated_token] /= 2
-                            except:
+                                ws[repeated_token] /= seed_words.count(p)
+                                if verbose: print("so deweighted", repeated_token, self.tokenizer.decode(repeated_token), "\n")
+                            else:
                                 pass
-                            if verbose: print("so deweighted", repeated_token, self.tokenizer.decode(repeated_token))
 
 
                 theme_scores = []
@@ -286,10 +286,7 @@ class gpt_gen:
                     if verbose: print("reducing to theme words")
                     #ws = [int(x in theme_checks) * ws[x] for x in range(len(words))]
                     #print("before", len(ws.nonzero()))
-                    try:
-                        ws[np.arange(len(ws)) not in theme_checks] = 0
-                    except:
-                        ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(words))])
+                    ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(words))])
                     if verbose: print("after", len(ws.nonzero()))
                 dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
@@ -311,7 +308,7 @@ class gpt_gen:
                     if verbose: print("fasttext didnt like", word, template[i], "so trying again")
 
                     del self.sonnet_object.pos_to_words[template[i]][word]
-                    generated = generated[:-len(sub_tokens)]
+                    if len(sub_tokens) > 0: generated = generated[:-len(sub_tokens)]
                     token = generated.pop(-1)
                     sub_tokens = []
 
@@ -337,6 +334,8 @@ class gpt_gen:
                     #alliteration = alliteration if alliteration is None else first_lets
             else:
                 sub_tokens.append(token)
+
+
             generated += [token]  # .tolist()
             # context = token.unsqueeze(0)
             context = torch.tensor(token).unsqueeze(0).to(self.model.device)
