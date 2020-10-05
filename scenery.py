@@ -308,9 +308,8 @@ class Scenery_Gen(poem_core.Poem):
             else:
                 template, meter = self.templates[line_number]
 
-
             #if r and len()
-            alliterating = "_" not in template and not alliterated and random.random() < 0.5
+            alliterating = "_" not in template and not alliterated and random.random() < 0.3
             if alliterating:
                 if random.random() < 0.85:
                     letters = string.ascii_lowercase

@@ -501,11 +501,15 @@ class Poem:
             poss = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
                     ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
                     ("WHAT JJ NN VBZ PRP$ NN?", "0_1010_10_1_0_1"),
-                    ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101")]
+                    ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
+                    ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
+                    ("THERE IS VBN, PRP$ JJ NN, JJ OF;", "0_1_01_0_10_1_0_1"),
+                    ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
+                    ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1")]
 
         if len(poss) == 0:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
-            return random.choice(self.templates)
+            return self.fix_template(random.choice(self.templates))
 
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
