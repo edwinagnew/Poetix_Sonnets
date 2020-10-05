@@ -147,6 +147,10 @@ class Theme(poem_core.Poem):
         return 0
 
     def get_cases(self, theme):
+        if " " in theme:
+            ret = []
+            for t in theme.split(): ret += self.get_cases(t)
+            return ret
         syn = wn.synsets(theme)
         theme_syns = [l.name() for s in syn for l in s.lemmas() if l.name() in self.dict_meters]
         cases = []
