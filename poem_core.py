@@ -533,7 +533,7 @@ class Poem:
         else:
             template = template.replace(" VBZ", " VBP").replace(" DOES ", " DO ")
 
-        template = template.replace("UVBZ", "VBZ")
+        template = template.replace("UVBZ", "VBZ").replace("UVBP", "VBP")
 
         if "VBC" in template and "PRPS" in template.split("VBC")[0]:  # if PRPS comes before PRPS
             if "he" in self.gender or "she" in self.gender:
