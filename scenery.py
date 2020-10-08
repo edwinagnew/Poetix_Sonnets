@@ -570,6 +570,17 @@ class Scenery_Gen(poem_core.Poem):
 
         return close
 
+    def close_nn(self, input, num=5, model_topn=50):
+        negative = ['dark']
+        if type(input) == str:
+            positive = input.split() + ['darkness']
+        else:
+            positive = input + ["darkness"]
+        all_similar = self.model.most_similar(positive, negative, topn=model_topn)
+        close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["NN"] or word[0] in self.poem.pos_to_words["NNS"]]
+
+        return close
+
     def get_diff_pos(self, word, desired_pos, n=10):
         closest_words = [noun for noun in self.fasttext.get_close_words(word) if (noun in self.pos_to_words["NN"] or noun in self.pos_to_words["NNS"])]
         if desired_pos == "JJ":
@@ -585,6 +596,14 @@ class Scenery_Gen(poem_core.Poem):
             words = set(self.close_adv(word))
             while(len(words) < n and index < 5):
                 words.update(self.close_adv(closest_words[index]))
+                index += 1
+            return list(words)
+
+        if desired_pos == "NN":
+            index = 0
+            words = set(self.close_jj(word))
+            while(len(words) < n and index < 5):
+                words.update(self.close_nn(closest_words[index]))
                 index += 1
             return list(words)
 
