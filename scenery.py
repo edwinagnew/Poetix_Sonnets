@@ -308,9 +308,8 @@ class Scenery_Gen(poem_core.Poem):
             else:
                 template, meter = self.templates[line_number]
 
-
             #if r and len()
-            alliterating = "_" not in template and not alliterated and random.random() < 0.5
+            alliterating = "_" not in template and not alliterated and random.random() < 0.3
             if alliterating:
                 if random.random() < 0.85:
                     letters = string.ascii_lowercase
@@ -362,7 +361,8 @@ class Scenery_Gen(poem_core.Poem):
                 if len(lines) % 4 == 0:
                     choices.append((self.gpt.score_line(samples[len(lines)//4] + line), line, template, alliterating))
                 else:
-                    choices.append((self.gpt.score_line(line), line, template, alliterating))
+                    curr_stanza = "\n".join(lines[4 * len(lines)//4:])
+                    choices.append((self.gpt.score_line(curr_stanza + "\n" + line), line, template, alliterating))
                 if len(choices) == k:
                     best = min(choices)
                     if verbose:
