@@ -235,7 +235,7 @@ class Scenery_Gen(poem_core.Poem):
                         theme_words[theme][pos] += self.get_diff_pos(t, pos, 10)
                 if verbose: print("theme words, ", pos, ": ", len(theme_words[theme][pos]), theme_words[theme][pos])
             rhymes = [] #i think??
-
+            if verbose: print("\n")
             """elif theme:
             #rhymes = list(self.getRhymes(theme, words=self.words_to_pos.keys()).keys())
             n = 25
@@ -267,6 +267,11 @@ class Scenery_Gen(poem_core.Poem):
             rhymes = []
             theme_words = []
         #random.shuffle(rhymes)
+
+        for p in ["NN", "NNS", "ABNN"]:
+            self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.fasttext.word_similarity(word, self.theme.split()) > 0.3}
+            if verbose: print("deleted", set(self.vocab_orig[p]) - set(self.pos_to_words[p]))
+        self.set_meter_pos_dict()
 
 
         samples = ["\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else "" for i in range(4)] #one for each stanza
@@ -564,7 +569,7 @@ class Scenery_Gen(poem_core.Poem):
         if type(input) == str:
             positive = input.split() + ['dark']
         else:
-            positive = input + ["darkness"]
+            positive = input + ["dark"]
         all_similar = self.fasttext.model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.pos_to_words["JJ"]]
 
@@ -576,8 +581,8 @@ class Scenery_Gen(poem_core.Poem):
             positive = input.split() + ['darkness']
         else:
             positive = input + ["darkness"]
-        all_similar = self.model.most_similar(positive, negative, topn=model_topn)
-        close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["NN"] or word[0] in self.poem.pos_to_words["NNS"]]
+        all_similar = self.fasttext.model.most_similar(positive, negative, topn=model_topn)
+        close = [word[0] for word in all_similar if word[0] in self.pos_to_words["NN"] or word[0] in self.pos_to_words["NNS"] or word[0] in self.pos_to_words["ABNN"]]
 
         return close
 
@@ -599,9 +604,9 @@ class Scenery_Gen(poem_core.Poem):
                 index += 1
             return list(words)
 
-        if desired_pos == "NN":
+        if "NN" in desired_pos:
             index = 0
-            words = set(self.close_jj(word))
+            words = set(self.close_nn(word))
             while(len(words) < n and index < 5):
                 words.update(self.close_nn(closest_words[index]))
                 index += 1

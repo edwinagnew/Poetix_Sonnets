@@ -81,7 +81,7 @@ class gpt_gen:
 
 
             output += abs(torch.min(output))  # makes all positive
-            if punc_next and len(sub_tokens) == 0:
+            if punc_next and len(sub_tokens) == 0: # and punc_finished:
                 poss = set(punc_next)
                 punc_next = False
             else:
@@ -103,7 +103,7 @@ class gpt_gen:
                             assert len(meter_dict.keys()) == 1, meter_dict
                             poss = [r for r in rhyme_word if any(met in meter_dict for met in self.sonnet_object.get_meter(r))]
                     if verbose: print("restricting to rhymes", rhyme_word, poss)
-
+            punc_finished = True
             if len(poss) == 0:
                 if "sc" in template[i]:
                     if verbose: print("there arent any words so removing sc from", template[i])
@@ -196,7 +196,7 @@ class gpt_gen:
 
                 # while self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.2
                 #if word not in punc and not punc_next and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, theme_words["NN"][:5]) < 0.3:
-                if word not in punc and not punc_next and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.3:
+                """if word not in punc and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.3:
                     if verbose: print("fasttext didnt like", word, template[i], "so trying again")
 
                     del self.sonnet_object.pos_to_words[template[i]][word]
@@ -206,24 +206,22 @@ class gpt_gen:
 
                     i -= 1
                     #fix puncutation!!!!!
-
+                    punc_finished = False
 
                     #do some punctuation
                     #token = np.random.choice(np.arange(len(words)), p=dist).item()
-                    #word = self.tokenizer.decode(sub_tokens + [token]).strip()
+                    #word = self.tokenizer.decode(sub_tokens + [token]).strip()"""
 
-                else:
-
-                    if word not in punc:
-                        meter = ""
-                        if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
-                        while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
-                        meter_dict = meter_dict[meter]
-                        #if verbose: print("meter dict now", meter, word, meter_dict)
-                    sub_tokens = []
-                    first_lets.add(word[0])
-                    alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
-                    #alliteration = alliteration if alliteration is None else first_lets
+                if word not in punc:
+                    meter = ""
+                    if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
+                    while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
+                    meter_dict = meter_dict[meter]
+                    #if verbose: print("meter dict now", meter, word, meter_dict)
+                sub_tokens = []
+                first_lets.add(word[0])
+                alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
+                #alliteration = alliteration if alliteration is None else first_lets
             else:
                 sub_tokens.append(token)
 
