@@ -41,7 +41,7 @@ class POS_changer():
         if type(input) == str:
             positive = input.split() + ['dark']
         else:
-            positive = input + ["darkness"]
+            positive = input + ["dark"]
         all_similar = self.model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["JJ"]]
 
@@ -69,3 +69,14 @@ class POS_changer():
                 break
 
         return winner
+
+    def close_nn(self, input, num=5, model_topn=50):
+        negative = ['dark']
+        if type(input) == str:
+            positive = input.split() + ['darkness']
+        else:
+            positive = input + ["darkness"]
+        all_similar = self.model.most_similar(positive, negative, topn=model_topn)
+        close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["NN"] or word[0] in self.poem.pos_to_words["NNS"]]
+
+        return close
