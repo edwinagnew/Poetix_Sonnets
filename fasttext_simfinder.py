@@ -29,4 +29,5 @@ class Sim_finder:
         if type(word1) == list: return choice(self.word_similarity(w, word2) for w in word1)
         if type(word2) == list: return choice(self.word_similarity(word1, w) for w in word2)
 
+        if word1 not in self.model.vocab or word2 not in self.model.vocab: return 0
         return self.model.similarity(word1, word2)
