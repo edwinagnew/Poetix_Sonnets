@@ -214,18 +214,7 @@ class Scenery_Gen(poem_core.Poem):
         if theme:
             theme_words = {}
             theme_words[theme] = {}
-            """
-            theme_words[theme]['NN'] = ['lust', 'agape', 'eros', 'lover', 'emotion', 'friendship', 'romance', 'dear',
-                                 'passion', 'babe', 'beloved', 'affection', 'desire', 'infatuation', 'dearest',
-                                 'hunger', 'thirst', 'marriage', 'honey', 'couple', 'heart', 'care', 'kindness',
-                                 'compassion', 'devotion', 'adoration', 'fondness', 'mate', 'compassion', 'dream',
-                                 'soul', 'kiss', 'joy', 'wish', 'intimacy', 'attachment', 'amour', 'essence', 'pair',
-                                 'crush', 'affection']
-            theme_words[theme]["JJ"] = ['fond', 'affectionate', 'intimate', 'soulful', 'joyful', 'good', 'great']
-            #theme_words[theme]["JJ"] = self.close_jj(theme)
-            theme_words[theme]["VB"] = ['adore', 'wonder', 'dream', 'cherish', 'wish', 'care', 'lust', 'kiss', 'caress',
-                                 'desire', 'hunger', 'thirst', 'devote', 'pair', 'like', 'need', 'want']
-            """
+
             for pos in ['NN', 'JJ', 'RB']:
                 if pos not in theme_words[theme]: theme_words[theme][pos] = []
                 if theme_choice == "and":
