@@ -308,7 +308,7 @@ class Poem:
 
         if template is None: template, meter = random.choice(self.templates)
 
-        template = self.fix_template(template)
+        #template = self.fix_template(template)
         if all_verbs: template = template.replace("VB", "*VB")
 
         if flex_meter:
@@ -357,7 +357,7 @@ class Poem:
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
-        template = self.fix_template(template)
+        #template = self.fix_template(template)
 
         if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
         print("writing line", template, meter)
@@ -680,7 +680,7 @@ class Poem:
 
     def write_line_dynamic_meter(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
-        template = self.fix_template(template)
+        #template = self.fix_template(template)
 
         self.check_template(template, meter)
 

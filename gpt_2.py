@@ -156,7 +156,7 @@ class gpt_gen:
                 if weight_repetition:
                     seed_words = helper.remove_punc(seed).split()
                     for j, p in enumerate(poss):
-                        if seed_words.count(p) > 2 or seed.split("\n")[-1].count(p) > 1:
+                        if seed_words.count(p) > 1 or seed.split("\n")[-1].count(p) > 0: # solved - doesnt allow repetition in the same line
                             if len(poss_tokens[j]) > len(sub_tokens) and poss_tokens[j][len(sub_tokens)] in checks: #fix
                                 if verbose: print(p, "was repeated ", seed_words.count(p), "times")
                                 repeated_token = poss_tokens[j][len(sub_tokens)]
