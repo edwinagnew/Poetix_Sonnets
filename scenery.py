@@ -351,6 +351,7 @@ class Scenery_Gen(poem_core.Poem):
             elif line:
                 if "a" in line_arr and line_arr[line_arr.index("a") + 1][0] in "aeiou": line = line.replace("a ", "an ")
                 if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                line = line.replace(" i ", " I ")
                 if verbose: print("wrote line", line)
                 if len(lines) % 4 == 0:
                     choices.append((self.gpt.score_line(samples[len(lines)//4] + line), line, template, alliterating))
