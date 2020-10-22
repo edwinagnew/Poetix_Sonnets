@@ -451,6 +451,7 @@ class Poem:
         poss = self.templates
         if not backwards:
             for i, word in enumerate(words):
+                word = word.split("_")[0]
                 poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(word)]
                 if len(poss) == 1: return poss
         else:
@@ -473,7 +474,7 @@ class Poem:
 
         """
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
-        poss = self.templates
+        poss = [p for p in self.templates if used_templates.count(p) < 2]
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
