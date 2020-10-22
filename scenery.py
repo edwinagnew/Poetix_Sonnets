@@ -105,7 +105,7 @@ class Scenery_Gen(poem_core.Poem):
             for po in ["VB", "VBZ", "VBG", "VBD", "VBN", "VBP"]:
                 ps += self.get_pos_words(po, meter=meter, rhyme=rhyme, phrase=phrase)
             return ps
-        if pos not in self.pos_to_words and "_" in pos:
+        """if pos not in self.pos_to_words and "_" in pos:
             sub_pos = pos.split("_")[0]
             word = self.weighted_choice(sub_pos, meter=meter, rhyme=rhyme)
             if not word: input("rhyme broke " + sub_pos + " " + str(meter) + " " + str(rhyme))
@@ -124,7 +124,7 @@ class Scenery_Gen(poem_core.Poem):
                     self.pos_to_words[pos] = {w: helper.get_spacy_similarity(w, word) for w in poss}
                     return poss
 
-            return [word]
+            return [word]"""
         #if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
         if len(phrase) == 0 or len(phrase[0]) == 0: return super().get_pos_words(pos, meter=meter, rhyme=rhyme)
         else:
@@ -197,7 +197,7 @@ class Scenery_Gen(poem_core.Poem):
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and"):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -258,8 +258,8 @@ class Scenery_Gen(poem_core.Poem):
         #random.shuffle(rhymes)
 
         for p in ["NN", "NNS", "ABNN"]:
-            self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.fasttext.word_similarity(word, self.theme.split()) > 0.3}
-            if verbose: print("deleted", set(self.vocab_orig[p]) - set(self.pos_to_words[p]))
+            self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.fasttext.word_similarity(word, self.theme.split()) > theme_cutoff}
+            if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]), set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
 
