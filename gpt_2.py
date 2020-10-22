@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import random
 import string
+import nltk
 
 from py_files import helper
 
@@ -31,7 +32,7 @@ class gpt_gen:
             self.model.to('cuda')
         self.mc_model = None
         print("loaded", model)
-
+        self.lemma = nltk.wordnet.WordNetLemmatizer()
 
     def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None, verbose=False, alliteration=None, weight_repetition=True):
         """
@@ -165,12 +166,15 @@ class gpt_gen:
 
                 if weight_repetition:
                     seed_words = helper.remove_punc(seed).split()
+                    lemmas = [self.lemma.lemmatize(word) for word in seed_words] #gets lemmas for all words in poem
+                    lemmas_last = [self.lemma.lemmatize(word) for word in self.tokenizer.decode(generated).split()] #gets lemmas for last line in poem
                     for j, p in enumerate(poss):
-                        if seed_words.count(p) > 1 or seed.split("\n")[-1].count(p) > 0: # solved - doesnt allow repetition in the same line
+                        p_lemma = self.lemma.lemmatize(p)
+                        if lemmas.count(p_lemma) > 1 or lemmas_last.count(p_lemma) > 0: # solved - doesnt allow repetition in the same line
                             if len(poss_tokens[j]) > len(sub_tokens) and poss_tokens[j][len(sub_tokens)] in checks: #fix
-                                if verbose: print(p, "was repeated ", seed_words.count(p), "times")
+                                if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma), "times")
                                 repeated_token = poss_tokens[j][len(sub_tokens)]
-                                ws[repeated_token] /= seed_words.count(p)
+                                ws[repeated_token] = 0
                                 if verbose: print("so deweighted", repeated_token, self.tokenizer.decode(repeated_token), "\n")
                             else:
                                 pass
