@@ -72,6 +72,9 @@ class gpt_gen:
         # for i in range(a, b):
         sub_tokens = []
         theme_tokens = []
+
+        repeats = {}
+
         i = a
         while i < b:
             with torch.no_grad():
@@ -90,7 +93,15 @@ class gpt_gen:
 
                 elif template[i][-1] in punc:
                     template[i], punc_next = template[i][:-1], template[i][-1]
-                poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys())))
+                if "_" in template[i]:
+                    if template[i] in repeats:
+                        if verbose: print("choosing", template[i], "from", repeats)
+                        poss = [repeats[template[i]]]
+                    else:
+                        poss = self.sonnet_object.get_pos_words(template[i].split("_")[0], meter=list(meter_dict.keys()))
+                        poss = set([p for p in poss if p not in repeats.values()])
+                else:
+                    poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys())))
                 r = None
                 if i == b - 1 and rhyme_word:
                     if "__" in rhyme_word:
@@ -103,7 +114,6 @@ class gpt_gen:
                             assert len(meter_dict.keys()) == 1, meter_dict
                             poss = [r for r in rhyme_word if any(met in meter_dict for met in self.sonnet_object.get_meter(r))]
                     if verbose: print("restricting to rhymes", rhyme_word, poss)
-            punc_finished = True
             if len(poss) == 0:
                 if "sc" in template[i]:
                     if verbose: print("there arent any words so removing sc from", template[i])
@@ -217,11 +227,11 @@ class gpt_gen:
                     if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
                     while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
                     meter_dict = meter_dict[meter]
-                    #if verbose: print("meter dict now", meter, word, meter_dict)
+                    if "_" in template[i]:
+                        repeats[template[i]] = word
                 sub_tokens = []
                 first_lets.add(word[0])
                 alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
-                #alliteration = alliteration if alliteration is None else first_lets
             else:
                 sub_tokens.append(token)
 
