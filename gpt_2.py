@@ -165,13 +165,15 @@ class gpt_gen:
                 if ws.shape[0] == 1: ws = ws[0]
 
                 if weight_repetition:
-                    seed_words = helper.remove_punc(seed).split()
+                    seed_words = helper.remove_punc(seed.replace("'s", "")).split()
                     lemmas = [self.lemma.lemmatize(word) for word in seed_words] #gets lemmas for all words in poem
-                    lemmas_last = [self.lemma.lemmatize(word) for word in self.tokenizer.decode(generated).split()] #gets lemmas for last line in poem
+                    lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(self.tokenizer.decode(generated).replace("'s", "")).split()] #gets lemmas for last line in poem
+                    #if verbose: print("\ntemp: lemmas_last", lemmas_last, "\n, poss", poss, "\n", poss_tokens)
                     for j, p in enumerate(poss):
                         p_lemma = self.lemma.lemmatize(p)
                         if lemmas.count(p_lemma) > 1 or lemmas_last.count(p_lemma) > 0: # solved - doesnt allow repetition in the same line
-                            if len(poss_tokens[j]) > len(sub_tokens) and poss_tokens[j][len(sub_tokens)] in checks: #fix
+                            #if len(poss_tokens[j]) > len(sub_tokens) and poss_tokens[j][len(sub_tokens)] in checks: #fix
+                            if len(sub_tokens) == 0 and poss_tokens[j][0] in checks:  # fix
                                 if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma), "times")
                                 repeated_token = poss_tokens[j][len(sub_tokens)]
                                 ws[repeated_token] = 0
@@ -203,7 +205,7 @@ class gpt_gen:
             if verbose: print("for ", template[i], end=': ')
 
             if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(
-                dist[token]) + " initial prob " + str(ws[token]))
+                dist[token]) + " initial score " + str(ws[token]))
             #if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
             if any(p == sub_tokens + [token] for p in poss_tokens):
                 word = self.tokenizer.decode(sub_tokens + [token]).strip()

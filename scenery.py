@@ -197,14 +197,13 @@ class Scenery_Gen(poem_core.Poem):
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35, sum_similarity=False):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
             #self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2-large")
         self.reset_gender()
 
-        self.pos_to_words = self.vocab_orig.copy()
         self.theme = theme
 
         if theme_lines > 0: self.update_theme_words(theme=theme)
@@ -212,17 +211,20 @@ class Scenery_Gen(poem_core.Poem):
         if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.", random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
         if theme:
+            sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
+            if not sub_theme: sub_theme = theme
+
             theme_words = {}
-            theme_words[theme] = {}
+            theme_words[sub_theme] = {}
 
             for pos in ['NN', 'JJ', 'RB']:
-                if pos not in theme_words[theme]: theme_words[theme][pos] = []
+                if pos not in theme_words[sub_theme]: theme_words[sub_theme][pos] = []
                 if theme_choice == "and":
-                    theme_words[theme][pos] += self.get_diff_pos(theme, pos, 10)
+                    theme_words[sub_theme][pos] += self.get_diff_pos(sub_theme, pos, 10)
                 else:
-                    for t in theme.split():
-                        theme_words[theme][pos] += self.get_diff_pos(t, pos, 10)
-                if verbose: print("theme words, ", pos, ": ", len(theme_words[theme][pos]), theme_words[theme][pos])
+                    for t in sub_theme.split():
+                        theme_words[sub_theme][pos] += self.get_diff_pos(t, pos, 10)
+                if verbose: print("theme words, ", pos, ": ", len(theme_words[sub_theme][pos]), theme_words[sub_theme][pos])
             rhymes = [] #i think??
             if verbose: print("\n")
             """elif theme:
@@ -280,7 +282,7 @@ class Scenery_Gen(poem_core.Poem):
                 if verbose: print("\n\nwriting stanza", 1 + line_number/4)
                 else:
                     if line_number > 0: print("done")
-                    print("\nwriting stanza", 1 + line_number/4, end=" ...")
+                    if len(choices) == 0: print("\nwriting stanza", 1 + line_number/4, end=" ...")
                 alliterated = not alliteration
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
@@ -325,7 +327,7 @@ class Scenery_Gen(poem_core.Poem):
                 print("\nwriting line", line_number)
                 print("alliterating", alliterating, letters)
                 print(template, meter, r)
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=theme_words[theme], theme_threshold=theme_threshold)
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=theme_words[sub_theme], theme_threshold=theme_threshold)
             if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
@@ -354,10 +356,14 @@ class Scenery_Gen(poem_core.Poem):
                 line = line.replace(" i ", " I ")
                 if verbose: print("wrote line", line)
                 if len(lines) % 4 == 0:
-                    choices.append((self.gpt.score_line(samples[len(lines)//4] + line), line, template, alliterating))
+                    samp = theme + "\n" + samples[len(lines)//4] + "\n" + line
+                    choices.append((self.gpt.score_line(samp), line, template, alliterating))
                 else:
-                    curr_stanza = "\n".join(lines[4 * len(lines)//4:])
-                    choices.append((self.gpt.score_line(curr_stanza + "\n" + line), line, template, alliterating))
+                    curr_stanza = "\n".join(lines[len(lines) - (len(lines) % 4):])
+                    #line_score = self.gpt.score_line(theme + "\n" + curr_stanza + "\n" + line)
+                    line_score = self.gpt.score_line(curr_stanza + "\n" + line)
+                    if sum_similarity: line_score *= sum([self.fasttext.word_similarity(w, theme.split()) for w in line.split() if "NN" in self.get_word_pos(w) or "JJ" in self.get_word_pos(w)])
+                    choices.append((line_score, line, template, alliterating))
                 if len(choices) == k:
                     best = min(choices)
                     if verbose:
@@ -377,12 +383,14 @@ class Scenery_Gen(poem_core.Poem):
                     if line_number == 13: line_number = 12
                     else: line_number -= 2
 
-        if not verbose: print("done")
-        ret = ("         ---" + theme.upper() + "---       \n") if theme else ""
+        if not verbose and len(choices) == 0: print("done")
+        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "\n") if theme else ""
         for cand in range(len(lines)):
             ret += str(lines[cand]) + "\n"
             if ((cand + 1) % 4 == 0): ret+=("\n")
         print(ret)
+
+        self.pos_to_words = self.vocab_orig.copy()
 
         return ret
 
@@ -586,7 +594,7 @@ class Scenery_Gen(poem_core.Poem):
                 index += 1
             return list(words)
 
-        if desired_pos =="RB":
+        if desired_pos == "RB":
             index = 0
             words = set(self.close_adv(word))
             while(len(words) < n and index < 5):

@@ -296,7 +296,7 @@ class Poem:
             t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if
             pos in self.end_pos)
 
-    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=False,
+    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
                        all_verbs=False, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
