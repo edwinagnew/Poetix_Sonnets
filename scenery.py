@@ -11,7 +11,7 @@ from py_files import helper
 
 import theme_word_file
 import gpt_2
-import fasttext_simfinder
+import word_embeddings
 from difflib import SequenceMatcher
 
 from collections import Counter
@@ -74,7 +74,7 @@ class Scenery_Gen(poem_core.Poem):
 
         self.theme_gen = theme_word_file.Theme()
 
-        self.fasttext = fasttext_simfinder.Sim_finder()
+        self.word_embeddings = word_embeddings.Sim_finder()
 
         self.theme = ""
 
@@ -197,7 +197,7 @@ class Scenery_Gen(poem_core.Poem):
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35, sum_similarity=False):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35, sum_similarity=True):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -260,7 +260,14 @@ class Scenery_Gen(poem_core.Poem):
         #random.shuffle(rhymes)
 
         for p in ["NN", "NNS", "ABNN"]:
-            self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.fasttext.word_similarity(word, self.theme.split()) > theme_cutoff}
+            if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
+                                                self.word_embeddings.ft_word_similarity(w, self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(w, self.theme.split())])
+            if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
+                                                self.word_embeddings.ft_word_similarity(w,
+                                                                                        self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
+                                                    w, self.theme.split())])
+
+            self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
             if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]), set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
@@ -362,7 +369,7 @@ class Scenery_Gen(poem_core.Poem):
                     curr_stanza = "\n".join(lines[len(lines) - (len(lines) % 4):])
                     #line_score = self.gpt.score_line(theme + "\n" + curr_stanza + "\n" + line)
                     line_score = self.gpt.score_line(curr_stanza + "\n" + line)
-                    if sum_similarity: line_score *= sum([self.fasttext.word_similarity(w, theme.split()) for w in line.split() if "NN" in self.get_word_pos(w) or "JJ" in self.get_word_pos(w)])
+                    if sum_similarity: line_score *= sum([self.word_embeddings.ft_word_similarity(w, theme.split()) for w in line.split() if "NN" in self.get_word_pos(w) or "JJ" in self.get_word_pos(w)])
                     choices.append((line_score, line, template, alliterating))
                 if len(choices) == k:
                     best = min(choices)
@@ -551,7 +558,7 @@ class Scenery_Gen(poem_core.Poem):
         else:
             positive = input + ["happily"]
         negative = [       'happy']
-        all_similar = self.fasttext.model.most_similar(positive, negative, topn=model_topn)
+        all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
 
         def score(candidate):
             ratio = SequenceMatcher(None, candidate, input).ratio()
@@ -559,7 +566,7 @@ class Scenery_Gen(poem_core.Poem):
             return ratio + looks_like_adv
 
         close = sorted([(word, score(word)) for word, _ in all_similar], key=lambda x: -x[1])
-        return [word[0] for word in close[:num]]
+        return [word[0] for word in close[:num] if word[0] in self.pos_to_words["RB"]]
 
     def close_jj(self, input, num=5, model_topn=50):
         #positive = [input, 'dark']
@@ -568,7 +575,7 @@ class Scenery_Gen(poem_core.Poem):
             positive = input.split() + ['dark']
         else:
             positive = input + ["dark"]
-        all_similar = self.fasttext.model.most_similar(positive, negative, topn=model_topn)
+        all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.pos_to_words["JJ"]]
 
         return close
@@ -579,13 +586,13 @@ class Scenery_Gen(poem_core.Poem):
             positive = input.split() + ['darkness']
         else:
             positive = input + ["darkness"]
-        all_similar = self.fasttext.model.most_similar(positive, negative, topn=model_topn)
+        all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.pos_to_words["NN"] or word[0] in self.pos_to_words["NNS"] or word[0] in self.pos_to_words["ABNN"]]
 
         return close
 
     def get_diff_pos(self, word, desired_pos, n=10):
-        closest_words = [noun for noun in self.fasttext.get_close_words(word) if (noun in self.pos_to_words["NN"] or noun in self.pos_to_words["NNS"])]
+        closest_words = [noun for noun in self.word_embeddings.get_close_words(word) if (noun in self.pos_to_words["NN"] or noun in self.pos_to_words["NNS"])]
         if desired_pos == "JJ":
             index = 0
             words = set(self.close_jj(word))

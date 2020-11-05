@@ -8,10 +8,9 @@ heros_journey_words.p
 .idea/
 theme_words.p
 extra_adjs.p
-glove-word2vec.6B.100d.txt
 word_corpus/
 *.yaml
-glove.6B/
+saved_objects/glove/
 local_*
 py_files/.ipynb_checkpoints/
 saved_objects/fasttext/wiki-news-300d-1M.vec

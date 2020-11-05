@@ -165,9 +165,9 @@ class gpt_gen:
                 if ws.shape[0] == 1: ws = ws[0]
 
                 if weight_repetition:
-                    seed_words = helper.remove_punc(seed.replace("'s", "")).split()
+                    seed_words = helper.remove_punc(seed.lower().replace("'s", "")).split()
                     lemmas = [self.lemma.lemmatize(word) for word in seed_words] #gets lemmas for all words in poem
-                    lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(self.tokenizer.decode(generated).replace("'s", "")).split()] #gets lemmas for last line in poem
+                    lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(self.tokenizer.decode(generated).lower().replace("'s", "")).split()] #gets lemmas for last line in poem
                     #if verbose: print("\ntemp: lemmas_last", lemmas_last, "\n, poss", poss, "\n", poss_tokens)
                     for j, p in enumerate(poss):
                         p_lemma = self.lemma.lemmatize(p)
