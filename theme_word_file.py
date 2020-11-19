@@ -42,13 +42,13 @@ class Theme(poem_core.Poem):
         if not theme or len(theme) == 0: return {}
         try:
             with open(theme_file, "rb") as pickle_in:
-                print("loading words from file")
+                if verbose: print("loading words from file")
                 theme_word_dict = pickle.load(pickle_in)
             with open(extras_file, "rb") as p_in:
                 extras = pickle.load(p_in)
 
         except:
-            print("either file not found")
+            if verbose: print("either file not found")
             with open(theme_file, "wb") as pickle_in:
                 theme_word_dict = {}
                 pickle.dump(theme_word_dict, pickle_in)
@@ -57,7 +57,7 @@ class Theme(poem_core.Poem):
                 pickle.dump(extras, p_in)
 
         if theme not in theme_word_dict:
-            print(theme, "not in file. Generating...")
+            if verbose: print(theme, "not in file. Generating...")
 
 
             cases = self.get_cases(theme)

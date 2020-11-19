@@ -196,6 +196,9 @@ class gpt_gen:
                     #print("before", len(ws.nonzero()))
                     ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(words))])
                     if verbose: print("after", len(ws.nonzero()))
+                if max(ws) <= 0:
+                    if verbose: print("something went wrong", max(ws))
+                    return None
                 dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
 
