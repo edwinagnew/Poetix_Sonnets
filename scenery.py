@@ -197,7 +197,7 @@ class Scenery_Gen(poem_core.Poem):
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35, sum_similarity=True):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35, sum_similarity=True, theme_progression=False):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -210,8 +210,9 @@ class Scenery_Gen(poem_core.Poem):
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
         if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.", random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
 
-        if theme:
-            sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
+        if theme and not theme_progression:
+            #sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
+            sub_theme = theme
             if not sub_theme: sub_theme = theme
 
             theme_words = {}
@@ -219,7 +220,7 @@ class Scenery_Gen(poem_core.Poem):
 
             for pos in ['NN', 'JJ', 'RB']:
                 if pos not in theme_words[sub_theme]: theme_words[sub_theme][pos] = []
-                if theme_choice == "and":
+                elif theme_choice == "and":
                     theme_words[sub_theme][pos] += self.get_diff_pos(sub_theme, pos, 10)
                 else:
                     for t in sub_theme.split():
@@ -227,48 +228,43 @@ class Scenery_Gen(poem_core.Poem):
                 if verbose: print("theme words, ", pos, ": ", len(theme_words[sub_theme][pos]), theme_words[sub_theme][pos])
             rhymes = [] #i think??
             if verbose: print("\n")
-            """elif theme:
-            #rhymes = list(self.getRhymes(theme, words=self.words_to_pos.keys()).keys())
-            n = 25
-            rhymes = [theme]
-            #while len(set(rhymes)) < 100 or not any(len(self.get_meter(w)) == 1 for w in rhymes):
-            #    n += 25
-            #    rhymes += [x for x in self.fasttext.get_close_words(random.choice(rhymes), n=n) if len(x) > 3 and x in self.words_to_pos and any(m in ["1", "01", "101", "0101", "10101"] for m in self.get_meter(x))]
-            #    #nouns
-            #    rhymes = [r for r in rhymes if r in self.pos_to_words['NN'] or r in self.pos_to_words["NNS"] or r in self.pos_to_words['ABNN']]
-
-            #adjectives
-            if theme == "forest":
-                jjs = 'dense dark thick primeval deep whole open virgin green tropical vast wild black ancient gloomy distant tangled silent unbroken beautiful heavy mighty entire impenetrable tall trackless dead extensive endless native primitive immense high dim nearby pathless strange fine wide national magnificent huge african noble original northern royal natural miniature cool deeper thin DESCRIBING WORDS CONTINUE AFTER ADVERTISEMENT shadowy adjacent lofty petrified narrow primary quiet western veritable shady lush boundless empty interminable sparse true perfect mysterious dry dismal terrible sombre moonlit fairy rough low free german rich splendid brazilian wet white canadian fair unknown grim swampy leafy verdant long blue solitary dusky deepest snowy southern secondary savage untouched soft broad fine open wonderful golden somber brown solemn dark green gigantic majestic main sacred peaceful certain untamed towering dreary wintry ordinary grand old desolate uninhabited cold primaeval equatorial alien continuous glorious nocturnal almost impenetrable magical purple dangerous eastern upland larger nearest more open fresh gray sodden large flat densest undulating orbital enormous temperate simple weird familiar upper grand solid poor lone short beloved normal great flaming darker dense tropical sal lower coastal secret fragrant remote autumnal regular faroff misty usual famous eternal private crystal clear steep dreadful artificial dank bleak outer primordial common metallic humid almost unbroken thickest deep green french red darkest sweet eerie actual unfamiliar amazonian general unexplored naked boreal massive old various fossil oldgrowth bare metal darkling major yellow moist different deep dark particular dense green murky important spacious healthy public nighttime wondrous impervious valuable snowcovered central australian ragged great dark shaggy vast primeval picturesque grey delightful primal bad thicker warm european gorgeous muddy treacherous grassy untracked former thick dark undisturbed monotonous less impassable unchanging awful clean charming unburned nighted stony evil benighted rude dim old limitless cruel lifeless british intricate rainy inhospitable romantic deep dark mountainous pure horrible present central national siberian hostile wooded entangled terrestrial aboriginal principal thick green uncontrolled seemingly endless dappled damned gentle uncut rugged precious handsome dark and tangled finest indonesian mature single uninterrupted sunken edible barren hushed inner great northern plain central national older great black tremendous genuine mere dense primeval difficult fearful sentient faint shy rocky fierce dear chief imperial complete prim�val total seeming vertical dark and gloomy charred great green pale frequent wildest bizarre bavarian opposite destructive mid flush scented darkgreen celestial smaller crystalline spectral biggest tranquil horizontal sunny thorny modern next innumerable aromatic fine old bloody concrete deepest darkest stupendous oldest occasional bright heathen hideous inverted full icy taller feathery seventh sandy dense and tangled unending parklike younger local nearer universal semitropical great primeval dense dark exuberant burnedout underwater damn antique happy fantastic innocent everlasting considerable otherwise unbroken miserable nightmarish lowlying proper prostrate superb wellknown mournful strong ancestral bluegreen rather dense predawn sylvan bushy cool green vacant vast green obscure alternate richest sharp myriad extreme sinister stupid raw proud absolute marvelous metal shallow dark tangled dreamy prehistoric dark dense average stalwart unnatural gnarled thick and gloomy sizable endless primeval typical lonesome scanty inaccessible motionless ashen troublesome dense unbroken powerful formidable abundant slender best semitropical pristine thick dark frightful timbered soggy foggy great southern angular similar indoor shaggy old characterless apparently endless decayed immeasurable venerable inscrutable disastrous gay curved unseen electronic fullfledged sullen further uncanny wretched human sparkling special calm most mexican socalled dark and unknown almost boundless great equatorial excellent coral himalayan scientific vigorous comparatively open norwegian contiguous green and brown brushy rare festival thick tropical cavernous small breathless emerald fabled craggy immediate subtropical greatest remarkable continental unprotected curious vast and vacant gaunt dark and endless dense dark dense untouched mythical experimental pillared stormy federal great african unsettled sufficient hot higher outlying sudden somber primitive teutonic awesome great amazonian monstrous great gloomy scorched gently undulating urban ample fertile dark and eerie amazing extraordinary neverending elfin lefthand deep and dense shady dense dense and dark good open old german almost impervious dense and beautiful minor timid pleasant glassy virtual dark and mysterious drab colossal lush green horned strange uncanny thick impenetrable demented dark and treacherous invisible dark gloomy sad dark silent untidy gray and empty horrid spicy rich green windblown old lesser wild and tangled bold perilous far distant delicious delicate magnificent primeval whole green moderately clear luxurious peruvian sweetsmelling just undisturbed brownish onrushing whitish whole little nice young mundane thick and thin hazy immemorial sooty lush wild farthest smooth crazy wise invincible dull circular thickly wooded impenetrable primeval wild and thick supposedly wild and thick supposedly wild whole big great brazilian sleepy vast tropical uneven temporary wellkept big tallest nearly virgin tall thick elder vocal divine fungal windy highest skilled great silent whole wide severe barbarous luminous dark primeval infernal brilliant gloomy virgin heaviest untenanted hard diminutive dark dank thorough belgian softwood looser plain old reedy tribal slowmoving endless empty primeval tropical poisonous unspoiled heavier coloured perfumed regular little unimproved tortuous large and spacious distant ancient cooler colored rusted great old vast and trackless gloomy old haitian seaside spongy eternally moonlit noisy claustrophobic bizarre claustrophobic unknown and trackless cool silent brittle impromptu old old horrible lofty dense angular uncouth infinite mineral painful solemn and beautiful effective sturdy uncomplaining splendid open fenced continual many other great shady dear old unfenced oldtime dumb sorry stumpy green old legendary green upper broad green triangular resistant ablaze pleasant open slim harpy deep quiet unoccupied highaltitude crimson grotesque woolen unknown and untracked tropical african distant african unhealthy miraculous little vast monotonous silent inner thick tangled mangled skeletal woodland nearly impenetrable dark primeval unique deep silent quaint incredible northeastern obscene rich black certain distant ravenous grandest virgin tropical omnipresent dark tangled fullgrown sweltering weary windswept restless pale green unbounded social phantom once beautiful dense and gloomy cool green scenic flat open faraway illusive lilliputian enchanting inextricable druidical dark dense wild free heavy primitive tolerably open fatal asiatic watery nether dark and unbroken same open same open undulating chaste mighty titanic suitable placid pleasant open lighter rutted resurgent warm highaltitude dark mysterious glossy black impenetrable grim and hostile hairy frightening lithuanian great lithuanian dense and silent dark and evil inimical great white frosty dense gloomy ageold lurid large unimproved knotted old deep odd protective true tropical mobile vast impenetrable undersea apparently impenetrable great dark more durable durable cruel and savage dark wild cool dark spacious and shady gothic inexhaustible seemingly impenetrable tame basic more ordinary improbable brandnew luridly flaming little nearby past interior coal ethereal midsized tawny mad visible unexplained dark and alien greedy deep high less and less virginal tall old completely petrified decayed and prostrate drunken fabulous possible infinitesimal transparent loose little wild almost tropical beautiful open almost virgin old primeval excellent open dense virgin almost continuous graceful distinct fairest almost pathless wild old lofty virgin vast and dismal dark inscrutable classic surprising youthful open unfenced silent vast largest unbroken open but pathless uninviting more uninviting thick primeval unceasing stern tall dark oaken littoral cheerful loveliest withered extinct serene now sufficient stiff deep and pleasant seductive deepest darkest still undulating dainty polar reddish austrian otherwise unoccupied inevitable abysmal tight nondescript charred empty long green dangerous impregnable deep impenetrable fitting open and parklike less open colossal and grotesque primeval african bad white huge and hairy dense lush nasty moderately dense comparable temperate almost universal vast great unfathomable straight memorial large but ordinary ancient dead green and golden heavily wooded airy diseased dull green remote coastal otherwise impassable everpresent mystical impossible uncaring cutoff savage and solitary gloomy and intricate dangerous mysterious directionless open grassy symmetrical fake huge tangled darker heavier striped almost primeval unusual spectacular mosscovered truly ancient deep and secret fruitful pristine oldgrowth truly unique sturdy northern shorter widespread'
-            elif theme == "love":
-                jjs = 'true passionate pure dear human perfect divine mutual deep ardent romantic best maternal sweet natural genuine infinite conjugial eternal intense dearest filial hopeless strong unrequited free undying faithful mere universal unselfish sincere secret paternal parental boundless happy sheer spiritual sexual disinterested everlasting fervent honest former conjugal unhappy innate dead DESCRIBING WORDS CONTINUE AFTER ADVERTISEMENT personal violent common greatest simple special deepest youthful constant abiding warm ideal own true gentle inordinate poor wonderful beautiful illicit fraternal fond noble instinctive excessive equal physical innocent sacred generous selfish selfsacrificing fierce false purest guilty profound boyish unbounded deeper enthusiastic childish wild mad great particular mighty platonic less loyal blind strange foolish charming domestic general grateful adulterous ancient unfortunate truest long kindest sensual desperate fondest immortal virtuous sentimental deathless wondrous utmost fair unconditional jealous fatal overwhelming highest inherent hearty absolute mortal anxious hot intellectual chaste affectionate certain sudden unlawful modern serious higher eager tragic steadfast silent complete slighted unchanging whole endless celestial reverent humble french past impassioned inborn lawless despairing carnal reciprocal ineffable present unspeakable extraordinary insatiable chivalrous thy true peculiar national sweetest ordinary successful heroic extreme abstract precious own dear earliest immense religious reverential powerful unconquerable hapless lifelong active least quiet immoderate sinful entire stronger patriotic real unalterable truer mysterious sure sad public selfless actual girlish oldfashioned utter open fine keen native cruel exclusive single pious savage inspiring heartfelt terrible inexpressible trusting unfailing exalted connubial fiery morbid normal fresh slow feminine social usual undivided strongest old immeasurable protective healthy respectful different obvious wholesome tough warmer especial insane watchful sordid helpless spontaneous vulgar virgin popular restless cordial impossible honorable gracious unspoken overpowering triumphant extravagant high soft singular clandestine socalled double proper evil profane exquisite german glorious unchangeable amazing unsatisfied italian unnatural feigned spanish apparent individual intelligent full erotic homosexual childlike conscious exciting possible sensuous lawful wanton poetic incestuous worthy late unconscious frantic proud evident lavish compassionate famous unsuccessful abundant oldtime furious curious undue rare thoughtful golden joyous timid sympathetic vain practical absent animal rich new oriental vivid vehement lifelong royal hungry unworthy thorough latent brief disastrous own great brotherly unfathomable primitive sufficient sublime holiest weak latest transcendent inexhaustible much more deep and abiding distant cold vast wicked metaphysical invincible wise unswerving newfound intimate incipient sovereign irresistible wellknown bitter pathetic idyllic unreasoning painful private masculine impatient young female larger manifest refined ridiculous japanese mystic criminal hereditary joyful kindred perpetual original reckless various dark responsive illfated persistent thy sweet illstarred imperfect sincerest rational fruitless unknown more unlimited ambitious incredible matchless ecstatic indomitable careless feeble partial hopeful primal zealous total obsessive idle noblest tranquil mediaeval mystical sorrowful newfound delicate habitual british lofty steady inveterate vague mature brave impartial nobler pitiful legitimate remarkable bright positive artificial impure delightful familiar irrepressible unchanged dear dear pentup unreasonable bad poor little priceless allpowerful sacred and profane white thy great plain overweening finest willing thankful fearless irish uncompromising dainty lesser impersonal unabated medi�val unceasing little more blissful characteristic second such great flaming imaginary unaffected doubtful imperishable old old angelic harmonious dangerous similar unusual radiant barbaric such passionate dumb sensitive deeprooted deep abiding good traditional chinese marital previous petty sensible supernatural further more ardent superior miserable irrational dearer onesided tremendous own sweet creative lyric almost passionate alien emotional seeming prosperous wretched pure and noble pure and perfect condescending imaginative unmistakable thine own superb indulgent delicious final due righteous marvelous grand chief numerous reluctant casual satisfying recent misguided thy dear dutiful impetuous fortunate familial veritable allconsuming perilous uninterrupted short undeserved joint nascent loose genial dormant longsuffering essential ingrained own possessive calm fantastic wider speechless spotless superhuman remorseful guileless unending twofold stupid fanatical shameful additional greedy degrading nuptial lusty dear little feverish weird subtle devotional purely spiritual peaceful vital hateful passive necessary abnormal frank conventional western deepseated obstinate transient nearer tempestuous potential promising evergrowing much less artless wistful awful such true hallowed tangled sole futile easy unparalleled unexpected devout incarnate helpful victorious loving primeval temporary hard odd inarticulate newborn sacrificial fickle next such perfect courageous fascinating rustic incomparable uncontrollable undiminished more happy happy happy heroical infernal zeal theological stern absurd incurable enlightened irregular wide charming idyllic early literary torrid decent intensive exacting pastoral careful ethereal plaintive uncritical permanent lustful low modest pure unselfish owne true own own languorous rough haunting fleeting venal own passionate little real deep true sweeter splendid potent counterfeit crazy wholehearted worshipful poetical clean limitless moral compelling terrestrial christlike regular immutable olden little true noisy matrimonial obedient fearful impious bygone thy faithful presumptuous threefold direct useless cheerful swift neverending impulsive heterosexual considerable exotic deep and passionate such deep avowed harmless imperious shameless unaltered longcherished glad vicious heartiest engrossing ceaseless quick languid broad current virginal dishonest poignant parental and filial mad passionate frenzied lazy true and perfect credulous brightest wayward clear broader cunning dutch energetic gay shy illegitimate pure and disinterested reasonable unqualified solid separate unique fairy indefatigable constitutional moderate great great mute godlike internal unrestrained unshakable cosmic interesting thrilling scant unreal proverbial fundamental pagan difficult impotent odious ferocious voluptuous vigorous greater adventurous crafty dramatic preferred artistic fairest unbroken ignorant submissive such faithful appealing welcome true and honest naive dreamy implacable immediate solemn senseless enormous endearing more dear unuttered human and divine monogamous unwise wiser primary thy constant quaint old true lower philosophical exuberant slightest untold shallow unlucky simultaneous just plain hasty tenacious loveliest elizabethan fruitful unclouded comfortable deep passionate mournful unbridled magical ready brutal inflexible customary promiscuous celtic allpervading inviolable confident everincreasing ill independent perverse red own personal classic playful stormy momentary liquid maddening finer empty true human clever charitable tireless dearest dearest extensive initial egyptian warm human older austere precocious pure and true mere human heavenly ignoble apostolic leal such wondrous maternal interested worthless happier dark secret horrible shortlived bashful sterile newer genuine romantic withered much true exceptional singleminded teutonic everyday real true more perfect troubled frivolous aspiring queer poor dear stainless pitiless admirable material fictitious grave consummate outgoing bold corresponding inner male other prodigious pathological graceful own little real true same ardent magnificent discerning shadowy barren interior sturdy coy worthier younger fonder closer frail wisest continuous safe unabashed sweet sweet notorious wrong continual true pure dull solitary diseased benevolent uncertain anguished catlike onenight profoundest dreadful indestructible deserving worth synthetic consequent lukewarm everpresent intuitive superstitious almost maternal mercenary fresh young godgiven visionary deceitful predominant servile courteous important lost suitable idealistic sticky redemptive incomprehensible fullest treacherous secondary dark and doubtful ultimate slow sweet great and pure ungovernable undisguised own deep inconceivable altruistic fanciful riotous fuller more passionate such ardent divine and human meek humorous pure disinterested liberal providential rosy piteous little human scandalous extra onetime subsequent supernal scrupulous deep and infinite heathen true true deliberate outrageous unquestionable average'
-            jjs = jjs.split()
-                #got from https://describingwords.io/for/tree - work on webscraping
-            rhymes = [x for x in jjs if x in self.pos_to_words["JJ"]][:300]
-            if verbose: print("rhymes", len(rhymes), rhymes)
-            #for pos in ["NN", "ABNN", "NNS"]:
-            for pos in ["JJ"]:
-                self.pos_to_words[pos] = {r:1 for r in rhymes if r in self.pos_to_words[pos]}
-            if len(theme.split()) > 1: rhymes.remove(theme)
-            #c = Counter(rhymes)
-            #sample = [k[0] for k in c.most_common(10)]
-            #rhymes = helper.get_similar_word_henry(theme.lower().split(), n_return=50, word_set=set(self.words_to_pos.keys()))
-            """
         else:
             rhymes = []
             theme_words = []
         #random.shuffle(rhymes)
+        if theme and theme_progression:
+            #sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
+            sub_theme = theme
+            assert len(sub_theme.split()) == 2, sub_theme + "not good length"
+            t1, t2 = sub_theme.split()
+            stanza_words = {}
+            stanza_themes = {}
+            for stanza in range(4): #first stanza only first theme, second and third both, last only second
+                stanza_theme = [t1*int(stanza <3), t2*int(stanza>0)]
+                stanza_words[stanza] = self.vocab_orig.copy()
+                for p in ["NN", "NNS", "ABNN"]:
+                    stanza_words[stanza][p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.word_embeddings.both_similarity(word, stanza_theme) > theme_cutoff}
+                stanza_themes[stanza] = {}
+                stanza_theme = " ".join(stanza_theme).strip()
+                for pos in ['NN', 'JJ', 'RB']:
+                    stanza_themes[stanza][pos] = self.get_diff_pos(stanza_theme, pos, 10)
+                    if verbose: print("stanza:", stanza, ", theme words, ", pos, ": ", len(stanza_themes[stanza][pos]),
+                                      stanza_themes[stanza][pos])
 
-        for p in ["NN", "NNS", "ABNN"]:
-            if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
-                                                self.word_embeddings.ft_word_similarity(w, self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(w, self.theme.split())])
-            if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
-                                                self.word_embeddings.ft_word_similarity(w,
-                                                                                        self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
-                                                    w, self.theme.split())])
 
-            self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
-            if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]), set(self.pos_to_words[p]))
+
+
+        else:
+            for p in ["NN", "NNS", "ABNN"]:
+                if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
+                                                    self.word_embeddings.ft_word_similarity(w, self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(w, self.theme.split())])
+                if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
+                                                    self.word_embeddings.ft_word_similarity(w,
+                                                                                            self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
+                                                        w, self.theme.split())])
+
+                self.pos_to_words[p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
+                if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]), set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
 
@@ -287,10 +283,12 @@ class Scenery_Gen(poem_core.Poem):
         while line_number < 14:
             if line_number % 4 == 0:
                 if verbose: print("\n\nwriting stanza", 1 + line_number/4)
-                else:
-                    if line_number > 0: print("done")
-                    if len(choices) == 0: print("\nwriting stanza", 1 + line_number/4, end=" ...")
+                #else:
+                #    if line_number > 0: print("done")
+                #    if len(choices) == 0: print("\nwriting stanza", 1 + line_number/4, end=" ...")
                 alliterated = not alliteration
+                if theme_progression:
+                    self.words_to_pos = stanza_words[int(line_number/4)]
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
             if rhyme_lines and line_number % 4 >= 2:
@@ -334,7 +332,8 @@ class Scenery_Gen(poem_core.Poem):
                 print("\nwriting line", line_number)
                 print("alliterating", alliterating, letters)
                 print(template, meter, r)
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=theme_words[sub_theme], theme_threshold=theme_threshold)
+            t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number//4]
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=t_w, theme_threshold=theme_threshold)
             if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
                 rhyme_pos = self.templates[min(line_number+2, 13)][0].split()[-1]
@@ -390,12 +389,12 @@ class Scenery_Gen(poem_core.Poem):
                     if line_number == 13: line_number = 12
                     else: line_number -= 2
 
-        if not verbose and len(choices) == 0: print("done")
+        #if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "\n") if theme else ""
         for cand in range(len(lines)):
             ret += str(lines[cand]) + "\n"
             if ((cand + 1) % 4 == 0): ret+=("\n")
-        print(ret)
+        if verbose: print(ret)
 
         self.pos_to_words = self.vocab_orig.copy()
 
