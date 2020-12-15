@@ -1,3 +1,5 @@
+import random
+import numpy as np
 
 class Node():
     def __init__(self, word_info=None, word_pos=None):
@@ -13,9 +15,22 @@ class Graph():
         curr_line = f.readline().strip()
         self.starts = [int(num) for num in curr_line.split(',')]
         curr_line = f.readline().strip().split(',')
-        while curr_line[0] != "":
-            if curr_line[0] in "0123456789":
+        while curr_line[0]!= "":
+            if curr_line[0][0] in "0123456789":
                 self.nodes[int(curr_line[0])].edges[curr_line[2]] = self.nodes[int(curr_line[1])]
             else:
                 self.nodes.append(Node(word_info=curr_line[0],word_pos=curr_line[1]))
             curr_line = f.readline().strip().split(',')
+        self.curr = self.nodes[random.choice(self.starts)]
+
+
+    def update(self, edges=None, probs=None):
+        if edges == None:
+            vb = random.choice(list(self.curr.edges.keys()))
+        else:
+            vb = np.random.choice(list(self.curr.edges.keys()), p=probs)
+        self.curr = self.curr.edges[vb]
+        return (vb, self.curr.word, self.curr.pos)
+
+    def get_verbs(self):
+        return list(self.curr.edges.keys())
