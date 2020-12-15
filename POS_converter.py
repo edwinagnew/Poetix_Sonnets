@@ -80,3 +80,13 @@ class POS_changer():
         close = [word[0] for word in all_similar if word[0] in self.poem.pos_to_words["NN"] or word[0] in self.poem.pos_to_words["NNS"]]
 
         return close
+
+    def close_vb(self, input, num=5, model_topn=50):
+        positive = input
+        all_similar = self.model.most_similar(positive, topn=model_topn)
+        close = [word[0] for word in all_similar if
+                 word[0] in self.poem.pos_to_words["VB"] or word[0] in self.poem.pos_to_words["VBP"] or
+                 word[0] in self.poem.pos_to_words["VBD"] or word[0] in self.poem.pos_to_words["VBN"]or
+                 word[0] in self.poem.pos_to_words["VBZ"] or word[0] in self.poem.pos_to_words["VBG"]]
+
+        return close
