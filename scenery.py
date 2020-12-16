@@ -14,13 +14,6 @@ import gpt_2
 import word_embeddings
 from difflib import SequenceMatcher
 
-from collections import Counter
-
-
-
-#from transformers import BertTokenizer, BertForMaskedLM
-#from transformers import RobertaTokenizer, RobertaForMaskedLM
-
 from nltk.corpus import wordnet as wn
 
 import poem_core
@@ -28,42 +21,16 @@ import poem_core
 
 
 class Scenery_Gen(poem_core.Poem):
-    def __init__(self, model=None, words_file="saved_objects/tagged_words.p",
+    def __init__(self, words_file="saved_objects/tagged_words.p",
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
                  templates_file=('poems/jordan_templates.txt', "poems/rhetorical_templates.txt"),
-                 #templates_file='poems/number_templates.txt',
                  mistakes_file=None):
-
-        #self.templates = [("FROM scJJS scNNS PRP VBZ NN", "0_10_10_1_01_01"),
-         #                 ("THAT scJJ scNN PRP VBD MIGHT RB VB", "0_10_10_1_0_10_1"),
-          #                ("WHERE ALL THE scNNS OF PRP$ JJ NNS", "0_1_0_10_1_0_10_1"),
-           #               ("AND THAT JJ WHICH RB VBZ NN", "0_1_01_0_10_1_01")]
 
         poem_core.Poem.__init__(self, words_file=words_file, templates_file=templates_file,
                                 syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file, mistakes_file=mistakes_file)
         self.vocab_orig = self.pos_to_words.copy()
-
-        if model == "bert":
-            self.lang_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
-            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-            self.lang_vocab = list(self.tokenizer.vocab.keys())
-            self.lang_model.eval()
-            self.vocab_to_num = self.tokenizer.vocab
-
-        elif model == "roberta":
-            self.lang_model = RobertaForMaskedLM.from_pretrained('roberta-base') # 'roberta-base'
-            self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base') # 'roberta-large'
-            with open("saved_objects/roberta/vocab.json") as json_file:
-                j = json.load(json_file)
-            self.lang_vocab = list(j.keys())
-            self.lang_model.eval()
-            self.vocab_to_num = {self.lang_vocab[x]: x for x in range(len(self.lang_vocab))}
-
-
-        else:
-            self.lang_model = None
 
         #with open('poems/kaggle_poem_dataset.csv', newline='') as csvfile:
          #   self.poems = csv.DictReader(csvfile)
@@ -401,101 +368,10 @@ class Scenery_Gen(poem_core.Poem):
         return ret
 
 
-    def update_bert(self, line, meter, template, iterations, rhyme_words=[], filter_meter=True, verbose=False, choice = "min"):
-        if iterations <= 0: return " ".join(line) #base case
-        #TODO deal with tags like ### (which are responsible for actually cool words)
-        input_ids = torch.tensor(self.tokenizer.encode(" ".join(line), add_special_tokens=False)).unsqueeze(0) #tokenizes
-        tokens = [self.lang_vocab[x] for x in input_ids[0]]
-        loss, outputs = self.lang_model(input_ids, masked_lm_labels=input_ids) #masks each token and gives probability for all tokens in each word. Shape num_words * vocab_size
-        if verbose: print("loss = ", loss)
-        softmax = torch.nn.Softmax(dim=1) #normalizes the probabilites to be between 0 and 1
-        outputs = softmax(outputs[0])
-        extra_token = ""
-        #for word_number in range(0,len(line)-1): #ignore  last word to keep rhyme
-        k = tokens.index(self.tokenizer.tokenize(line[-1])[0])  # where the last word begins
-
-        if choice == "rand":
-            word_number = out_number = random.choice(np.arange(k))
-
-        elif choice == "min":
-            probs = np.array([outputs[i][self.vocab_to_num[tokens[i]]] for i in range(k)])
-            word_number = out_number = np.argmin(probs)
-            while tokens[out_number].upper() in self.special_words or any(x in self.get_word_pos(tokens[out_number]) for x in ["PRP", "PRP$"]):
-                if verbose: print("least likely is unchangable ", tokens, out_number, outputs[out_number][input_ids[0][out_number]])
-                probs[out_number] *= 10
-                word_number = out_number = np.argmin(probs)
-
-        if len(outputs) > len(line):
-            if verbose: print("before: predicting", self.lang_vocab[input_ids[0][out_number]], tokens)
-            if tokens[out_number] in line:
-                word_number = line.index(tokens[out_number])
-                t = 1
-                while "##" in self.lang_vocab[input_ids[0][out_number + t]]:
-                    extra_token += self.lang_vocab[input_ids[0][out_number + 1]].split("#")[-1]
-                    t += 1
-                    if out_number + t >= len(input_ids[0]):
-                        if verbose: print("last word chosen --> restarting", 1/0)
-                        return self.update_bert(line, meter, template, iterations, rhyme_words=rhyme_words, verbose=verbose)
-            else:
-                sub_tokens = [self.tokenizer.tokenize(w)[0] for w in line]
-                while self.lang_vocab[input_ids[0][out_number]] not in sub_tokens: out_number -= 1
-                word_number = sub_tokens.index(self.lang_vocab[input_ids[0][out_number]])
-                t = 1
-                while "##" in self.lang_vocab[input_ids[0][out_number + t]]:
-                    extra_token += self.lang_vocab[input_ids[0][word_number + t]].split("#")[-1]
-                    t += 1
-                    if out_number + t >= len(input_ids[0]):
-                        if verbose: print("last word chosen --> restarting", 1/0)
-                        return self.update_bert(line, meter, template, iterations, rhyme_words=rhyme_words, verbose=verbose)
-
-            if verbose: print("after: ", out_number, word_number, line, " '", extra_token, "' ")
-
-        #if verbose: print("word number ", word_number, line[word_number], template[word_number], "outnumber:", out_number)
-
-        temp = template[word_number].split("sc")[-1]
-        if len(self.get_pos_words(temp)) > 1 and temp not in ['PRP', 'PRP$']: #only change one word each time?
-            filt = np.array([int( temp in self.get_word_pos(word) or temp in self.get_word_pos(word + extra_token)) for word in self.lang_vocab])
-            if filter_meter and meter: filt *= np.array([int(meter[word_number] in self.get_meter(word) or meter[word_number] in self.get_meter(word + extra_token)) for word in self.lang_vocab])
-            predictions = outputs[out_number].detach().numpy() * filt #filters non-words and words which dont fit meter and template
-
-            for p in range(len(predictions)):
-                if predictions[p] > 0.001 and self.lang_vocab[p] in rhyme_words:
-                    print("weighting internal rhyme '", self.lang_vocab[p], "', orig: ", predictions[p], ", now: ", predictions[p]*5/sum(predictions))
-                    predictions[p] *= 5
-                """if predictions[p] > 0.001 and self.lang_vocab[p] in theme_words and "sc" in template[word_number]:
-                    b = predictions[p]
-                    input("change here and for the print")
-                    predictions[p] *= theme_words[self.lang_vocab[p]]**2
-                    if verbose: print("weighting thematic '", self.lang_vocab[p], "' by ", theme_words[self.lang_vocab[p]], ", now: ", predictions[p]/sum(predictions), ", was: ", b)
-"""
-            predictions /= sum(predictions)
-            if verbose: print("predicting a ", template[word_number], meter[word_number], " for ", word_number, ". min: ", min(predictions), " max: ", max(predictions), "sum: ", sum(predictions), ", ", {self.lang_vocab[p]: predictions[p] for p in range(len(predictions)) if predictions[p] > 0})
-
-            if iterations > 1:
-                line[word_number] = np.random.choice(self.lang_vocab, p=predictions)
-            else: #greedy for last iteration
-                line[word_number] = self.lang_vocab[np.argmax(predictions)]
-
-            print("word now ", line[word_number], "prob: ", predictions[self.lang_vocab.index(line[word_number])])
-
-            if temp not in self.get_word_pos(line[word_number]):
-                line[word_number] += extra_token
-                if temp not in self.get_word_pos(line[word_number]): #still not valid
-                    print("Extra token didnt help ", template[word_number], line[word_number], extra_token)
-                    print(1/0)
-
-
-            if verbose: print("line now", line)
-        else:
-            if verbose: print("picked ", line[word_number], "which is bad word")
-            iterations += 1
-        return self.update_bert(line, meter, template, iterations-1, rhyme_words=rhyme_words, verbose=verbose)
-
     def update_theme_words(self, word_dict={}, theme=None):
         if theme: word_dict = self.theme_gen.get_theme_words(theme)
         for pos in word_dict:
             self.pos_to_words["sc" + pos] = word_dict[pos]
-
 
     def phrase_in_poem_fast(self, words, include_syns=False):
         if type(words) == list:
@@ -548,7 +424,6 @@ class Scenery_Gen(poem_core.Poem):
             self.backup_words = pc.get_pos_words
 
         return [p for p in self.backup_words(pos) if meter in self.get_meter(p)]
-
 
 
     def close_adv(self, input, num=5, model_topn=50):
