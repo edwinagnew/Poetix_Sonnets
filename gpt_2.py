@@ -1,5 +1,5 @@
 import sonnet_basic
-from transformers import GPT2LMHeadModel, GPT2Tokenizer#, GPT2DoubleHeadsModel
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 import numpy as np
 import random
@@ -379,88 +379,6 @@ class gpt_gen:
         print(n, "best =", best_line, min(scores))
 
         return self.iterative_improve_loss(template, meter, best_line, n=n-1, k=k, verbose=verbose)
-
-    def iterative_improve_mc(self, template, meter, line, n=1, k=5, selection="random", verbose=False):
-        if n == 0: return line
-        if type(template) != list: template = template.split()
-        if type(meter) != list: meter = meter.split("_")
-
-        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
-
-        worst_index, worst_token_index = self.get_worst_suitable_word(template, meter, line, verbose=verbose)
-        if not worst_index: return line
-
-        #assert self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() == line.split()[worst_index]
-
-        self.load_mc_model()
-
-        # random options
-        if selection == "random":
-            choices = []
-            for i in range(k):
-                #assuming there's no punctuation
-                if verbose: print(i, "getting ", template[worst_index], meter[worst_index])
-                new_word = random.choice(self.sonnet_object.get_pos_words(template[worst_index].translate(str.maketrans('', '', string.punctuation)), meter[worst_index]))
-                new_line = input_ids[0].tolist()
-                #new_line[worst_token_index] = self.mc_tokenizer.encode(" " + new_word)[0]
-                new_line = new_line[:worst_token_index] + self.mc_tokenizer.encode(" " + new_word) + new_line[worst_token_index + 1:]
-                new_line += self.mc_tokenizer.encode('[CLS]')
-                #new_line = " ".join(new_line) + ' [CLS]'
-                choices.append(new_line)
-
-        else:
-            #top k options
-            choices = []
-            poss = self.sonnet_object.get_pos_words(helper.remove_punc(template[worst_index]), meter[worst_index])
-            words = list(self.tokenizer.encoder.keys())
-            filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words])
-            with torch.no_grad():
-                output, past = self.model(input_ids)
-            output += abs(output.min())
-            out = torch.tensor(output[..., worst_token_index - 1, :].detach().numpy() * filt)  # predicts what comes after token, not whats there?
-
-            best_vals, best_is = out.topk(k)
-
-            for b in best_is[0]:
-                new_line = input_ids[0].tolist()
-                new_line[worst_token_index] = b.item()
-                new_line += self.mc_tokenizer.encode('[CLS]')
-                choices.append(new_line)
-
-        if verbose: print([self.mc_tokenizer.decode(c) for c in choices], choices)
-
-        choice_scores = self.multiple_choice(choices)
-
-        if verbose: print(choice_scores)
-
-        best_line = self.mc_tokenizer.decode(choices[torch.argmax(choice_scores).item()]).replace(" [CLS]", "")
-
-        print(n, "best = ", best_line, self.score_line(best_line))
-
-        return self.iterative_improve_mc(template, meter, best_line, n=n-1, k=k, verbose=verbose)
-
-
-    def multiple_choice(self, choices):
-        cls_token_location = [tokens.index(self.mc_tokenizer.cls_token_id) for tokens in choices]
-        input_ids = torch.tensor(choices).unsqueeze(0)  # Batch size: 1, number of choices: 2
-        mc_token_ids = torch.tensor([cls_token_location])  # Batch size: 1
-
-        with torch.no_grad():
-            outputs = self.mc_model(input_ids, mc_token_ids=mc_token_ids)
-        lm_prediction_scores, mc_prediction_scores = outputs[:2]
-
-        return mc_prediction_scores
-
-    def load_mc_model(self):
-        if not self.mc_model:
-            print("loading mc_model")
-            self.mc_tokenizer = GPT2Tokenizer.from_pretrained(self.model_size)
-            num_added_tokens = self.mc_tokenizer.add_special_tokens({'cls_token': '[CLS]'})
-            self.mc_model = GPT2DoubleHeadsModel.from_pretrained(self.model_size)
-            embedding_layer = self.mc_model.resize_token_embeddings(len(self.mc_tokenizer))
-
-
-
 
 
 
