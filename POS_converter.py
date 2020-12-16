@@ -81,7 +81,7 @@ class POS_changer():
 
         return close
 
-    def close_vb(self, input, num=5, model_topn=50):
+    def close_vb(self, input, num=5, model_topn=75):
         positive = input
         all_similar = self.model.most_similar(positive, topn=model_topn)
         close = [word[0] for word in all_similar if
