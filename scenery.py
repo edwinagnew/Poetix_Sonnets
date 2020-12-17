@@ -17,7 +17,7 @@ from difflib import SequenceMatcher
 from nltk.corpus import wordnet as wn
 
 import poem_core
-
+import graph_reader
 
 
 class Scenery_Gen(poem_core.Poem):
@@ -44,6 +44,8 @@ class Scenery_Gen(poem_core.Poem):
         self.word_embeddings = word_embeddings.Sim_finder()
 
         self.theme = ""
+
+
 
     #override
     def get_pos_words(self,pos, meter=None, rhyme=None, phrase=()):
@@ -164,7 +166,10 @@ class Scenery_Gen(poem_core.Poem):
         return pos in self.get_word_pos(word) and meter in self.dict_meters[word]
 
 
-    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False, theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, theme_choice="and", theme_cutoff=0.35, sum_similarity=True, theme_progression=False):
+    def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
+                        theme_lines=0, k=5, alliteration=True, theme_threshold=0.5,
+                        theme_choice="and", theme_cutoff=0.35, sum_similarity=True,
+                        theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt"):
         if not self.gpt:
             if verbose: print("getting gpt")
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
@@ -172,6 +177,16 @@ class Scenery_Gen(poem_core.Poem):
         self.reset_gender()
 
         self.theme = theme
+
+        if story == True:
+            self.story_graph = graph_reader.Graph(txt_file=story_file)
+            self.theme = (self.story_graph.curr.word, self.story_graph.curr.pos)
+            self.story = [(self.theme[0], self.theme[1])]
+            while len(self.story) < 4:
+                self.story.append(self.story_graph.update())
+            theme_progression = True
+        else:
+            self.story_graph = None
 
         if theme_lines > 0: self.update_theme_words(theme=theme)
         theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
@@ -202,23 +217,36 @@ class Scenery_Gen(poem_core.Poem):
         if theme and theme_progression:
             #sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
             sub_theme = theme
-            assert len(sub_theme.split()) == 2, sub_theme + "not good length"
-            t1, t2 = sub_theme.split()
+            if self.story_graph == None:
+                assert len(sub_theme.split()) == 2, sub_theme + "not good length"
+                t1, t2 = sub_theme.split()
+            else:
+                t1, t2 = (None, None)
             stanza_words = {}
             stanza_themes = {}
             for stanza in range(4): #first stanza only first theme, second and third both, last only second
-                stanza_theme = [t1*int(stanza <3), t2*int(stanza>0)]
+                if t1:
+                    stanza_theme = [t1*int(stanza <3), t2*int(stanza>0)]
+                else:
+                    stanza_theme = self.story[stanza][:-1]
                 stanza_words[stanza] = self.vocab_orig.copy()
                 for p in ["NN", "NNS", "ABNN"]:
                     stanza_words[stanza][p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.word_embeddings.both_similarity(word, stanza_theme) > theme_cutoff}
                 stanza_themes[stanza] = {}
-                stanza_theme = " ".join(stanza_theme).strip()
+                if not story: #TODO maybe this section is the problem?
+                    stanza_theme = " ".join(stanza_theme).strip()
                 for pos in ['NN', 'JJ', 'RB']:
                     stanza_themes[stanza][pos] = self.get_diff_pos(stanza_theme, pos, 10)
                     if verbose: print("stanza:", stanza, ", theme words, ", pos, ": ", len(stanza_themes[stanza][pos]),
                                       stanza_themes[stanza][pos])
-
-
+                if self.story_graph != None and stanza > 0:
+                    all_verbs = self.get_diff_pos(stanza_theme[0], "VB")
+                    for pos in ["VB", "VBP", "VBZ", "VBG", "VBD", "VBN"]:
+                        temp_set = set(self.pos_to_words[pos])
+                        stanza_themes[stanza][pos] = [verb for verb in all_verbs if verb in temp_set]
+                        if verbose:
+                            print("theme words for verb ", stanza_theme[0], " for POS ", pos, " ", stanza_themes[stanza][pos])
+                            print("number of verbs for the same category: ", len(stanza_themes[stanza][pos]))
 
 
         else:
@@ -430,7 +458,7 @@ class Scenery_Gen(poem_core.Poem):
         if type(input) == str:
             positive = input.split() + ['happily']
         else:
-            positive = input + ["happily"]
+            positive = list(input) + ["happily"]
         negative = [       'happy']
         all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
 
@@ -448,7 +476,7 @@ class Scenery_Gen(poem_core.Poem):
         if type(input) == str:
             positive = input.split() + ['dark']
         else:
-            positive = input + ["dark"]
+            positive = list(input) + ["dark"]
         all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.pos_to_words["JJ"]]
 
@@ -459,9 +487,19 @@ class Scenery_Gen(poem_core.Poem):
         if type(input) == str:
             positive = input.split() + ['darkness']
         else:
-            positive = input + ["darkness"]
+            positive = list(input) + ["darkness"]
         all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
         close = [word[0] for word in all_similar if word[0] in self.pos_to_words["NN"] or word[0] in self.pos_to_words["NNS"] or word[0] in self.pos_to_words["ABNN"]]
+
+        return close
+
+    def close_vb(self, input, num=5, model_topn=75):
+        positive = input
+        all_similar = self.word_embeddings.fasttext_model.most_similar(positive, topn=model_topn)
+        close = [word[0] for word in all_similar if
+                 word[0] in self.pos_to_words["VB"] or word[0] in self.pos_to_words["VBP"] or
+                 word[0] in self.pos_to_words["VBD"] or word[0] in self.pos_to_words["VBN"]or
+                 word[0] in self.pos_to_words["VBZ"] or word[0] in self.pos_to_words["VBG"]]
 
         return close
 
@@ -488,6 +526,14 @@ class Scenery_Gen(poem_core.Poem):
             words = set(self.close_nn(word))
             while(len(words) < n and index < 5):
                 words.update(self.close_nn(closest_words[index]))
+                index += 1
+            return list(words)
+
+        if "VB" in desired_pos:
+            index = 0
+            words = set(self.close_vb(word))
+            while(len(words) < n and index < 5):
+                words.update(self.close_vb(closest_words[index]))
                 index += 1
             return list(words)
 
