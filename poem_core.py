@@ -330,11 +330,6 @@ class Poem:
                 r = None
 
             if "_" in base_template:
-                """
-                meter_dict = {}
-                for m in meter.split("_")[::-1]:
-                    meter_dict = {m: meter_dict.copy()}
-                """
                 meter_dict = self.get_poss_meters_forward_rhet(base_template, "".join(meter.split("_")), {}, r)
 
             else:
