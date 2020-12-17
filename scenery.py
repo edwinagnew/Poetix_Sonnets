@@ -233,7 +233,7 @@ class Scenery_Gen(poem_core.Poem):
                 for p in ["NN", "NNS", "ABNN"]:
                     stanza_words[stanza][p] = {word:s for (word,s) in self.pos_to_words[p].items() if self.word_embeddings.both_similarity(word, stanza_theme) > theme_cutoff}
                 stanza_themes[stanza] = {}
-                if not story: #TODO maybe this section is the problem?
+                if not story:
                     stanza_theme = " ".join(stanza_theme).strip()
                 for pos in ['NN', 'JJ', 'RB']:
                     stanza_themes[stanza][pos] = self.get_diff_pos(stanza_theme, pos, 10)
@@ -246,7 +246,7 @@ class Scenery_Gen(poem_core.Poem):
                         stanza_themes[stanza][pos] = [verb for verb in all_verbs if verb in temp_set]
                         if verbose:
                             print("theme words for verb ", stanza_theme[0], " for POS ", pos, " ", stanza_themes[stanza][pos])
-                            print("number of verbs for the same category: ", len(stanza_themes[stanza][pos]))
+                            print("number of verbs for the same category: ", len(stanza_themes[stanza][pos]), "\n")
 
 
         else:
@@ -508,7 +508,7 @@ class Scenery_Gen(poem_core.Poem):
         if desired_pos == "JJ":
             index = 0
             words = set(self.close_jj(word))
-            while(len(words) < n and index < 5):
+            while len(words) < n and index < min(5, len(closest_words)):
                 words.update(self.close_jj(closest_words[index]))
                 index += 1
             return list(words)
@@ -516,7 +516,7 @@ class Scenery_Gen(poem_core.Poem):
         if desired_pos == "RB":
             index = 0
             words = set(self.close_adv(word))
-            while(len(words) < n and index < 5):
+            while len(words) < n and index < min(5, len(closest_words)):
                 words.update(self.close_adv(closest_words[index]))
                 index += 1
             return list(words)
@@ -524,7 +524,7 @@ class Scenery_Gen(poem_core.Poem):
         if "NN" in desired_pos:
             index = 0
             words = set(self.close_nn(word))
-            while(len(words) < n and index < 5):
+            while len(words) < n and index < min(5, len(closest_words)):
                 words.update(self.close_nn(closest_words[index]))
                 index += 1
             return list(words)
