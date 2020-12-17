@@ -472,6 +472,12 @@ class Poem:
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
+            if used_templates[-1] == "FROM JJS NNS, PRPS VBP RB":
+                poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
+                        ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
+                        ("WILL VB THE NNS TO THE RB JJ.", "0_1_0_10_1_0_10_1"),
+                        ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
+                        ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
             # elif used_templates[-1][-1] in incomplete:
