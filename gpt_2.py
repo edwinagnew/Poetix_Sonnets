@@ -36,12 +36,46 @@ class gpt_gen:
 
     def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None, verbose=False, alliteration=None, weight_repetition=True):
         """
+        Generates a line of poetry
 
-        Some parameter for uncertainty - above which it does what it wants, below which we choose
-        Probablistic in proportion to how uncertain it is
+        Parameters
+        ----------
+        template
+        meter_dict
+        seed - (optional) - previous lines in poem
+        theme_words - (optional) - dictionary of thematic words in format: {pos: [word1, word2], pos2: [...], ...}
+        theme_threshold (optional) - determines whether to only attempt to insert thematic words => if best_theme_token/best_token > theme_threshold
+        rhyme_word (optional) - a word which the line has to rhyme with
+        verbose
+        alliteration (optional) - which possible letters to try and alliterate
+        weight_repetition (optional) - boolean. If True, words which occur more than once in the seed or once in the current line (including stems/lemmas) are deweighted to zero
+
+       Procedure:
+            0. Preprocessing. If no seed first token is chosen randomly (TODO ?)
+            1. Main loop: get next words
+                a. Update GPT token scores
+                b. Deal with punctuation:
+                    i. if a template ends with punctuation(s), it is stored in punc_next for later
+                    ii. When the word is finished generating (ie sub_tokens is empty), poss_tokens is set to punc_next
+                c. Deal with repetition templates:
+                    i. If a template contains a _ and hasnt been seen before, words are chosen normally then filtered for previous repetitions
+                    ii. If it has been seen before, that is the option
+                d. Potential next words are collected from poem object
+            2. Choose next token TODO - make separate inner loop?
+                a. If there's only one possible token, correctly choose the spacing and insert it
+                b. If theres many options:
+                    i. On the first iteration create poss_tokens a list of lists of tokens corresponding to all possible words
+                    ii. Create list of all possible tokens for this iteration
+                    iii. Filters the gpt scores for only desired tokens and potentially reweights for alliteration, repetition (see weight_repetition) and existing word score
+                    iv. normalises the scores and chooses with np.random.choice
+                c. post -processing - check if word is complete and then move on
+
 
         """
 
+        """
+        0 - preprocessing
+        """
         if type(template) != list: template = template.split()
 
         words = list(self.tokenizer.encoder.keys())
@@ -76,85 +110,99 @@ class gpt_gen:
 
         repeats = {}
 
+        """
+        1 - main loop
+        """
         i = a
         while i < b:
+            # 1a - get new tokens
             with torch.no_grad():
                 output, past = self.model(context, past=past)
-                #past = past.to(self.model.device)
             if verbose: print(i, "(" + str(len(sub_tokens)) + ")")
 
 
             output += abs(torch.min(output))  # makes all positive
-            if punc_next and len(sub_tokens) == 0: # and punc_finished:
-                poss = set(punc_next)
-                punc_next = False
-            else:
-                if template[i][-1] == ">":
-                    template[i], punc_next = template[i].split("<")[0], template[i].split("<")[-1].strip(">").split("/")
 
-                elif template[i][-1] in punc:
-                    template[i], punc_next = template[i][:-1], template[i][-1]
-                if "_" in template[i]:
-                    if template[i] in repeats:
-                        if verbose: print("choosing", template[i], "from", repeats)
-                        poss = [repeats[template[i]]]
-                    else:
-                        poss = self.sonnet_object.get_pos_words(template[i].split("_")[0], meter=list(meter_dict.keys()))
-                        poss = set([p for p in poss if p not in repeats.values()])
+            # 1b - deal with punctuation
+            if len(sub_tokens) == 0:
+                if punc_next: #and len(sub_tokens) == 0:
+                    poss = set(punc_next)
+                    punc_next = False
                 else:
-                    poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys())))
-                r = None
-                if i == b - 1 and rhyme_word:
-                    if "__" in rhyme_word:
-                        poss = {rhyme_word.strip("__")}
-                    else:
-                        r = rhyme_word
-                        if type(rhyme_word) == str:
-                            poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
+                    if template[i][-1] == ">":
+                        template[i], punc_next = template[i].split("<")[0], template[i].split("<")[-1].strip(">").split("/")
+
+                    elif template[i][-1] in punc:
+                        template[i], punc_next = template[i][:-1], template[i][-1]
+
+                    # 1c - deal with repetition templates
+                    if "_" in template[i]:
+                        if template[i] in repeats:
+                            if verbose: print("choosing", template[i], "from", repeats)
+                            poss = [repeats[template[i]]]
                         else:
-                            assert len(meter_dict.keys()) == 1, meter_dict
-                            poss = [r for r in rhyme_word if any(met in meter_dict for met in self.sonnet_object.get_meter(r))]
-                    if verbose: print("restricting to rhymes", rhyme_word, poss)
-            if len(poss) == 0:
-                if "sc" in template[i]:
-                    if verbose: print("there arent any words so removing sc from", template[i])
-                    template[i] = template[i].replace("sc", "")
+                            poss = self.sonnet_object.get_pos_words(template[i].split("_")[0], meter=list(meter_dict.keys()))
+                            poss = set([p for p in poss if p not in repeats.values()])
+                    # 1d - get potential next words
+                    else:
+                        poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys())))
+                    r = None
+                    if i == b - 1 and rhyme_word:
+                        r = rhyme_word
+                        poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
 
-                    poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys()), rhyme=r))
+                        if verbose: print("restricting to rhymes", rhyme_word, poss)
 
-                if self.sonnet_object.backup_words: #in case were using byron vocab
-                    if verbose: print("getting backup words")
-                    poss = set(self.sonnet_object.get_backup_pos_words(template[i], list(meter_dict.keys()), rhyme=r))
+                if len(poss) == 0:
+                    if "sc" in template[i]:
+                        if verbose: print("there arent any words so removing sc from", template[i])
+                        # TODO - restart loop instead?
+                        template[i] = template[i].replace("sc", "")
+
+                        poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys()), rhyme=r))
+
+                    if self.sonnet_object.backup_words: #in case were using byron vocab
+                        if verbose: print("getting backup words")
+                        poss = set(self.sonnet_object.get_backup_pos_words(template[i], list(meter_dict.keys()), rhyme=r))
 
 
-                if len(poss) == 0: #still
-                    if verbose: print("there arent any words so giving up")
-                    return None
-
+                    if len(poss) == 0: #still
+                        if verbose: print("there arent any words so giving up")
+                        return None
+            """
+            2 - Choose next token
+            """
+            space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
             if len(poss) <= 1:
+                # 2a - only one option
                 # choose token with right spacing
                 #if verbose: print(poss, template[i], meter_dict)
-                space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
                 poss_tokens = [self.tokenizer.encode(space + list(poss)[0])]
                 token = poss_tokens[0][len(sub_tokens)]
                 dist = ws = np.ones(len(words))
             else:
+                #2b
                 if len(sub_tokens) == 0:
-                    space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
                     poss_tokens = [self.tokenizer.encode(space + p) for p in poss]  # + [self.tokenizer.encode(p) for p in poss]
                     if template[i] in theme_words:
                         theme_tokens = [self.tokenizer.encode(space + p) for p in theme_words[template[i]] if p in poss]
                     else:
                         theme_tokens = []
+
+                # next possible tokens are all the ones which could come after the ones already chosen
                 checks = set([p[len(sub_tokens)] for p in poss_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
+
+                #the same but for theme words
                 if theme_tokens: theme_checks = set([p[len(sub_tokens)] for p in theme_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
+
                 word_scores = self.sonnet_object.pos_to_words[helper.remove_punc(template[i].split("_")[0])]
-                if any(v != 1 for v in word_scores.values()):
-                    theme_tokens = {self.tokenizer.encode(space + t)[len(sub_tokens)]: v for t, v in word_scores.items() if len(self.tokenizer.encode(space + t)) > len(sub_tokens)}
-                    word_scores = np.array([theme_tokens[t] if t in theme_tokens else 0 for t in range(len(words))])
-                    #if verbose: print("theme_scores", theme_scores.sum(), len(theme_scores.nonzero()[0]), theme_scores)
+
+                if any(v != 1 for v in word_scores.values()): #if words have different scores, get the scores of the relevant words
+                    score_tokens = {self.tokenizer.encode(space + t)[len(sub_tokens)]: v for t, v in word_scores.items() if len(self.tokenizer.encode(space + t)) > len(sub_tokens)}
+                    word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len(words))])
                 else:
                     word_scores = np.ones(len(words))
+
                 if len(sub_tokens) == 0 and alliteration:
                     wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in alliteration) for x in words])
                     word_scores[wws == 1] *= 2 #maybe make more or += ___
@@ -190,7 +238,6 @@ class gpt_gen:
 
 
                 if theme_scores and max(theme_scores)[0] / max(ws) > theme_threshold:
-                    # ws[ws.find() not in love_checks] = 0
                     if verbose: print("reducing to theme words")
                     #ws = [int(x in theme_checks) * ws[x] for x in range(len(words))]
                     #print("before", len(ws.nonzero()))
@@ -202,9 +249,7 @@ class gpt_gen:
                 dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
                 token = np.random.choice(np.arange(len(words)), p=dist).item()
 
-
-                #if verbose: print("chose", token, sub_tokens, poss_tokens)
-
+            # 2c
             if verbose: print("for ", template[i], end=': ')
 
             if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(
