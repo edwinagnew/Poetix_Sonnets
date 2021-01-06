@@ -19,7 +19,7 @@ class gpt_gen:
             self.sonnet_object = sonnet_basic.Sonnet_Gen()
             #self.sonnet_words = self.sonnet_object.get_pos_words
 
-        if torch.cuda.is_available(): model = "gpt2-large"
+        #if torch.cuda.is_available(): model = "gpt2-large"
         self.model_size = model
 
         print("loading model")

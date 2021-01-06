@@ -27,7 +27,7 @@ class Sim_finder:
             glove_file = glove_model_file
             tmp_file = get_tmpfile("glove_word2vec.txt")
             glove2word2vec(glove_file, tmp_file)
-            self.glove_model = KeyedVectors.load_word2vec_format(tmp_file)
+            self.glove_model = KeyedVectors.load_word2vec_format(tmp_file, binary=False)
             print("saving with pickle")
             pickle.dump(self.glove_model, open(glove_pick_file, "wb"))
 

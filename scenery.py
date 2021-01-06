@@ -168,19 +168,20 @@ class Scenery_Gen(poem_core.Poem):
 
     def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
                         theme_lines=0, k=5, alliteration=True, theme_threshold=0.5,
-                        theme_choice="and", theme_cutoff=0.35, sum_similarity=True,
-                        theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt"):
-        if not self.gpt:
-            if verbose: print("getting gpt")
-            self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2")
+                        theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
+                        theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt", gpt_size="gpt2"):
+        if not self.gpt or gpt_size != self.gpt.model_size:
+            if verbose: print("getting", gpt_size)
+            self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
             #self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2-large")
         self.reset_gender()
 
         self.theme = theme
 
-        if story == True:
+        if story:
             self.story_graph = graph_reader.Graph(txt_file=story_file)
             self.theme = (self.story_graph.curr.word, self.story_graph.curr.pos)
+            theme = self.story_graph.curr.word
             self.story = [(self.theme[0], self.theme[1])]
             while len(self.story) < 4:
                 self.story.append(self.story_graph.update())
@@ -202,7 +203,8 @@ class Scenery_Gen(poem_core.Poem):
 
             for pos in ['NN', 'JJ', 'RB']:
                 if pos not in theme_words[sub_theme]: theme_words[sub_theme][pos] = []
-                elif theme_choice == "and":
+
+                if theme_choice == "and":
                     theme_words[sub_theme][pos] += self.get_diff_pos(sub_theme, pos, 10)
                 else:
                     for t in sub_theme.split():
