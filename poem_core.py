@@ -478,6 +478,31 @@ class Poem:
                         ("WILL VB THE NNS TO THE RB JJ.", "0_1_0_10_1_0_10_1"),
                         ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
                         ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
+            elif used_templates[-1] == "BUT PRPS VBD TO PRPD$ JJ NNS":
+                poss = [("SO PRPS THROUGH NNS OF JJ NNS SHALL VB.", "0_1_0_10_1_0_1_0_1"),
+                        ("SO TOO PRPD$ NNS VB TO PRPD$ NN.", "0_1_0_10_1_0_1_01"),
+                        ("AND ABNN IS A JJ AND JJ NN.", "0_10_1_0_1_0_1_01"),
+                        ("AND VBG PRPD$ NN BY PRPD$ NN<,/.>", "0_10_1_01_0_1_01"),
+                        ("SO JJ A NN OF NNS, YET PRPS VBZ RB", "0_1_0_1_0_1_0_1_0_1")]
+            elif helper.remove_punc(used_templates[-1]) in "IF PRPS COULD VB THIS JJ NN OF ABNN<./,>":
+                poss = [("THERE IS VBN, PRPD$ JJ NN, JJ OF;", "0_1_01_0_10_1_0_1"),
+                        ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
+                        ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
+                        ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
+                        ("SO TOO PRPD$ NNS VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_01")]
+            elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,":
+                poss = [("THERE IS VBN, PRPD$ JJ NN, JJ OF;", "0_1_01_0_10_1_0_1"),
+                        ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
+                        ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
+                        ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
+                        ("SO TOO PRPD$ NNS VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_01")]
+            elif used_templates[-1] == "WHEN PRPS VBD THE JJ, VBD NN":
+                poss = [("SO TOO PRPD$ NNS VBD TO PRPD$ NN<;/.>", "0_1_0_1_01_0_1_01"),
+                        ("THE NN VBBD LIKE A NN IN THE NN<./,/;>", "0_1_01_0_1_0_1_0_1"),
+                        ("ABNN VBD AND VBD EVERY WHERE<,/.>", "01_01_0_10_10_1"),
+                        ("PRPD$ JJ NN COULD VB RB WITH PRPO.", "0_10_10_1_0_1_0_1"),
+                        ("PRPS VBD AN ALL JJ NN AND JJ NN.", "0_1_0_1_0_1_0_10_1")]
+
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
             # elif used_templates[-1][-1] in incomplete:
