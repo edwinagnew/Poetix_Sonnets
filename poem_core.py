@@ -85,7 +85,9 @@ class Poem:
             return self.get_meter(word[:-1])
         elif word[-1] == ">":
             return self.get_meter(word.split("<")[0])
+
         if word not in self.dict_meters: return []
+
         if len(self.dict_meters[word][0]) == 1: return ["0", "1"]
         return self.dict_meters[word]
 
