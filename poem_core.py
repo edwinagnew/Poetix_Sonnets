@@ -88,7 +88,7 @@ class Poem:
 
         if word not in self.dict_meters: return []
 
-        if len(self.dict_meters[word][0]) == 1: return ["0", "1"]
+        if any(len(j) == 1 for j in self.dict_meters[word]): return ["0", "1"] + self.dict_meters[word]
         return self.dict_meters[word]
 
     def get_word_pos(self, word):
