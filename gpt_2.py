@@ -115,7 +115,7 @@ class gpt_gen:
         """
         self.line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
                                alliteration=alliteration, weight_repetition=weight_repetition,
-                               theme_threshold=theme_threshold)
+                               theme_threshold=theme_threshold, prev_lines=seed)
         # i = a
         # while i < len(template):
         for i in range(a, len(template)):
@@ -196,6 +196,75 @@ class Line_Generator:
 
         self.prev_lines = self.curr_line = ""
 
+    def get_poss(self, i, verbose=False):
+        punc = ",.;?"
+        if self.punc_next:
+            self.poss = set(self.punc_next)
+            self.punc_next = False
+        else:
+            if self.template[i][-1] == ">":
+                self.template[i], self.punc_next = self.template[i].split("<")[0], self.template[i].split("<")[
+                    -1].strip(">").split("/")
+
+            elif self.template[i][-1] in punc:
+                self.template[i], self.punc_next = self.template[i][:-1], self.template[i][-1]
+
+            # 1c - deal with repetition templates
+            if "_" in self.template[i]:
+                if self.template[i] in self.repeats:
+                    if verbose: print("choosing", self.template[i], "from", self.repeats)
+                    self.poss = [self.repeats[self.template[i]]]
+                else:
+                    self.poss = self.sonnet_object.get_pos_words(self.template[i].split("_")[0],
+                                                                 meter=list(self.meter_dict.keys()))
+                    self.poss = set([p for p in self.poss if p not in self.repeats.values()])
+
+            # 1d - get potential next words
+            else:
+                self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys())))
+
+            r = None
+            if i == len(self.template) - 1 and self.rhyme_word:
+                r = self.rhyme_word
+                self.poss = set(
+                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
+
+                if verbose: print("restricting to rhymes", self.rhyme_word, self.poss)
+
+        if len(self.poss) == 0:
+            if "PPR" in self.template[i] and self.template[i] in self.sonnet_object.pos_to_words:
+                self.poss = [p for p in self.sonnet_object.pos_to_words[self.template[i]] if any(m in self.meter_dict for m in self.sonnet_object.get_meter(p))]
+
+            if "sc" in self.template[i]:
+                if verbose: print("there arent any words so removing sc from", self.template[i])
+                self.template[i] = self.template[i].replace("sc", "")
+
+                self.poss = set(
+                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
+
+            if self.sonnet_object.backup_words:  # in case were using byron vocab
+                if verbose: print("getting backup words")
+                self.poss = set(
+                    self.sonnet_object.get_backup_pos_words(self.template[i], list(self.meter_dict.keys()), rhyme=r))
+
+            if len(self.poss) == 0:  # still
+                if verbose: print("there arent any words so giving up", self.template[i], self.meter_dict.keys())
+                return 1 / 0
+
+        space = self.space = " " * int(list(self.poss)[0] not in punc + "'s" and i > 0)
+        if len(self.poss) == 1:
+            # 2a - only one option
+            # choose token with right spacing
+            # if verbose: print(poss, template[i], meter_dict)
+            self.poss_tokens = [self.gpt_tokenizer.encode(space + list(self.poss)[0])]
+            # token = poss_tokens[0][len(self.sub_tokens)]
+            # dist = ws = np.ones(len(self.gpt_tokens))
+        else:
+            self.poss_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.poss]
+            if self.template[i] in self.theme_words:
+                self.theme_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.theme_words[self.template[i]] if
+                                     p in self.poss]
+
     def update(self, gpt_output, i, verbose=False):
         """
         Take in gpt_output and return next token
@@ -230,8 +299,7 @@ class Line_Generator:
 
             word_scores = self.sonnet_object.pos_to_words[helper.remove_punc(self.template[i].split("_")[0])]
 
-            if any(v != 1 for v in
-                   word_scores.values()):  # if words have different scores, get the scores of the relevant words
+            if any(v != 1 for v in word_scores.values()):  # if words have different scores, get the scores of the relevant words
                 score_tokens = {self.gpt_tokenizer.encode(self.space + t)[len(self.sub_tokens)]: v for t, v in
                                 word_scores.items() if
                                 len(self.gpt_tokenizer.encode(self.space + t)) > len(self.sub_tokens)}
@@ -249,23 +317,25 @@ class Line_Generator:
             ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
             if ws.shape[0] == 1: ws = ws[0]
 
+
             if self.weight_repetition:
                 seed_words = helper.remove_punc(self.prev_lines.lower().replace("'s", "")).split()
                 lemmas = [self.lemma.lemmatize(word) for word in seed_words]  # gets lemmas for all words in poem
 
                 lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
 
+
                 for j, p in enumerate(self.poss):
                     p_lemma = self.lemma.lemmatize(p)
-                    if len(self.sub_tokens) == 0 and (lemmas.count(p_lemma) > 1 or lemmas_last.count(
-                            p_lemma) > 0):  # solved - doesnt allow repetition in the same line
-
-                        if self.poss_tokens[j][0] in checks and len(ws.nonzero()) > 1:  # fix
-                            repeated_token = self.poss_tokens[j][len(self.sub_tokens)]
+                    if lemmas.count(p_lemma) > 1 or lemmas_last.count(
+                            p_lemma) > 0:  # solved - doesnt allow repetition in the same line
+                        if len(self.sub_tokens) == 0 and self.poss_tokens[j][0] in checks:  # fix
+                            if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
+                                              "times")
+                            repeated_token = self.poss_tokens[j][0]
                             ws[repeated_token] = 0
                             if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                              "times", "so deweighted", repeated_token,
-                                              self.gpt_tokenizer.decode(repeated_token), "\n")
+                                              "times so deweighted", repeated_token, self.gpt_tokenizer.decode(repeated_token), "\n")
                         else:
                             pass
 
@@ -316,73 +386,9 @@ class Line_Generator:
         # maybe return token here?
         return token
 
-    def get_poss(self, i, verbose=False):
-        punc = ",.;?"
-        if self.punc_next:
-            self.poss = set(self.punc_next)
-            self.punc_next = False
-        else:
-            if self.template[i][-1] == ">":
-                self.template[i], self.punc_next = self.template[i].split("<")[0], self.template[i].split("<")[
-                    -1].strip(">").split("/")
-
-            elif self.template[i][-1] in punc:
-                self.template[i], self.punc_next = self.template[i][:-1], self.template[i][-1]
-
-            # 1c - deal with repetition templates
-            if "_" in self.template[i]:
-                if self.template[i] in self.repeats:
-                    if verbose: print("choosing", self.template[i], "from", self.repeats)
-                    self.poss = [self.repeats[self.template[i]]]
-                else:
-                    self.poss = self.sonnet_object.get_pos_words(self.template[i].split("_")[0],
-                                                                 meter=list(self.meter_dict.keys()))
-                    self.poss = set([p for p in self.poss if p not in self.repeats.values()])
-
-            # 1d - get potential next words
-            else:
-                self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys())))
-            r = None
-            if i == len(self.template) - 1 and self.rhyme_word:
-                r = self.rhyme_word
-                self.poss = set(
-                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
-
-                if verbose: print("restricting to rhymes", self.rhyme_word, self.poss)
-
-        if len(self.poss) == 0:
-            if "sc" in self.template[i]:
-                if verbose: print("there arent any words so removing sc from", self.template[i])
-                self.template[i] = self.template[i].replace("sc", "")
-
-                self.poss = set(
-                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
-
-            if self.sonnet_object.backup_words:  # in case were using byron vocab
-                if verbose: print("getting backup words")
-                self.poss = set(
-                    self.sonnet_object.get_backup_pos_words(self.template[i], list(self.meter_dict.keys()), rhyme=r))
-
-            if len(self.poss) == 0:  # still
-                if verbose: print("there arent any words so giving up", self.template[i], self.meter_dict.keys())
-                return 1 / 0
-
-        space = self.space = " " * int(list(self.poss)[0] not in punc + "'s" and i > 0)
-        if len(self.poss) == 1:
-            # 2a - only one option
-            # choose token with right spacing
-            # if verbose: print(poss, template[i], meter_dict)
-            self.poss_tokens = [self.gpt_tokenizer.encode(space + list(self.poss)[0])]
-            # token = poss_tokens[0][len(self.sub_tokens)]
-            # dist = ws = np.ones(len(self.gpt_tokens))
-        else:
-            self.poss_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.poss]
-            if self.template[i] in self.theme_words:
-                self.theme_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.theme_words[self.template[i]] if
-                                     p in self.poss]
 
     def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6):
+                 theme_threshold=0.6, prev_lines=""):
         self.template = template
         self.meter_dict = meter_dict
         self.rhyme_word = rhyme_word
@@ -398,11 +404,11 @@ class Line_Generator:
         self.theme_words = theme_words
 
         self.alliteration = alliteration
-        self.weight_repetition = weight_repetition
+        self.weight_repetition = weight_repetition #False
 
         self.theme_threshold = theme_threshold
 
         self.first_lets = set()
 
-        self.prev_lines += "\n" + self.curr_line
+        self.prev_lines = prev_lines
         self.curr_line = ""
