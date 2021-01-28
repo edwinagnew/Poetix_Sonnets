@@ -319,25 +319,7 @@ class Line_Generator:
 
 
             if self.weight_repetition:
-                seed_words = helper.remove_punc(self.prev_lines.lower().replace("'s", "")).split()
-                lemmas = [self.lemma.lemmatize(word) for word in seed_words]  # gets lemmas for all words in poem
-
-                lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
-
-
-                for j, p in enumerate(self.poss):
-                    p_lemma = self.lemma.lemmatize(p)
-                    if lemmas.count(p_lemma) > 1 or lemmas_last.count(
-                            p_lemma) > 0:  # solved - doesnt allow repetition in the same line
-                        if len(self.sub_tokens) == 0 and self.poss_tokens[j][0] in checks:  # fix
-                            if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                              "times")
-                            repeated_token = self.poss_tokens[j][0]
-                            ws[repeated_token] = 0
-                            if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                              "times so deweighted", repeated_token, self.gpt_tokenizer.decode(repeated_token), "\n")
-                        else:
-                            pass
+                ws = self.weight_repeated_words(checks, ws, verbose=verbose)
 
             theme_scores = []
             if self.theme_tokens: theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
@@ -412,3 +394,27 @@ class Line_Generator:
 
         self.prev_lines = prev_lines
         self.curr_line = ""
+
+    def weight_repeated_words(self, checks, ws, verbose=False):
+        seed_words = helper.remove_punc(self.prev_lines.lower().replace("'s", "")).split()
+        lemmas = [self.lemma.lemmatize(word) for word in seed_words]  # gets lemmas for all words in poem
+
+        lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(
+            self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
+
+        for j, p in enumerate(self.poss):
+            p_lemma = self.lemma.lemmatize(p)
+            if lemmas.count(p_lemma) > 1 or lemmas_last.count(
+                    p_lemma) > 0:  # solved - doesnt allow repetition in the same line
+                if len(self.sub_tokens) == 0 and self.poss_tokens[j][0] in checks:  # fix
+                    if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
+                                      "times")
+                    repeated_token = self.poss_tokens[j][0]
+                    ws[repeated_token] = 0
+                    if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
+                                      "times so deweighted", repeated_token, self.gpt_tokenizer.decode(repeated_token),
+                                      "\n")
+                else:
+                    pass
+
+        return ws
