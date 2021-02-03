@@ -88,7 +88,7 @@ class Poem:
 
         if word not in self.dict_meters: return []
 
-        if any(len(j) == 1 for j in self.dict_meters[word]): return ["0", "1"] + self.dict_meters[word]
+        if any(len(j) == 1 for j in self.dict_meters[word]): return list(set(["0", "1"] + self.dict_meters[word]))
         return self.dict_meters[word]
 
     def get_word_pos(self, word):
@@ -432,7 +432,7 @@ class Poem:
                 self.meter_and_pos[("0", pos)] = list(set(self.meter_and_pos[("0", pos)]))
             if meter == "0":
                 self.meter_and_pos[("1", pos)] += self.meter_and_pos[(meter,pos)]
-                self.meter_and_pos[("1", pos)] = list(set(self.meter_and_pos[("0", pos)]))
+                self.meter_and_pos[("1", pos)] = list(set(self.meter_and_pos[("1", pos)]))
 
     def reset_meter_pos_dict(self):
         possible_pos = [item for item in list(self.pos_to_words.keys()) if "PRP" in item]

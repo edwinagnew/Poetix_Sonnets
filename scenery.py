@@ -286,6 +286,7 @@ class Scenery_Gen(poem_core.Poem):
                 alliterated = not alliteration
                 if theme_progression:
                     self.words_to_pos = stanza_words[int(line_number/4)]
+                    self.set_meter_pos_dict()
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
             if rhyme_lines and line_number % 4 >= 2:
