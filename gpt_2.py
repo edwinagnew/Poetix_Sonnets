@@ -22,7 +22,6 @@ class gpt_gen:
         # if torch.cuda.is_available(): model = "gpt2-large"
         self.model_size = model
 
-        print("loading model")
         self.tokenizer = GPT2Tokenizer.from_pretrained(model)
 
         self.model = GPT2LMHeadModel.from_pretrained(model)
@@ -232,7 +231,7 @@ class Line_Generator:
                 if verbose: print("restricting to rhymes", self.rhyme_word, self.poss)
 
         if len(self.poss) == 0:
-            if "PPR" in self.template[i] and self.template[i] in self.sonnet_object.pos_to_words:
+            if "PRP" in self.template[i] and self.template[i] in self.sonnet_object.pos_to_words:
                 self.poss = [p for p in self.sonnet_object.pos_to_words[self.template[i]] if any(m in self.meter_dict for m in self.sonnet_object.get_meter(p))]
 
             if "sc" in self.template[i]:
