@@ -352,7 +352,7 @@ class Line_Generator:
 
             if word not in ",.;?":
                 meter = ""
-                if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
+                #if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
                 while meter not in self.meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
                 self.meter_dict = self.meter_dict[meter]
                 if "_" in self.template[i]:
@@ -403,13 +403,20 @@ class Line_Generator:
 
         for j, p in enumerate(self.poss):
             p_lemma = self.lemma.lemmatize(p)
-            if lemmas.count(p_lemma) > 1 or lemmas_last.count(
-                    p_lemma) > 0:  # solved - doesnt allow repetition in the same line
+            if lemmas.count(p_lemma) > 0 or lemmas_last.count(
+                    p_lemma) > 0:  # solved - doesnt allow repetition in the same line #changed to 0
                 if len(self.sub_tokens) == 0 and self.poss_tokens[j][0] in checks:  # fix
                     if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
                                       "times")
                     repeated_token = self.poss_tokens[j][0]
-                    ws[repeated_token] = 0
+                    #ws[repeated_token] = 0
+                    dist = 0
+                    freq = lemmas.count(p_lemma)
+                    if freq > 0:
+                        sep = len(lemmas) - lemmas.index(p_lemma)
+                        dist = (sep/150) / freq #for now
+
+                    ws[repeated_token] *= dist
                     if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
                                       "times so deweighted", repeated_token, self.gpt_tokenizer.decode(repeated_token),
                                       "\n")
