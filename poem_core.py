@@ -752,6 +752,26 @@ class Poem:
 
         return line.strip()
 
+    def get_poss_meters_no_template(self, desired_meter="0101010101"):
+        meter_options = set([key[0] for key in self.meter_and_pos.keys() if len(self.meter_and_pos[key]) > 0])
+        if desired_meter == "":
+            return {}
+        else:
+            poss_meters = {}
+            for poss_meter in self.possible_meters:
+                # print("checking for ", word_pos, "with meter ", poss_meter)
+                if desired_meter.find(poss_meter) == 0 and poss_meter in meter_options:
+                    temp = self.get_poss_meters_no_template(desired_meter[len(poss_meter):])
+                    # print("made recursive call")
+                    if temp != None:
+                        # print("adding something to dict")
+                        poss_meters[poss_meter] = temp
+            if len(poss_meters) == 0:
+                return None
+            return poss_meters
+
+
+
     def get_poss_meters_forward_rhet(self, template, meter, rhet_dict,
                                 rhyme_meters=None):  # template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
         """
