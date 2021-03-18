@@ -297,7 +297,7 @@ class Poem:
             t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if
             pos in self.end_pos)
 
-    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
+    def write_line_gpt(self, template=None, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
                        all_verbs=False, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
@@ -307,6 +307,7 @@ class Poem:
         if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
                                               verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold) for _ in range(n)]
 
+        if not meter: flex_meter = False
         if template is None: template, meter = random.choice(self.templates)
 
         #template = self.fix_template(template)
@@ -348,8 +349,8 @@ class Poem:
             if verbose: print("writing line", template, meter)
             # if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
-            return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"),
-                                            rhyme_word=rhyme_word, verbose=verbose)
+            return self.gpt.generation_flex_meter(template.split(), meter_dict={}, seed=self.gpt_past,
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice(self.templates)
@@ -827,3 +828,5 @@ class Poem:
             if len(poss_meters) == 0:
                 return None
             return poss_meters
+
+
