@@ -829,4 +829,14 @@ class Poem:
                 return None
             return poss_meters
 
+    def get_poss_words_no_pos(self, meter_list):
+
+        all_words = []
+
+        for meter in meter_list:
+            poss_pos = [key[1] for key in self.meter_and_pos.keys() if len(self.meter_and_pos[key]) > 0 and key[0] == meter]
+            for pos in poss_pos:
+                all_words += self.meter_and_pos[(meter,pos)]
+
+        return all_words
 
