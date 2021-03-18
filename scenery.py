@@ -167,7 +167,7 @@ class Scenery_Gen(poem_core.Poem):
 
 
     def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
-                        theme_lines=0, k=5, alliteration=True, theme_threshold=0.5,
+                        theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, no_meter = False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt", gpt_size="gpt2"):
         if not self.gpt or gpt_size != self.gpt.model_size:
@@ -306,6 +306,9 @@ class Scenery_Gen(poem_core.Poem):
                     continue
             else:
                 template, meter = self.templates[line_number]
+
+            if no_meter:
+                meter = {}
 
             #if r and len()
             alliterating = "_" not in template and not alliterated and random.random() < 0.3

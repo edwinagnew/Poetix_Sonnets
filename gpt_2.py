@@ -1,4 +1,5 @@
-import sonnet_basic
+#import sonnet_basic
+import poem_core
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 import numpy as np
@@ -16,7 +17,8 @@ class gpt_gen:
             self.sonnet_object = sonnet_object
         else:
             print("didnt give me a sonnet_method, making one myself")
-            self.sonnet_object = sonnet_basic.Sonnet_Gen()
+            #self.sonnet_object = sonnet_basic.Sonnet_Gen()
+            self.sonnet_object = poem_core.Poem()
             # self.sonnet_words = self.sonnet_object.get_pos_words
 
         # if torch.cuda.is_available(): model = "gpt2-large"
@@ -97,9 +99,10 @@ class gpt_gen:
             else:
                 first_word = random.choice(self.sonnet_object.get_pos_words(template[0], meter=list(meter_dict.keys())))
             first_met = ""
-            while first_met not in meter_dict: first_met = random.choice(self.sonnet_object.get_meter(first_word))
-            meter_dict = meter_dict[first_met]
-            if verbose: print("(seedless) meter dict now", first_met, first_word, meter_dict)
+            if meter_dict:
+                while first_met not in meter_dict: first_met = random.choice(self.sonnet_object.get_meter(first_word))
+                meter_dict = meter_dict[first_met]
+                if verbose: print("(seedless) meter dict now", first_met, first_word, meter_dict)
             generated = self.tokenizer.encode(first_word)  # picks first word randomly
             a = 1
         else:
@@ -225,8 +228,7 @@ class Line_Generator:
             r = None
             if i == len(self.template) - 1 and self.rhyme_word:
                 r = self.rhyme_word
-                self.poss = set(
-                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
+                self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
 
                 if verbose: print("restricting to rhymes", self.rhyme_word, self.poss)
 
@@ -269,9 +271,9 @@ class Line_Generator:
         Take in gpt_output and return next token
         Parameters
         ----------
-        i
+        i - word number
         verbose
-        gpt_output
+        gpt_output - token scores
 
         Returns
         -------
@@ -284,30 +286,28 @@ class Line_Generator:
         # all tokens
 
         # next possible tokens are all the ones which could come after the ones already chosen
-        checks = set([p[len(self.sub_tokens)] for p in self.poss_tokens if
-                      p[:len(self.sub_tokens)] == self.sub_tokens and len(p) > len(self.sub_tokens)])
+        len_sub = len(self.sub_tokens)
+        checks = set([p[len_sub] for p in self.poss_tokens if
+                      p[:len_sub] == self.sub_tokens and len(p) > len_sub])
 
         if len(checks) == 1:
             token = checks.pop()
             dist = ws = np.ones(len(self.gpt_tokens))
         else:
             # the same but for theme words
-            if self.theme_tokens: theme_checks = set([p[len(self.sub_tokens)] for p in self.theme_tokens if
-                                                      p[:len(self.sub_tokens)] == self.sub_tokens and len(p) > len(
-                                                          self.sub_tokens)])
+            if self.theme_tokens: theme_checks = set([p[len_sub] for p in self.theme_tokens if
+                                                      p[:len_sub] == self.sub_tokens and len(p) > len_sub])
 
             word_scores = self.sonnet_object.pos_to_words[helper.remove_punc(self.template[i].split("_")[0])]
 
             if any(v != 1 for v in word_scores.values()):  # if words have different scores, get the scores of the relevant words
-                score_tokens = {self.gpt_tokenizer.encode(self.space + t)[len(self.sub_tokens)]: v for t, v in
-                                word_scores.items() if
-                                len(self.gpt_tokenizer.encode(self.space + t)) > len(self.sub_tokens)}
-                word_scores = np.array(
-                    [score_tokens[t] if t in score_tokens else 0 for t in range(len(self.gpt_tokens))])
+                score_tokens = {self.gpt_tokenizer.encode(self.space + t)[len_sub]: v for t, v in word_scores.items() if
+                                len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
+                word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
             else:
                 word_scores = np.ones(len(self.gpt_tokens))
 
-            if len(self.sub_tokens) == 0 and self.alliteration:
+            if len_sub == 0 and self.alliteration:
                 wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in self.alliteration) for x in self.gpt_tokens])
                 word_scores[wws == 1] *= 2  # maybe make more or += ___
                 if verbose: print("alliterating", self.alliteration, sum(wws))
@@ -350,7 +350,7 @@ class Line_Generator:
 
             word = self.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
 
-            if word not in ",.;?":
+            if word not in ",.;?" and self.meter_dict:
                 meter = ""
                 #if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
                 while meter not in self.meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
