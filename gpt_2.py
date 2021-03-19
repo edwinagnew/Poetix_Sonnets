@@ -233,11 +233,12 @@ class gpt_gen:
         """
         1 - main loop
         """
-        self.line_gen.new_line(meter_dict, prev_lines=seed, no_template=True, meter_dict=meter_dict)
+        self.line_gen.new_line(meter_dict, prev_lines=seed, no_template=True, meter_dict=meter_dict, weight_repetition=False)
         # i = a
         # while i < len(template):
         i = 0 #not needed, but used for keeping track of the line we're on
-        while meter_dict:
+        while self.line_gen.meter_dict:
+            print("starting new iteration of while loop")
             # 1a - get new tokens
             while True:
                 with torch.no_grad():
@@ -246,7 +247,7 @@ class gpt_gen:
                 if verbose: print(i, "(" + str(len(self.line_gen.sub_tokens)) + ")")
 
                 output += abs(torch.min(output))  # makes all positive
-
+                print(output.max())
                 token = self.line_gen.update(output, i, verbose=verbose, no_template=True)
 
                 generated += [token]  # .tolist()
@@ -255,7 +256,6 @@ class gpt_gen:
 
                 if len(self.line_gen.sub_tokens) == 0 and not self.line_gen.punc_next:
                     break
-            meter_dict = self.line_gen.meter_dict
             i += 1
             # i += int(not punc_next and len(sub_tokens) == 0)
 
@@ -391,7 +391,9 @@ class Line_Generator:
 
         if len(self.sub_tokens) == 0:  # first token of word
             if no_template:
-                self.poss = self.sonnet_object.get_poss_meters_no_template(list(self.meter_dict.keys()))
+                self.poss = self.sonnet_object.get_poss_words_no_pos(list(self.meter_dict.keys()))
+                space = self.space = " " * int(list(self.poss)[0] and i > 0)
+                self.poss_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.poss]
             else:
                 self.get_poss(i, verbose=verbose)
 
@@ -411,7 +413,7 @@ class Line_Generator:
                                                       p[:len_sub] == self.sub_tokens and len(p) > len_sub])
 
             if no_template:
-                words = self.sonnet_object.get_poss_meters_no_template(list(self.meter_dict.keys()))
+                words = self.poss
                 word_scores = {}
                 for word in words:
                     word_scores[word] = 1
@@ -423,6 +425,7 @@ class Line_Generator:
                                 len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
                 word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
             else:
+                print("replacing tokens")
                 word_scores = np.ones(len(self.gpt_tokens))
 
             if len_sub == 0 and self.alliteration:
@@ -431,6 +434,11 @@ class Line_Generator:
                 if verbose: print("alliterating", self.alliteration, sum(wws))
 
             filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
+            if any(f != 0 for f in filt):
+                print("okay up to here")
+            else:
+                print(word_scores)
+                print(checks)
             ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
             if ws.shape[0] == 1: ws = ws[0]
 
@@ -459,7 +467,7 @@ class Line_Generator:
             token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
 
         # 2c
-        if verbose: print("for ", self.template[i], end=': ')
+        if verbose and not no_template: print("for ", self.template[i], end=': ')
 
         if verbose: print("picked " + str(token) + ": '" + str(self.gpt_tokenizer.decode(token)) + "' with prob " + str(
             dist[token]) + " initial score " + str(ws[token]))
@@ -473,7 +481,7 @@ class Line_Generator:
                 #if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
                 while meter not in self.meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
                 self.meter_dict = self.meter_dict[meter]
-                if "_" in self.template[i]:
+                if not no_template and "_" in self.template[i]:
                     self.repeats[self.template[i]] = word
             self.sub_tokens = []
             self.curr_line += self.space + word
