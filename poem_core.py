@@ -753,6 +753,9 @@ class Poem:
         return line.strip()
 
     def get_poss_meters_no_template(self, desired_meter="0101010101"):
+
+        if isinstance(desired_meter, list):
+            desired_meter = "".join(desired_meter)
         meter_options = set([key[0] for key in self.meter_and_pos.keys() if len(self.meter_and_pos[key]) > 0])
         if desired_meter == "":
             return {}
