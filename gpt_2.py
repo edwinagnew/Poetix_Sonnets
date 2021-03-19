@@ -162,66 +162,9 @@ class gpt_gen:
         return torch.tensor([outputs[0][0][max(0, i - 1)][input_ids[0][i]] for i in
                              range(len(input_ids[0]))])  # gets the score of each original word in the line
 
+
+
     def gen_line_no_template(self, seed="Shall I compare thee to a summer's day?\n", verbose=True):
-
-        meter_dict = self.sonnet_object.get_poss_meters_no_template()
-
-        generated = self.tokenizer.encode(seed)
-
-        context = torch.tensor([generated]).to(self.model.device)
-        past = None
-
-        gpt_tokens = list(self.tokenizer.encoder.keys())
-
-
-        tokens = []
-        line = ""
-
-        self.line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
-                               alliteration=alliteration, weight_repetition=weight_repetition,
-                               theme_threshold=theme_threshold, prev_lines=seed)
-
-
-        while meter_dict:
-            with torch.no_grad():
-                output, past = self.model(context, past_key_values=past, use_cache=True).values()
-
-            #if verbose: print("(" + str(len(self.line_gen.sub_tokens)) + ")")
-
-            output += abs(torch.min(output))  # makes all positive
-
-            ws = output[..., -1, :].cpu().detach().numpy()
-
-            dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
-            token = np.random.choice(np.arange(len(gpt_tokens)), p=dist).item()
-
-            if " " in self.tokenizer.decode(token):
-                if verbose: print("got space", self.tokenizer.decode(tokens), token, self.tokenizer.decode(token))
-                last_word = self.tokenizer.decode(tokens)
-                met = self.sonnet_object.get_meter(last_word)
-                if any(m in meter_dict for m in met):
-                    print("got", last_word, "so updating meter dict with", met)
-                    line += last_word
-                    meter_dict = meter_dict[met]
-                    tokens = [token]
-                    context = torch.tensor(token).unsqueeze(0).to(self.model.device)
-                else:
-                    if verbose: print("bad word", last_word, met, meter_dict.keys())
-                    tokens = []
-                    generated = self.tokenizer.encode(seed + line)
-                    context = torch.tensor([generated]).to(self.model.device)
-                    past = None
-
-            else:
-                tokens.append(token)
-                context = torch.tensor(token).unsqueeze(0).to(self.model.device)
-
-        return line
-
-
-
-
-    def ben_line_no_template(self, seed="Shall I compare thee to a summer's day?\n", verbose=True):
 
         meter_dict = self.sonnet_object.get_poss_meters_no_template()
 
