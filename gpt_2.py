@@ -130,7 +130,7 @@ class gpt_gen:
 
                 output += abs(torch.min(output))  # makes all positive
 
-                token = self.line_gen.update(output, i, verbose=verbose, no_template=no_template)
+                token = self.line_gen.update(output, i, verbose=verbose)
 
                 generated += [token]  # .tolist()
                 # context = token.unsqueeze(0)
