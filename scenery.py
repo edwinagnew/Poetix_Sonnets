@@ -25,11 +25,11 @@ class Scenery_Gen(poem_core.Poem):
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 templates_file=('poems/jordan_templates.txt', "poems/rhetorical_templates.txt"),
-                 mistakes_file=None):
+                 templates_file=('poems/templates_basic.txt', "poems/rhetorical_templates.txt"),
+                 mistakes_file=None, tense=None):
 
         poem_core.Poem.__init__(self, words_file=words_file, templates_file=templates_file,
-                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file, mistakes_file=mistakes_file)
+                                syllables_file=syllables_file, extra_stress_file=extra_stress_file, top_file=top_file, mistakes_file=mistakes_file, tense=tense)
         self.vocab_orig = self.pos_to_words.copy()
 
         #with open('poems/kaggle_poem_dataset.csv', newline='') as csvfile:
@@ -169,11 +169,20 @@ class Scenery_Gen(poem_core.Poem):
     def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
                         theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, no_meter = False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
-                        theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt", gpt_size="gpt2"):
+                        theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
+                        gpt_size="gpt2", tense=None):
+        if tense != self.tense:
+            self.tense = tense
+            if tense == None:
+                tense = "basic"
+            s = "poems/templates_" + tense + ".txt"
+            with open(s) as tf:
+                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if "#" not in line and len(line) > 1]
+                print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
-            #self.gpt = gpt_2.gpt_gen(sonnet_object=self, model="gpt2-large")
+
         self.reset_gender()
 
         self.theme = theme

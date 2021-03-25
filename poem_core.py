@@ -12,11 +12,12 @@ from os import path
 
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
-                 templates_file=('poems/jordan_templates.txt', "poems/rhetorical_templates.txt"),
+                 templates_file=('poems/templates_basic.txt', "poems/rhetorical_templates.txt"),
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 mistakes_file=None):
+                 mistakes_file=None, tense=None):
+
         while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(
             mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
         keep_scores = False  # "byron" in words_file
@@ -33,8 +34,8 @@ class Poem:
                     self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                        "#" not in line and len(line) > 1]
             except:
-                print(t, " does not exist so reading from poems/jordan_templates.txt instead")
-                with open("poems/jordan_templates.txt") as tf:
+                print(t, " does not exist so reading from poems/templates_basic.txt instead")
+                with open("poems/templates_basic.txt") as tf:
                     self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                       "#" not in line and len(line) > 1]
 
@@ -78,6 +79,8 @@ class Poem:
 
         self.gpt = None
         self.gpt_past = ""
+
+        self.tense = tense
 
     def get_meter(self, word):
         if not word or len(word) == 0: return [""]
@@ -526,14 +529,17 @@ class Poem:
 
         else:
             # starting templates taken from google doc
-            poss = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
+            starters = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
                     ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
                     ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
                     ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
                     ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
                     ("THERE IS VBN, PRPD$ JJ NN, JJR OF;", "0_1_01_0_10_1_0_1"),
-                    ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
-                    ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1")]
+                    ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01")]
+
+            poss = [p for p in starters if p in self.templates]
+
+            if len(poss) == 0: poss = starters
 
         if len(poss) == 0:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
