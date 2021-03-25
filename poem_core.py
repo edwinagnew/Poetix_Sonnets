@@ -475,31 +475,30 @@ class Poem:
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
-            if used_templates[-1] == "FROM JJS NNS, PRPS VBP RB":
+            if used_templates[-1] == "FROM JJS NNS, PRPS VBP RB": #checked 3/25/21
                 poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
                         ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
                         ("WILL VB THE NNS TO THE RB JJ.", "0_1_0_10_1_0_10_1"),
-                        ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
-                        ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
-            elif used_templates[-1] == "BUT PRPS VBD TO PRPD$ JJ NNS":
+                        ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01")]
+            elif used_templates[-1] == "BUT PRPS VBD TO PRPD$ JJ NNS": #checked 3/25/21
                 poss = [("SO PRPS THROUGH NNS OF JJ NNS SHALL VB.", "0_1_0_10_1_0_1_0_1"),
                         ("SO TOO PRPD$ NNS VB TO PRPD$ NN.", "0_1_0_10_1_0_1_01"),
                         ("AND ABNN IS A JJ AND JJ NN.", "0_10_1_0_1_0_1_01"),
                         ("AND VBG PRPD$ NN BY PRPD$ NN<,/.>", "0_10_1_01_0_1_01"),
                         ("SO JJ A NN OF NNS, YET PRPS VBZ RB", "0_1_0_1_0_1_0_1_0_1")]
-            elif helper.remove_punc(used_templates[-1]) in "IF PRPS COULD VB THIS JJ NN OF ABNN<./,>":
+            elif helper.remove_punc(used_templates[-1]) in "IF PRPS COULD VB THIS JJ NN OF ABNN<./,>": #checked 3/25/21
                 poss = [("THERE IS VBN, PRPD$ JJ NN, JJ OF;", "0_1_01_0_10_1_0_1"),
                         ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
                         ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
                         ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
                         ("SO TOO PRPD$ NNS VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_01")]
-            elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,":
+            elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,": #checked 3/25/21
                 poss = [("THERE IS VBN, PRPD$ JJ NN, JJ OF;", "0_1_01_0_10_1_0_1"),
                         ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
                         ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
                         ("THE JJ NN IS PRPD$ JJS ABNN.", "0_10_10_1_0_10_1"),
                         ("SO TOO PRPD$ NNS VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_01")]
-            elif used_templates[-1] == "WHEN PRPS VBD THE JJ, VBD NN":
+            elif used_templates[-1] == "WHEN PRPS VBD THE JJ, VBD NN": #checked 3/25/21
                 poss = [("SO TOO PRPD$ NNS VBD TO PRPD$ NN<;/.>", "0_1_0_1_01_0_1_01"),
                         ("THE NN VBBD LIKE A NN IN THE NN<./,/;>", "0_1_01_0_1_0_1_0_1"),
                         ("ABNN VBD AND VBD EVERY WHERE<,/.>", "01_01_0_10_10_1"),
