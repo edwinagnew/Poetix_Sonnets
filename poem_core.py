@@ -848,3 +848,15 @@ class Poem:
 
         return all_words
 
+    def write_line_gpt_no_template(self, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
+        if not self.gpt:
+            # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
+            self.gpt = gpt_model
+            if not gpt_model: print("need a gpt model", 1 / 0)
+        #TODO figure out seed stuff
+        if not self.gpt_past or self.gpt_past.strip() == "":
+            self.gpt_past = "Shall I compare thee to a summer's day? Thou art more lovely and more temperate."
+        print("GPT past: ", self.gpt_past)
+        return self.gpt.gen_line_no_template(seed=self.gpt_past)
+
+

@@ -555,3 +555,137 @@ class Scenery_Gen(poem_core.Poem):
             return list(words)
 
         return [w for w in closest_words if desired_pos in self.get_word_pos(w)]
+
+    def write_poem_no_template(self, theme="love", verbose=False, rhyme_lines=False, k=1, alliteration=True, theme_threshold=0.5, no_meter = False, theme_cutoff=0.35, sum_similarity=True, gpt_size="gpt2",
+                           regen_threshhold = 6, theme_lines=0,):
+
+        if not self.gpt or gpt_size != self.gpt.model_size:
+            if verbose: print("getting", gpt_size)
+            self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
+
+        self.reset_gender()
+
+        self.theme = theme
+
+        if theme_lines > 0: self.update_theme_words(theme=theme)
+        theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
+        if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.",
+                                          random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
+
+        if theme:
+            # sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
+            sub_theme = theme
+            if not sub_theme: sub_theme = theme
+
+            theme_words = {}
+            theme_words[sub_theme] = {}
+
+            for pos in ['NN', 'JJ', 'RB']:
+                if pos not in theme_words[sub_theme]: theme_words[sub_theme][pos] = []
+
+                for t in sub_theme.split():
+                    theme_words[sub_theme][pos] += self.get_diff_pos(t, pos, 10)
+                if verbose: print("theme words, ", pos, ": ", len(theme_words[sub_theme][pos]),
+                                  theme_words[sub_theme][pos])
+            rhymes = []  # i think??
+            if verbose: print("\n")
+        else:
+            rhymes = []
+            theme_words = []
+        # random.shuffle(rhymes)
+        for p in ["NN", "NNS", "ABNN"]:
+            if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
+                                                self.word_embeddings.ft_word_similarity(w,
+                                                                                        self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(
+                                                    w, self.theme.split())])
+            if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
+                                                       self.word_embeddings.ft_word_similarity(w,
+                                                                                               self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
+                                                           w, self.theme.split())])
+
+            self.pos_to_words[p] = {word: s for (word, s) in self.pos_to_words[p].items() if
+                                    self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
+            if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
+                              set(self.pos_to_words[p]))
+        self.set_meter_pos_dict()
+
+        samples = ["\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else "" for i in
+                   range(4)]  # one for each stanza
+        if verbose: print("samples, ", samples)
+        # rhymes = []
+        # theme = None
+
+        lines = []
+        used_templates = []
+        choices = []
+        # first three stanzas
+
+        self.gpt_past = ""
+        line_number = 0
+        while line_number < 14:
+            if line_number % 4 == 0:
+                if verbose: print("\n\nwriting stanza", 1 + line_number / 4)
+                # else:
+                #    if line_number > 0: print("done")
+                #    if len(choices) == 0: print("\nwriting stanza", 1 + line_number/4, end=" ...")
+                #alliterated = not alliteration #TODO fix this for later
+            lines = lines[:line_number]
+            #TODO add rhyme things back in here
+            if no_meter:
+                meter = {}
+
+            # if r and len()
+            #TODO add alliteration back in here
+
+            # self.gpt_past = str(theme_lines and theme.upper() + "\n") + "\n".join(lines) #bit weird but begins with prompt if trying to be themey
+            # self.gpt_past = " ".join(theme_words) + "\n" + "\n".join(lines)
+            self.gpt_past = samples[0] + "\n"
+            for i in range(len(lines)):
+                if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
+                self.gpt_past += lines[i] + "\n"
+            self.reset_letter_words()
+            if verbose:
+                print("\nwriting line", line_number)
+
+
+            line = self.write_line_gpt_no_template()#TODO add parameters back in later
+
+            if line: line_arr = line.split()
+            #TODO add some rhyme code back here
+            if line:
+                line = line.replace(" i ", " I ")
+                if verbose: print("wrote line", line)
+                if len(lines) % 4 == 0:
+                    samp = theme + "\n" + samples[len(lines) // 4] + "\n" + line
+                    choices.append((self.gpt.score_line(samp), line))
+                else:
+                    curr_stanza = "\n".join(lines[len(lines) - (len(lines) % 4):])
+                    # line_score = self.gpt.score_line(theme + "\n" + curr_stanza + "\n" + line)
+                    line_score = self.gpt.score_line(curr_stanza + "\n" + line)
+                    if sum_similarity: line_score *= sum(
+                        [self.word_embeddings.ft_word_similarity(w, theme.split()) for w in line.split() if
+                         "NN" in self.get_word_pos(w) or "JJ" in self.get_word_pos(w)])
+                    choices.append((line_score, line))
+                if len(choices) == k:
+                    best = min(choices)
+                    if verbose:
+                        print(choices)
+                        print(line_number, ":out of", len(choices), "chose", best)
+                    lines.append(best[1])
+                    line_number += 1
+                    choices = []
+                    last = helper.remove_punc(lines[-1].split()[-1])
+            else:
+                if verbose: print("no line")
+
+        # if not verbose and len(choices) == 0: print("done")
+        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "\n") if theme else ""
+        for cand in range(len(lines)):
+            ret += str(lines[cand]) + "\n"
+            if ((cand + 1) % 4 == 0): ret += ("\n")
+        if verbose: print(ret)
+
+        self.pos_to_words = self.vocab_orig.copy()
+
+        return ret
+
