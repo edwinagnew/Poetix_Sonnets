@@ -186,8 +186,10 @@ class gpt_gen:
             print("starting new iteration of while loop")
             # 1a - get new tokens
             while True:
+                print("starting new iteration of second while loop")
                 with torch.no_grad():
                     output, past = self.model(context, past_key_values=past, use_cache=True).values()
+
 
                 if verbose: print(i, "(" + str(len(self.line_gen.sub_tokens)) + ")")
 
