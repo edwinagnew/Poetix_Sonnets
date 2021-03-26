@@ -167,10 +167,10 @@ class Scenery_Gen(poem_core.Poem):
 
 
     def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
-                        theme_lines=0, k=5, alliteration=True, theme_threshold=0.5, no_meter = False,
+                        theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter = False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                        gpt_size="gpt2", tense=None):
+                        gpt_size="gpt2", tense=None, internal_rhyme=False):
         if tense != self.tense:
             self.tense = tense
             if tense == None:
@@ -292,7 +292,7 @@ class Scenery_Gen(poem_core.Poem):
                 #else:
                 #    if line_number > 0: print("done")
                 #    if len(choices) == 0: print("\nwriting stanza", 1 + line_number/4, end=" ...")
-                alliterated = not alliteration
+                alliterate = alliteration
                 if theme_progression:
                     self.words_to_pos = stanza_words[int(line_number/4)]
                     self.set_meter_pos_dict()
@@ -320,7 +320,7 @@ class Scenery_Gen(poem_core.Poem):
                 meter = {}
 
             #if r and len()
-            alliterating = "_" not in template and not alliterated and random.random() < 0.3
+            alliterating = "_" not in template and alliterate and random.random() < 0.5 #0.3
             if alliterating:
                 if random.random() < 0.85:
                     letters = string.ascii_lowercase
@@ -344,7 +344,7 @@ class Scenery_Gen(poem_core.Poem):
                 print(template, meter, r)
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number//4]
 
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=t_w, theme_threshold=theme_threshold)
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=t_w, theme_threshold=theme_threshold, internal_rhyme=internal_rhyme)
 
             if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
@@ -364,7 +364,7 @@ class Scenery_Gen(poem_core.Poem):
                         used_templates.append(best[2])
                         line_number += 1
                         choices = []
-                        if best[3]: alliterated = True
+                        if best[3]: alliterate -= 1
                 else:
                     if verbose: print(line_number, "probably wasnt going to get a rhyme with", rhyme_pos)
                     #self.pos_to_words[template.split()[-1]][line.split()[-1]] /= 2
@@ -391,7 +391,7 @@ class Scenery_Gen(poem_core.Poem):
                     used_templates.append(best[2])
                     line_number += 1
                     choices = []
-                    if best[3]: alliterated = True
+                    if best[3]: alliterate -= 1
                     last = helper.remove_punc(lines[-1].split()[-1])
                     if last in rhymes: rhymes = [r for r in rhymes if r != last]
             else:
@@ -405,7 +405,7 @@ class Scenery_Gen(poem_core.Poem):
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "\n") if theme else ""
         for cand in range(len(lines)):
             ret += str(lines[cand]) + "\n"
-            if ((cand + 1) % 4 == 0): ret+=("\n")
+            if (cand + 1) % 4 == 0: ret += "\n"
         if verbose: print(ret)
 
         self.pos_to_words = self.vocab_orig.copy()
