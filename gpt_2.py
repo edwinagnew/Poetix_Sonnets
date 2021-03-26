@@ -39,8 +39,10 @@ class gpt_gen:
 
         self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
 
+        self.gpt_tokens = list(self.tokenizer.encoder.keys())
+
     def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None,
-                              verbose=False, alliteration=None, weight_repetition=True):
+                              verbose=False, alliteration=None, weight_repetition=True, internal_rhyme=False):
         """
         Generates a line of poetry
 
@@ -119,7 +121,7 @@ class gpt_gen:
         1 - main loop
         """
         self.line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
-                               alliteration=alliteration, weight_repetition=weight_repetition,
+                               alliteration=alliteration, internal_rhyme=internal_rhyme, weight_repetition=weight_repetition,
                                theme_threshold=theme_threshold, prev_lines=seed)
         # i = a
         # while i < len(template):
@@ -212,10 +214,7 @@ class gpt_gen:
 
         return sequence.replace(seed.strip(), "").strip()
 
-    def gen_prose_line(self, seed=None, verbose=True, internal_rhyme=True, alliteration=True, check_threshold=5):
-
-        if seed is None:
-            seed = """When day comes we ask ourselves, where can we find light in this never-ending shade?"""  # Gorman poem
+    def gen_prose_line(self, seed, verbose=True, internal_rhyme=5, alliteration=True):
 
         generated = self.tokenizer.encode(seed)
 
@@ -224,22 +223,67 @@ class gpt_gen:
 
         found_punc = False
 
+        words = []
+        curr_word = []
+
+        a = np.arange(1, 10)
+        random.shuffle(a)
+
+        a = a[:internal_rhyme]
+
+        if verbose and internal_rhyme: print("internal rhyming", a)
+
         i = 0
-        while not found_punc:
+        while not found_punc and len(words) < 12:
             if verbose: print(i)
+
             with torch.no_grad():
                 output, past = self.model(context, past_key_values=past, use_cache=True).values()
 
             output += abs(torch.min(output))
             ws = output[..., -1, :].cpu().detach().numpy()
 
-            scores = helper.softmax(ws)
+            ws[ws <= 1] = 0
+
+
+            #if len(curr_word) == 0 and len(words) > 0: #this never happens
+            if len(words) > 0 and alliteration and "Ġ" in self.gpt_tokens[np.argmax(ws)]: #best guess at whether new word is starting
+
+                first_lets = set([w[0] for w in words if len(w) > 0])
+                for j, token in enumerate(self.gpt_tokens):
+                    if len(token) > 1 and token[0] == 'Ġ' and token.strip('Ġ')[0] in first_lets:
+                        ws[j] *= 2
+                        #print("reweighted token", token, "to", ws[i])
+
+            #internal rhyme very weird
+            if i in a and internal_rhyme and "Ġ" in self.gpt_tokens[np.argmax(ws)]:
+
+                wws = np.zeros(len(self.gpt_tokens))
+                for w in words:
+                    wws += np.array([int(len(token) > 1 and w != token.strip('Ġ') and self.sonnet_object.rhymes(w, token.strip('Ġ'))) for token in self.gpt_tokens])
+
+                ws[wws >= 1] *= 2 #doubles the score of all the possible tokens which rhyme with any previous word
+                if verbose: print("internal rhyming", internal_rhyme, len(wws.nonzero()[0]))
+
+            scores = helper.softmax(ws, exclude_zeros=True)
+
+
             token = np.random.choice(np.arange(len(scores)), p=scores)
-            generated += [token]
 
 
-            if any(p in self.tokenizer.decode([token]).strip() for p in string.punctuation):
+            word = self.tokenizer.decode([token])
+
+            if verbose: print(i, token, word)
+
+            if any(p in word.strip() for p in string.punctuation + "\n"):
                 found_punc = True
+
+            elif " " in word:
+                words.append(self.tokenizer.decode(curr_word).strip())
+                curr_word = []
+
+            generated += [token]
+            curr_word.append(token)
 
             #if verbose: print(token)
             context = torch.tensor(token).unsqueeze(0).to(self.model.device)
@@ -250,6 +294,26 @@ class gpt_gen:
         sequence = self.tokenizer.decode(generated[-i:])
 
         return sequence.strip()
+
+    def gen_prose_poem(self, seed=None, n_lines=14, check_threshold=5, verbose=True):
+        if seed is None:
+            seed = """When day comes we ask ourselves, where can we find light in this never-ending shade?"""  # Gorman poem
+
+        lines = seed + "\n"
+
+        while len(lines.split("\n")) < n_lines:
+
+            l = self.gen_prose_line(seed=lines, verbose=False)
+
+            if self.score_line(l) < check_threshold:
+                lines += l + "\n"
+                if verbose: print("got line", len(lines.split("\n")))
+
+        lines = lines.split(seed)[1]
+
+        if verbose: print(lines)
+
+        return lines
 
 
 class Line_Generator:
@@ -269,6 +333,7 @@ class Line_Generator:
         self.repeats = {}
 
         self.alliteration = None
+        self.internal_rhyme = False
 
         self.gpt_tokens = list(gpt_tokenizer.encoder.keys())
         self.gpt_tokenizer = gpt_tokenizer
@@ -408,13 +473,23 @@ class Line_Generator:
                                 len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
                 word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
             else:
-                print("replacing tokens")
+                #print("replacing tokens")
                 word_scores = np.ones(len(self.gpt_tokens))
 
             if len_sub == 0 and self.alliteration:
                 wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in self.alliteration) for x in self.gpt_tokens])
                 word_scores[wws == 1] *= 2  # maybe make more or += ___
                 if verbose: print("alliterating", self.alliteration, sum(wws))
+
+            if len(self.curr_line) > 0 and len_sub == 0 and self.internal_rhyme:
+                ints = self.curr_line.split(" ")
+                wws = np.zeros(len(self.gpt_tokens))
+                for w in ints:
+                    wws += np.array([int(len(x) > 1 and self.sonnet_object.rhymes(w, x.strip('Ġ'))) and w != x.strip('Ġ') for x in self.gpt_tokens])
+
+                word_scores[wws >= 1] *= 3
+                if verbose: print("internal rhyming", self.internal_rhyme, len(wws.nonzero()[0]))
+
 
             filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
             if any(f != 0 for f in filt):
@@ -476,7 +551,7 @@ class Line_Generator:
         return token
 
     def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False):
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhyme=False):
         if not no_template:
             self.template = template
         self.meter_dict = meter_dict
@@ -494,6 +569,7 @@ class Line_Generator:
 
         self.alliteration = alliteration
         self.weight_repetition = weight_repetition  # False
+        self.internal_rhyme = internal_rhyme
 
         self.theme_threshold = theme_threshold
 
