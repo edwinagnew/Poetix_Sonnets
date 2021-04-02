@@ -646,10 +646,13 @@ class Scenery_Gen(poem_core.Poem):
 
             # self.gpt_past = str(theme_lines and theme.upper() + "\n") + "\n".join(lines) #bit weird but begins with prompt if trying to be themey
             # self.gpt_past = " ".join(theme_words) + "\n" + "\n".join(lines)
-            self.gpt_past = samples[0] + "\n"
+            #self.gpt_past = samples[0] + "\n"
+            self.gpt_past = samples[0]
             for i in range(len(lines)):
-                if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
-                self.gpt_past += lines[i] + "\n"
+                #if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
+                #self.gpt_past += lines[i] + "\n"
+                if i % 4 == 0: self.gpt_past += samples[i // 4]
+                self.gpt_past += lines[i]
             self.reset_letter_words()
             if verbose:
                 print("\nwriting line", line_number)

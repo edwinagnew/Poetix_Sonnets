@@ -474,7 +474,8 @@ class Line_Generator:
                                 len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
                 word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
             else:
-                #print("replacing tokens")
+                if verbose: print("replacing tokens")
+
                 word_scores = np.ones(len(self.gpt_tokens))
 
             if len_sub == 0 and self.alliteration:
