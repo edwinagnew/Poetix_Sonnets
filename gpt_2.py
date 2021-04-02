@@ -450,7 +450,7 @@ class Line_Generator:
         # next possible tokens are all the ones which could come after the ones already chosen
         len_sub = len(self.sub_tokens)
         checks = set([p[len_sub] for p in self.poss_tokens if
-                      p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+                      p[:len_sub] == self.sub_tokens and len(p) > len_sub]) #creates a list of tokens that could follow the current token based on our vocab
 
         if len(checks) == 1:
             token = checks.pop()
@@ -494,10 +494,11 @@ class Line_Generator:
                 #print("finding rhymes for", self.internal_rhymes + self.curr_line.split(), len(rhymes), rhymes)
 
                 #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos and len(self.gpt_tokenizer.tokenize((w))) > len_sub])
-                all_tokens = [self.gpt_tokenizer.tokenize(w) for w in rhymes]
+                all_tokens = [self.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
                 tokens = set([p[len_sub] for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+                if verbose: print("hey look at this dumbasses", tokens)
 
-
+                if verbose: print("number of shared tokens prior to rhyming", len([w for w in tokens if w in self.poss_tokens]))
                 #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos])
 
                 wws = np.zeros(len(self.gpt_tokens))
@@ -507,7 +508,7 @@ class Line_Generator:
                     print("weighting", t, self.gpt_tokenizer.encoder[t], wws[self.gpt_tokenizer.encoder[t]])
 
                 orig = word_scores.copy()
-                word_scores[wws != 0] *= 100000000000000
+                word_scores[wws != 0] *= 1000
 
                 print("this was the max", orig.argmax(), orig.max())
                 print("this is the new max", word_scores.argmax(), word_scores.max())
@@ -519,6 +520,7 @@ class Line_Generator:
 
             filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
             print("this is the newer max", filt.argmax(), filt.max())
+            #if verbose and self.internal_rhymes: print("number of shared filts", len([w for w in tokens if filt[w] > 0]))
 
             ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
             if ws.shape[0] == 1: ws = ws[0]
@@ -548,7 +550,7 @@ class Line_Generator:
             dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
             token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
 
-            if self.internal_rhymes and len_sub == 0 and token in tokens: print("i picked a rhymer", token)
+            if self.internal_rhymes and self.gpt_tokenizer.decoder[token] in tokens: print("i picked a rhymer", token, self.gpt_tokenizer.decode(token))
 
         # 2c
         if verbose and not no_template: print("for ", self.template[i], end=': ')
