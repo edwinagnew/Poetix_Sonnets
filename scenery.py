@@ -167,10 +167,10 @@ class Scenery_Gen(poem_core.Poem):
 
 
     def write_poem_flex(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
-                        theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter = False,
+                        theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                        gpt_size="gpt2", tense=None, internal_rhyme=False):
+                        gpt_size="gpt2", tense=None, internal_rhyme=0):
         if tense != self.tense:
             self.tense = tense
             if tense == None:
@@ -282,6 +282,8 @@ class Scenery_Gen(poem_core.Poem):
         lines = []
         used_templates = []
         choices = []
+
+        internal_rhymes = []
         # first three stanzas
 
         self.gpt_past = ""
@@ -298,6 +300,11 @@ class Scenery_Gen(poem_core.Poem):
                     self.set_meter_pos_dict()
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
+
+            if internal_rhyme > 0:
+                internal_rhymes = " ".join(lines[-min(len(lines),internal_rhyme):]).split()
+                print("words before the internal rhyme are as follows", internal_rhymes)
+
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number-2].split()[-1]) #last word in rhyming couplet
             elif rhyme_lines and line_number == 13:
@@ -344,7 +351,7 @@ class Scenery_Gen(poem_core.Poem):
                 print(template, meter, r)
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number//4]
 
-            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=t_w, theme_threshold=theme_threshold, internal_rhyme=internal_rhyme)
+            line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=t_w, theme_threshold=theme_threshold, internal_rhymes=internal_rhymes)
 
             if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:

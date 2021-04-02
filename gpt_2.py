@@ -42,7 +42,7 @@ class gpt_gen:
         self.gpt_tokens = list(self.tokenizer.encoder.keys())
 
     def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None,
-                              verbose=False, alliteration=None, weight_repetition=True, internal_rhyme=False):
+                              verbose=False, alliteration=None, weight_repetition=True, internal_rhymes=[]):
         """
         Generates a line of poetry
 
@@ -120,8 +120,9 @@ class gpt_gen:
         """
         1 - main loop
         """
+        print("about to go with", internal_rhymes)
         self.line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
-                               alliteration=alliteration, internal_rhyme=internal_rhyme, weight_repetition=weight_repetition,
+                               alliteration=alliteration, internal_rhymes=internal_rhymes, weight_repetition=weight_repetition,
                                theme_threshold=theme_threshold, prev_lines=seed)
         # i = a
         # while i < len(template):
@@ -303,7 +304,7 @@ class gpt_gen:
 
         while len(lines.split("\n")) < n_lines:
 
-            l = self.gen_prose_line(seed=lines, verbose=False)
+            l = self.gen_prose_line(seed=lines, verbose=False, internal_rhyme=False)
 
             if self.score_line(l) < check_threshold:
                 lines += l + "\n"
@@ -333,7 +334,7 @@ class Line_Generator:
         self.repeats = {}
 
         self.alliteration = None
-        self.internal_rhyme = False
+        self.internal_rhymes = []
 
         self.gpt_tokens = list(gpt_tokenizer.encoder.keys())
         self.gpt_tokenizer = gpt_tokenizer
@@ -481,32 +482,55 @@ class Line_Generator:
                 word_scores[wws == 1] *= 2  # maybe make more or += ___
                 if verbose: print("alliterating", self.alliteration, sum(wws))
 
-            if len(self.curr_line) > 0 and len_sub == 0 and self.internal_rhyme:
-                ints = self.curr_line.split(" ")
-                wws = np.zeros(len(self.gpt_tokens))
-                for w in ints:
-                    wws += np.array([int(len(x) > 1 and self.sonnet_object.rhymes(w, x.strip('Ġ'))) and w != x.strip('Ġ') for x in self.gpt_tokens])
+            if self.internal_rhymes:
+                #assume internal_rhyme is a set of words that we want to rhyme.
+                #for now only increase weight of first token
 
-                word_scores[wws >= 1] *= 3
-                if verbose: print("internal rhyming", self.internal_rhyme, len(wws.nonzero()[0]))
+                rhymes = []
+                for w in self.internal_rhymes + self.curr_line.split():
+                    rhymes += self.sonnet_object.get_rhyme_words(w)
+
+                #print("finding rhymes for", self.internal_rhymes + self.curr_line.split(), len(rhymes), rhymes)
+
+                #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos and len(self.gpt_tokenizer.tokenize((w))) > len_sub])
+                all_tokens = [self.gpt_tokenizer.tokenize(w) for w in rhymes]
+                tokens = set([p[len_sub] for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+
+
+                #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos])
+
+                wws = np.zeros(len(self.gpt_tokens))
+
+                for t in tokens:
+                    wws[self.gpt_tokenizer.encoder[t]] = 1
+                    print("weighting", t, self.gpt_tokenizer.encoder[t], wws[self.gpt_tokenizer.encoder[t]])
+
+                orig = word_scores.copy()
+                word_scores[wws != 0] *= 100000000000000
+
+                print("this was the max", orig.argmax(), orig.max())
+                print("this is the new max", word_scores.argmax(), word_scores.max())
+
+                if verbose: print("internal rhyming", sum(orig != word_scores), len(wws.nonzero()[0]), len(rhymes), self.internal_rhymes)
+
+                if verbose: print("number of shared checks", len([w for w in rhymes if w in self.poss]))
 
 
             filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
-            if any(f != 0 for f in filt):
-                print("okay up to here")
-            else:
-                print(word_scores)
-                print(checks)
+            print("this is the newer max", filt.argmax(), filt.max())
+
             ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
             if ws.shape[0] == 1: ws = ws[0]
 
             if self.weight_repetition:
                 ws = self.weight_repeated_words(checks, ws, verbose=verbose)
 
+            print("this is the newerer max", ws.argmax(), ws.max())
+
             theme_scores = []
             if self.theme_tokens: theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
 
-            if verbose: print("max token", np.max(ws), np.argmax(ws), self.gpt_tokens[np.argmax(ws)])
+            if verbose: print("maxest token", np.max(ws), np.argmax(ws), self.gpt_tokens[np.argmax(ws)])
             if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
             if verbose and theme_scores: print("best theme", max(theme_scores), self.gpt_tokens[max(theme_scores)[1]])
 
@@ -522,6 +546,8 @@ class Line_Generator:
 
             dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
             token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
+
+            if self.internal_rhymes and len_sub == 0 and token in tokens: print("i picked a rhymer", token)
 
         # 2c
         if verbose and not no_template: print("for ", self.template[i], end=': ')
@@ -551,7 +577,7 @@ class Line_Generator:
         return token
 
     def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhyme=False):
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[]):
         if not no_template:
             self.template = template
         self.meter_dict = meter_dict
@@ -569,7 +595,7 @@ class Line_Generator:
 
         self.alliteration = alliteration
         self.weight_repetition = weight_repetition  # False
-        self.internal_rhyme = internal_rhyme
+        self.internal_rhymes = internal_rhymes
 
         self.theme_threshold = theme_threshold
 
