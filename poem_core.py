@@ -128,11 +128,11 @@ class Poem:
             return [pos.lower()]
         if meter and type(meter) == str:
             meter = [meter]
-        #if meter and len(meter) == 1: meter = ["0", "1"]
-        if "PRP" in pos and "_" not in pos and meter:
-            ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(q in meter for q in self.get_meter(p))]
-            # if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
-            # if len(ret) == 0: return [p for p in self.pos_to_words[pos] if any(m in self.get_meter(p) for m in meter)]
+
+        if "PRP" in pos and "_" not in pos:
+            ret = [p for p in self.pos_to_words[pos] if p in self.gender]
+            if meter:
+                ret = [r for r in ret if any(q in meter for q in self.get_meter(r))]
             return ret
         elif pos not in self.pos_to_words:
             return []
@@ -301,13 +301,13 @@ class Poem:
             pos in self.end_pos)
 
     def write_line_gpt(self, template=None, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
-                       all_verbs=False, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
+                       all_verbs=False, verbose=False, alliteration=None, internal_rhymes=[], theme_words=[], theme_threshold=0.5):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1 / 0)
 
-        if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
+        if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs, internal_rhymes=internal_rhymes,
                                               verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold) for _ in range(n)]
 
         if not meter: flex_meter = False
@@ -346,13 +346,14 @@ class Poem:
             if verbose: print("writing flexible line", template, meter_dict, rhyme_word)
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past,
-                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, internal_rhymes=internal_rhymes,
+                                                  theme_words=theme_words, theme_threshold=theme_threshold)
 
         else:
             if verbose: print("writing line", template, meter)
             # if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
-            return self.gpt.generation_flex_meter(template.split(), meter_dict={}, seed=self.gpt_past,
+            return self.gpt.generation_flex_meter(template.split(), meter_dict={}, seed=self.gpt_past, internal_rhymes=internal_rhymes,
                                                   rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
@@ -543,7 +544,8 @@ class Poem:
 
         if len(poss) == 0:
             print("theres no templates " + str(len(used_templates)) + used_templates[-1])
-            return self.fix_template(random.choice(self.templates))
+            return 1/0
+            #return self.fix_template(random.choice(self.templates))
 
         if check_the_rhyme: poss = [p for p in poss if any(
             self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
