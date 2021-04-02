@@ -408,7 +408,7 @@ class Line_Generator:
                                 len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
                 word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
             else:
-                print("replacing tokens")
+                if verbose: print("replacing tokens")
                 word_scores = np.ones(len(self.gpt_tokens))
 
             if len_sub == 0 and self.alliteration:
@@ -417,7 +417,7 @@ class Line_Generator:
                 if verbose: print("alliterating", self.alliteration, sum(wws))
 
             filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
-            if any(f != 0 for f in filt):
+            if any(f != 0 for f in filt) and verbose:
                 print("okay up to here")
             else:
                 print(word_scores)
