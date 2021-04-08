@@ -699,3 +699,11 @@ class Scenery_Gen(poem_core.Poem):
 
         return ret
 
+    def filter_for_rhyme_count(self, words, rhyme_count=5):
+        "Takes a list of words, filters out the words which have less than five rhymes"
+
+        words_with_rhymes = []
+        for word in words:
+            if len(self.get_rhymes(word)) > rhyme_count:
+                return
+        return

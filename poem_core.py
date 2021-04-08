@@ -191,7 +191,7 @@ class Poem:
         if word[-1] in string.punctuation:
             word = word.translate(str.maketrans('', '', string.punctuation))
             return self.get_rhyme_words(word)
-        return pronouncing.rhymes(word)
+        return [w for w in pronouncing.rhymes(word) if w in self.words_to_pos]
 
     def weighted_choice(self, pos, meter=None, rhyme=None):
         punc = ".,;?!"
@@ -213,7 +213,7 @@ class Poem:
             self.pos_to_words[pos][word] /= 2
             return word
 
-    def getRhymes(self, theme, words):
+    def get_rhymes(self, theme, words):
         """
         :param theme: an array of either [prompt] or [prompt, line_theme] to find similar words to. JUST PROMPT FOR NOW
         :return: all words which rhyme with similar words to the theme in format {similar word: [rhyming words], similar word: [rhyming words], etc.}
