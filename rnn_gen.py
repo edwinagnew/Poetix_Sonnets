@@ -104,7 +104,7 @@ class Poem(poem_core.Poem):
             sys.stdout.write('\n' + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ' NO nmfdim' + '\n\n')
 
         if nmfDim:
-            rhyme_dict = self.getRhymes(self.nmf_descriptions[nmfDim][0], words=self.words_to_pos.keys())
+            rhyme_dict = self.get_rhymes(self.nmf_descriptions[nmfDim][0], words=self.words_to_pos.keys())
             rhyme_words = []
             for i in range(14):
                 r = ""

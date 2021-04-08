@@ -76,7 +76,7 @@ class Sonnet_Gen(poem_core.Poem):
         #for i,j in zip(['A', 'B', 'C', 'D', 'E', 'F', 'G'], tone):
         #    rhyme_dict[i] = self.getRhymes([prompt,j]) #one day pass [prompt, narr]
         for i in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
-            rhyme_dict[i] = self.getRhymes([prompt], words=self.words_to_pos.keys())
+            rhyme_dict[i] = self.get_rhymes([prompt], words=self.words_to_pos.keys())
         last_word_dict = self.last_word_dict(rhyme_dict)
         #for now we shall generate random words, but they will fit the meter, rhyme and templates
 

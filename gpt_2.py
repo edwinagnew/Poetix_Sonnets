@@ -40,6 +40,7 @@ class gpt_gen:
         self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
 
         self.gpt_tokens = list(self.tokenizer.encoder.keys())
+        self.checked_for_rhymes = {}
 
     def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None,
                               verbose=False, alliteration=None, weight_repetition=True, internal_rhymes=[]):
@@ -263,7 +264,7 @@ class gpt_gen:
                 for w in words:
                     wws += np.array([int(len(token) > 1 and w != token.strip('Ġ') and self.sonnet_object.rhymes(w, token.strip('Ġ'))) for token in self.gpt_tokens])
 
-                ws[wws >= 1] *= 2 #doubles the score of all the possible tokens which rhyme with any previous word
+                ws[wws >= 1] *= 1.5 #doubles the score of all the possible tokens which rhyme with any previous word
                 if verbose: print("internal rhyming", internal_rhyme, len(wws.nonzero()[0]))
 
             scores = helper.softmax(ws, exclude_zeros=True)
@@ -480,7 +481,7 @@ class Line_Generator:
 
             if len_sub == 0 and self.alliteration:
                 wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in self.alliteration) for x in self.gpt_tokens])
-                word_scores[wws == 1] *= 2  # maybe make more or += ___
+                word_scores[wws == 1] *= 1.5  # maybe make more or += ___
                 if verbose: print("alliterating", self.alliteration, sum(wws))
 
             if self.internal_rhymes:
@@ -489,7 +490,10 @@ class Line_Generator:
 
                 rhymes = []
                 for w in self.internal_rhymes + self.curr_line.split():
-                    rhymes += self.sonnet_object.get_rhyme_words(w)
+                    if w not in self.sonnet_object.gpt.checked_for_rhymes:
+                        temp_rhymes = self.sonnet_object.get_rhyme_words(w)
+                        self.sonnet_object.gpt.checked_for_rhymes[w] = temp_rhymes if len(temp_rhymes) > 3 else []
+                    rhymes += self.sonnet_object.gpt.checked_for_rhymes[w]
 
                 #print("finding rhymes for", self.internal_rhymes + self.curr_line.split(), len(rhymes), rhymes)
 
@@ -505,13 +509,12 @@ class Line_Generator:
 
                 for t in tokens:
                     wws[self.gpt_tokenizer.encoder[t]] = 1
-                    print("weighting", t, self.gpt_tokenizer.encoder[t], wws[self.gpt_tokenizer.encoder[t]])
 
                 orig = word_scores.copy()
-                word_scores[wws != 0] *= 1000
+                word_scores[wws != 0] *= 1.5
 
-                print("this was the max", orig.argmax(), orig.max())
-                print("this is the new max", word_scores.argmax(), word_scores.max())
+                if verbose: print("this was the max", orig.argmax(), orig.max())
+                if verbose: print("this is the new max", word_scores.argmax(), word_scores.max())
 
                 if verbose: print("internal rhyming", sum(orig != word_scores), len(wws.nonzero()[0]), len(rhymes), self.internal_rhymes)
 
@@ -550,7 +553,19 @@ class Line_Generator:
             dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
             token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
 
-            if self.internal_rhymes and self.gpt_tokenizer.decoder[token] in tokens: print("i picked a rhymer", token, self.gpt_tokenizer.decode(token))
+            if self.internal_rhymes and self.gpt_tokenizer.decoder[token] in tokens:
+                print("i picked a rhymer", token, self.gpt_tokenizer.decode(token))
+                forced_words = [sub for sub in rhymes if self.gpt_tokenizer.encode(self.space + sub)[len_sub] == token]
+                print("rhymes =", rhymes)
+                print("all tokens =", all_tokens)
+                if len(forced_words) == 0:
+                    pass
+                else:
+                    self.poss = forced_words
+                    if verbose: print("new poss", self.poss)
+                    self.poss_tokens = [self.gpt_tokenizer.encode(self.space + p) for p in self.poss]
+
+
 
         # 2c
         if verbose and not no_template: print("for ", self.template[i], end=': ')
