@@ -561,7 +561,7 @@ class Line_Generator:
                 if len(forced_words) == 0:
                     pass
                 else:
-                    self.poss = forced_words
+                    self.poss = [f for f in forced_words if f in self.poss]
                     if verbose: print("new poss", self.poss)
                     self.poss_tokens = [self.gpt_tokenizer.encode(self.space + p) for p in self.poss]
 

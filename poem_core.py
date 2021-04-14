@@ -479,11 +479,11 @@ class Poem:
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
-            if used_templates[-1] == "FROM JJS NNS, PRPS VBP RB": #checked 4/2/21
+            if used_templates[-1] == "FOR JJS NNS, PRPS VBP NNS": #checked 4/2/21
                 poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
                         ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
                         ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
-                        ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01")]
+                        ("BUT THE NN SHOULD BY NN VB", "0_1_010_1_0_1_01")]
             elif used_templates[-1] == "BUT PRPS VBD TO PRPD$ JJ NNS": #checked 4/2/21
                 poss = [("SO PRPS THROUGH NNS OF JJ NNS VBD.", "0_1_0_10_1_0_1_01"),
                         ("SO TOO PRPD$ NNS VBD TO PRPD$ NN.", "0_1_0_10_1_0_1_01"),
