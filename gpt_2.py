@@ -511,7 +511,7 @@ class Line_Generator:
                     wws[self.gpt_tokenizer.encoder[t]] = 1
 
                 orig = word_scores.copy()
-                word_scores[wws != 0] *= 1.5
+                word_scores[wws != 0] *= 2
 
                 if verbose: print("this was the max", orig.argmax(), orig.max())
                 if verbose: print("this is the new max", word_scores.argmax(), word_scores.max())
@@ -558,10 +558,11 @@ class Line_Generator:
                 forced_words = [sub for sub in rhymes if self.gpt_tokenizer.encode(self.space + sub)[len_sub] == token]
                 print("rhymes =", rhymes)
                 print("all tokens =", all_tokens)
-                if len(forced_words) == 0:
+                viable_words = [f for f in forced_words if f in self.poss]
+                if len(viable_words) == 0:
                     pass
                 else:
-                    self.poss = forced_words
+                    self.poss = viable_words
                     if verbose: print("new poss", self.poss)
                     self.poss_tokens = [self.gpt_tokenizer.encode(self.space + p) for p in self.poss]
 
