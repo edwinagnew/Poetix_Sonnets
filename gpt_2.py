@@ -121,7 +121,7 @@ class gpt_gen:
         """
         1 - main loop
         """
-        print("about to go with", internal_rhymes)
+        if verbose: print("about to go with", internal_rhymes)
         self.line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
                                alliteration=alliteration, internal_rhymes=internal_rhymes, weight_repetition=weight_repetition,
                                theme_threshold=theme_threshold, prev_lines=seed)
@@ -500,7 +500,6 @@ class Line_Generator:
                 #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos and len(self.gpt_tokenizer.tokenize((w))) > len_sub])
                 all_tokens = [self.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
                 tokens = set([p[len_sub] for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
-                if verbose: print("hey look at this dumbasses", tokens)
 
                 if verbose: print("number of shared tokens prior to rhyming", len([w for w in tokens if w in self.poss_tokens]))
                 #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos])
@@ -513,8 +512,6 @@ class Line_Generator:
                 orig = word_scores.copy()
                 word_scores[wws != 0] *= 2
 
-                if verbose: print("this was the max", orig.argmax(), orig.max())
-                if verbose: print("this is the new max", word_scores.argmax(), word_scores.max())
 
                 if verbose: print("internal rhyming", sum(orig != word_scores), len(wws.nonzero()[0]), len(rhymes), self.internal_rhymes)
 
@@ -522,7 +519,6 @@ class Line_Generator:
 
 
             filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
-            print("this is the newer max", filt.argmax(), filt.max())
             #if verbose and self.internal_rhymes: print("number of shared filts", len([w for w in tokens if filt[w] > 0]))
 
             ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
@@ -531,7 +527,6 @@ class Line_Generator:
             if self.weight_repetition:
                 ws = self.weight_repeated_words(checks, ws, verbose=verbose)
 
-            print("this is the newerer max", ws.argmax(), ws.max())
 
             theme_scores = []
             if self.theme_tokens: theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
@@ -556,8 +551,7 @@ class Line_Generator:
             if self.internal_rhymes and self.gpt_tokenizer.decoder[token] in tokens:
                 print("i picked a rhymer", token, self.gpt_tokenizer.decode(token))
                 forced_words = [sub for sub in rhymes if self.gpt_tokenizer.encode(self.space + sub)[len_sub] == token]
-                print("rhymes =", rhymes)
-                print("all tokens =", all_tokens)
+
                 viable_words = [f for f in forced_words if f in self.poss]
                 if len(viable_words) == 0:
                     pass
