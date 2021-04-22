@@ -26,6 +26,14 @@ class Poem:
         self.backup_words = None
         if "byron" in words_file:
             self.backup_words, _ = helper.get_new_pos_dict('saved_objects/tagged_words.p')
+            for pos in self.backup_words:
+                if pos not in self.pos_to_words:
+                    self.pos_to_words[pos] = self.backup_words[pos]
+                    for word in self.backup_words[pos]:
+                        if word not in self.words_to_pos:
+                            self.words_to_pos[word] = []
+                        self.words_to_pos[word].append(pos)
+
         if type(templates_file) == str: templates_file = [templates_file]
         self.templates = []
         for t in templates_file:
@@ -128,6 +136,9 @@ class Poem:
             return [pos.lower()]
         if meter and type(meter) == str:
             meter = [meter]
+
+        if pos not in self.pos_to_words:
+            return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
 
         if "PRP" in pos and "_" not in pos:
             ret = [p for p in self.pos_to_words[pos] if p in self.gender]
