@@ -354,6 +354,34 @@ class Line_Generator:
 
         self.prev_lines = self.curr_line = ""
 
+    def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[]):
+        if not no_template:
+            self.template = template
+        self.meter_dict = meter_dict
+        self.rhyme_word = rhyme_word
+
+        self.sub_tokens = []
+
+        # self.punc_next = False
+
+        self.repeats = {}
+
+        self.poss_tokens = []
+        self.theme_tokens = []
+        self.theme_words = theme_words
+
+        self.alliteration = alliteration
+        self.weight_repetition = weight_repetition  # False
+        self.internal_rhymes = internal_rhymes
+
+        self.theme_threshold = theme_threshold
+
+        self.first_lets = set()
+
+        self.prev_lines = prev_lines
+        self.curr_line = ""
+
     def get_poss(self, i, verbose=False):
         punc = ",.;?"
         if self.punc_next:
@@ -384,8 +412,11 @@ class Line_Generator:
             r = None
             if i == len(self.template) - 1 and self.rhyme_word:
                 r = self.rhyme_word
-                self.poss = set(
-                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
+                if self.meter_dict == {}:
+                    print("made it here for rhyming w/o meter")
+                    self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=None, rhyme=r))
+                else:
+                    self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
 
                 if verbose: print("restricting to rhymes", self.rhyme_word, self.poss)
 
@@ -594,34 +625,6 @@ class Line_Generator:
 
         # maybe return token here?
         return token
-
-    def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[]):
-        if not no_template:
-            self.template = template
-        self.meter_dict = meter_dict
-        self.rhyme_word = rhyme_word
-
-        self.sub_tokens = []
-
-        # self.punc_next = False
-
-        self.repeats = {}
-
-        self.poss_tokens = []
-        self.theme_tokens = []
-        self.theme_words = theme_words
-
-        self.alliteration = alliteration
-        self.weight_repetition = weight_repetition  # False
-        self.internal_rhymes = internal_rhymes
-
-        self.theme_threshold = theme_threshold
-
-        self.first_lets = set()
-
-        self.prev_lines = prev_lines
-        self.curr_line = ""
 
     def weight_repeated_words(self, checks, ws, verbose=False):
         seed_words = helper.remove_punc(self.prev_lines.lower().replace("'s", "")).split()
