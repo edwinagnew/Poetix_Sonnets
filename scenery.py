@@ -513,7 +513,7 @@ class Scenery_Gen(poem_core.Poem):
         else:
             positive = list(input) + ["darkness"]
         all_similar = self.word_embeddings.fasttext_model.most_similar(positive, negative, topn=model_topn)
-        close = [word[0] for word in all_similar if word[0] in self.pos_to_words["NN"] or word[0] in self.pos_to_words["NNS"] or word[0] in self.pos_to_words["ABNN"]]
+        close = [word[0] for word in all_similar if word[0] in self.pos_to_words["NN"] or word[0] in self.pos_to_words["NNS"] or word[0] in self.pos_to_words['ABNN']]
 
         return close
 
