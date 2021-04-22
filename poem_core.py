@@ -327,9 +327,10 @@ class Poem:
                     r = set(self.get_meter(rhyme_word.strip("__")))
                 else:
                     rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
+
                     r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
                              x in self.get_meter(w)]) if rhyme_word else None
-                    if len(r) == 0 or len(rhyme_words) == 0:
+                    if (meter and len(r) == 0) or len(rhyme_words) == 0:
                         if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words, r)
                         return None
             else:
@@ -353,6 +354,15 @@ class Poem:
             if verbose: print("writing line", template, meter)
             # if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
+            rhyme_pos = helper.remove_punc(template.split()[-1]).split("_")[-1]
+            rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
+
+            if rhyme_words is not None and len(rhyme_words) == 0:
+                if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words)
+                return None
+            print("my rhymes are", rhyme_words)
+            print("the rhyme pos i found was", rhyme_pos)
+            print("this is for the rhyme word", rhyme_word)
             return self.gpt.generation_flex_meter(template.split(), meter_dict={}, seed=self.gpt_past, internal_rhymes=internal_rhymes,
                                                   rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
 
@@ -461,7 +471,7 @@ class Poem:
                 if len(poss) == 1: return poss
         return poss
 
-    def get_next_template(self, used_templates, check_the_rhyme=None, end=""):
+    def get_next_template(self, used_templates, end=""):
         """
 
         Parameters
@@ -552,12 +562,6 @@ class Poem:
             return 1/0
             #return self.fix_template(random.choice(self.templates))
 
-        if check_the_rhyme: poss = [p for p in poss if any(
-            self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
-        if end and type(end) == set:
-            # pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
-            pos = set([self.get_word_pos(w)[0] for w in end])
-            poss = [(p, q) for p, q in poss if helper.remove_punc(p.split()[-1]) in pos]
 
         poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
 
