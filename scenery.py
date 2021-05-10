@@ -19,6 +19,11 @@ from nltk.corpus import wordnet as wn
 import poem_core
 import graph_reader
 
+import logging
+import os
+from queue import Queue
+from threading import Thread
+
 
 class Scenery_Gen(poem_core.Poem):
     def __init__(self, words_file="saved_objects/tagged_words.p",

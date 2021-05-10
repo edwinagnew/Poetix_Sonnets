@@ -37,7 +37,7 @@ class gpt_gen:
         print("loaded", model)
         self.lemma = nltk.wordnet.WordNetLemmatizer()
 
-        self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
+        #self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
 
         self.gpt_tokens = list(self.tokenizer.encoder.keys())
         self.checked_for_rhymes = {}
@@ -122,7 +122,9 @@ class gpt_gen:
         1 - main loop
         """
         if verbose: print("about to go with", internal_rhymes)
-        self.line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
+
+        line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
+        line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
                                alliteration=alliteration, internal_rhymes=internal_rhymes, weight_repetition=weight_repetition,
                                theme_threshold=theme_threshold, prev_lines=seed)
         # i = a
@@ -133,17 +135,17 @@ class gpt_gen:
                 with torch.no_grad():
                     output, past = self.model(context, past_key_values=past, use_cache=True).values()
 
-                if verbose: print(i, "(" + str(len(self.line_gen.sub_tokens)) + ")")
+                if verbose: print(i, "(" + str(len(line_gen.sub_tokens)) + ")")
 
                 output += abs(torch.min(output))  # makes all positive
 
-                token = self.line_gen.update(output, i, verbose=verbose)
+                token = line_gen.update(output, i, verbose=verbose)
 
                 generated += [token]  # .tolist()
                 # context = token.unsqueeze(0)
                 context = torch.tensor(token).unsqueeze(0).to(self.model.device)
 
-                if len(self.line_gen.sub_tokens) == 0 and not self.line_gen.punc_next:
+                if len(line_gen.sub_tokens) == 0 and not line_gen.punc_next:
                     break
 
             # i += int(not punc_next and len(sub_tokens) == 0)

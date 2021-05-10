@@ -378,7 +378,7 @@ class Poem:
                                                   rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
-        if template is None: template, meter = random.choice(self.templates)
+        if template is None: template, meter = random.choice([t for t in self.templates if "_" not in t[0]])
         #template = self.fix_template(template)
 
         if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
