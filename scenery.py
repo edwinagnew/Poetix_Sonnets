@@ -500,7 +500,6 @@ class Scenery_Gen(poem_core.Poem):
         return [word[0] for word in close[:num] if word[0] in self.pos_to_words["RB"]]
 
     def close_jj(self, input, num=5, model_topn=50):
-        #positive = [input, 'dark']
         negative = [       'darkness']
         if type(input) == str:
             positive = input.split() + ['dark']
@@ -532,9 +531,8 @@ class Scenery_Gen(poem_core.Poem):
 
         return close
 
-    def get_diff_pos(self, word, desired_pos, n=10):
-        closest_words = [noun for noun in self.word_embeddings.get_close_words(word) if (noun in self.pos_to_words["NN"] or noun in self.pos_to_words["NNS"])]
-        if desired_pos == "JJ":
+    def get
+        :
             index = 0
             words = set(self.close_jj(word))
             while len(words) < n and index < min(5, len(closest_words)):
