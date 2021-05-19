@@ -457,7 +457,7 @@ class Line_Generator:
                 self.theme_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.theme_words[self.template[i]] if
                                      p in self.poss]
 
-    def update(self, gpt_output, i, verbose=False, no_template=False):
+    def update(self, gpt_output, i, should_bigram=0, verbose=False, no_template=False):
         """
         Take in gpt_output and return next token
         Parameters
@@ -485,6 +485,8 @@ class Line_Generator:
         len_sub = len(self.sub_tokens)
         checks = set([p[len_sub] for p in self.poss_tokens if
                       p[:len_sub] == self.sub_tokens and len(p) > len_sub]) #creates a list of tokens that could follow the current token based on our vocab
+
+
 
         if len(checks) == 1:
             token = checks.pop()
@@ -577,8 +579,32 @@ class Line_Generator:
             if max(ws) <= 0:
                 if verbose: print("something went wrong", max(ws))
                 return None
-
             dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
+
+            """
+            if should_bigram and len(self.sub_tokens) == 0 and "VB" in self.template[i]:
+                saved_state = self.save_state()
+                beams = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist, size=5)
+                for b in beams:
+                    self.restore_state()
+                    self.sub_tokens = [b.item]
+                    with torch.no_grad():
+                        output, past = self.model(context, past_key_values=past, use_cache=True).values()
+
+                    if verbose: print(i, "(" + str(len(line_gen.sub_tokens)) + ")")
+                    output += abs(torch.min(output))  # makes all positive
+                    toekn = self.update(gpt_output, i)
+                    generated += [token]  # .tolist()
+                    # context = token.unsqueeze(0)
+                    context = torch.tensor(token).unsqueeze(0).to(self.model.device)
+                    if len(line_gen.sub_tokens) == 0 and not line_gen.punc_next:
+                        break
+
+                self.curr_line += self.gpt_tokenizer.decode(two_words)
+                token = two_words[-1]
+                continue
+            """
+
             token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
 
             if self.internal_rhymes and self.gpt_tokenizer.decoder[token] in tokens:
@@ -622,6 +648,42 @@ class Line_Generator:
 
         # maybe return token here?
         return token
+
+    def save_state(self):
+        """
+        meter_dict = self.meter_dict
+        self.sub_tokens = self.sub_tokens
+
+        # self.punc_next = False
+
+        repeats = self.repeats
+
+        self.poss_tokens = self.poss_tokens
+        self.theme_tokens = self.theme_tokens
+        self.theme_words = self.theme_words
+
+        self.alliteration = self.alliteration
+        self.weight_repetition = self.weight_repetition  # False
+        self.internal_rhymes = self.internal_rhymes
+
+        self.theme_threshold = self.theme_threshold
+
+        self.first_lets = set()
+
+        self.prev_lines = self.prev_lines
+        curr_line = self.curr_line
+        """
+        saved = (self.meter_dict, self.sub_tokens, self.repeats, self.poss_tokens, self.theme_tokens, self.theme_words, self.alliteration, self.weight_repetition,
+                                                                            self.internal_rhymes, self.theme_threshold,self.first_lets,self.prev_lines,self.curr_line)
+        return saved
+
+
+
+    def restore_state(self, saved):
+        self.meter_dict, self.sub_tokens, self.repeats, self.poss_tokens, self.theme_tokens, self.theme_words, self.alliteration, self.weight_repetition, \
+                                                                            self.internal_rhymes, self.theme_threshold,self.first_lets,self.prev_lines,self.curr_line = saved
+
+
 
     def weight_repeated_words(self, checks, ws, verbose=False):
         seed_words = helper.remove_punc(self.prev_lines.lower().replace("'s", "")).split()
