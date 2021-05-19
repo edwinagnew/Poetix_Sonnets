@@ -531,8 +531,9 @@ class Scenery_Gen(poem_core.Poem):
 
         return close
 
-    def get
-        :
+    def get_diff_pos(self, word, desired_pos, n=10):
+        closest_words = [noun for noun in self.word_embeddings.get_close_words(word) if (noun in self.pos_to_words["NN"] or noun in self.pos_to_words["NNS"])]
+        if desired_pos == "JJ":
             index = 0
             words = set(self.close_jj(word))
             while len(words) < n and index < min(5, len(closest_words)):
