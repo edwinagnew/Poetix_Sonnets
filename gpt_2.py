@@ -1,6 +1,6 @@
 # import sonnet_basic
 import poem_core
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPTNeoForCausalLM
 import torch
 import numpy as np
 import random
@@ -26,10 +26,19 @@ class gpt_gen:
 
         # if torch.cuda.is_available(): model = "gpt2-large"
         self.model_size = model
+        if model == "gpt3":
 
-        self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+            self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
+            self.model = GPTNeoForCausalLM.from_pretrained('EleutherAI/gpt-neo-1.3B')
 
-        self.model = GPT2LMHeadModel.from_pretrained(model)
+
+        else:
+            self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+
+            self.model = GPT2LMHeadModel.from_pretrained(model)
+            #self.gpt_tokens = list(self.tokenizer.encoder.keys())
+
+        self.gpt_tokens = list(self.tokenizer.get_vocab().keys())
         if torch.cuda.is_available():
             print("putting to gpu")
             self.model.to('cuda')
@@ -39,7 +48,7 @@ class gpt_gen:
 
         #self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
 
-        self.gpt_tokens = list(self.tokenizer.encoder.keys())
+
         self.checked_for_rhymes = {}
 
     def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None,
@@ -134,6 +143,8 @@ class gpt_gen:
             while True:
                 with torch.no_grad():
                     output, past = self.model(context, past_key_values=past, use_cache=True).values()
+                    #print(output.size())
+                    #input("okok?")
 
                 if verbose: print(i, "(" + str(len(line_gen.sub_tokens)) + ")")
 
@@ -339,7 +350,7 @@ class Line_Generator:
         self.alliteration = None
         self.internal_rhymes = []
 
-        self.gpt_tokens = list(gpt_tokenizer.encoder.keys())
+        self.gpt_tokens = list(gpt_tokenizer.get_vocab().keys())
         self.gpt_tokenizer = gpt_tokenizer
 
         self.sonnet_object = sonnet_object
