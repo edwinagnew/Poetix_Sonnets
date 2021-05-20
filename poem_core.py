@@ -377,6 +377,36 @@ class Poem:
             return self.gpt.generation_flex_meter(template.split(), meter_dict={}, seed=self.gpt_past, internal_rhymes=internal_rhymes,
                                                   rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
 
+
+    def get_meter_dict(self, template, meter, rhyme_word=None, verbose=False):
+
+        base_template = template.replace("*VB", "VB").replace("sc", "")
+        self.check_template(base_template, meter)
+        rhyme_pos = helper.remove_punc(template.split()[-1]).split("_")[-1]
+        # if "_" in rhyme_pos
+        if rhyme_word:
+
+            rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
+
+            r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
+                     x in self.get_meter(w)]) if rhyme_word else None
+            if (meter and len(r) == 0) or len(rhyme_words) == 0:
+                if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words, r)
+                return None
+        else:
+            r = None
+
+        if "_" in base_template:
+            meter_dict = self.get_poss_meters_forward_rhet(base_template, "".join(meter.split("_")), {}, r)
+
+        else:
+            meter_dict = self.get_poss_meters_forward(base_template, "01" * 5, r)
+        if not meter_dict:
+            if verbose: print("couldn't get a meter_dict:", template, rhyme_word)
+            return None
+
+        return meter_dict
+
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
         if template is None: template, meter = random.choice([t for t in self.templates if "_" not in t[0]])
         #template = self.fix_template(template)
