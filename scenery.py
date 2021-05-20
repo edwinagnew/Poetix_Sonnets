@@ -357,6 +357,7 @@ class Scenery_Gen(poem_core.Poem):
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number//4]
 
             line = self.write_line_gpt(template, meter, rhyme_word=r, flex_meter=True, verbose=verbose, all_verbs=all_verbs, alliteration=letters, theme_words=t_w, theme_threshold=theme_threshold, internal_rhymes=internal_rhymes)
+            #create new Line_Generator object
 
             if line: line_arr = line.split()
             if line and rhyme_lines and not random_templates and line_number % 4 < 2:
