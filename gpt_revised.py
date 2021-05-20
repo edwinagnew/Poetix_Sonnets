@@ -451,39 +451,54 @@ class Partial_Line:
 
 
 class Line_Generator:
-    def __init__(self, sonnet_object, gpt_tokenizer):
+    def __init__(self, sonnet_object, templates, meter_dicts, gpt_object, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False):
         # global logistics
-        self.rhyme_word = None
+        self.rhyme_word = rhyme_word
         self.space = ""
-        self.weight_repetition = False
+        self.weight_repetition = weight_repetition
         self.theme_threshold = 1
         self.lemma = nltk.wordnet.WordNetLemmatizer()
         self.sonnet_object = sonnet_object
+        self.alliteration = alliteration
+        self.theme_threshold = theme_threshold
+        self.prev_lines = prev_lines
+        self.no_template = no_template
+        self.internal_rhymes = internal_rhymes
+        self.k = k
+        self.verbose = verbose
 
         # theme
         self.theme_tokens = []
-        self.theme_words = {}
+        self.theme_words = theme_words
 
         # gpt
-        self.gpt_tokens = list(gpt_tokenizer.get_vocab().keys())
-        self.gpt_tokenizer = gpt_tokenizer
+        self.gpt_model = gpt_object
+        self.gpt_tokens = list(gpt_object.tokenizer.get_vocab().keys())
+        self.gpt_tokenizer = gpt_object.tokenizer
         self.prev_lines = ""
 
         # beam search/multiple k
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
+        for i, template in enumerate(templates):
+            self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
 
 
     #def create_partial(self):
 
-    def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1):
+    def complete_lines(self):
+        for template in self.partial_lines:
+            self.update_all_partials(template)
+        return self.partial_lines
+
+    def new_line(self, template, meter_dict, rhyme_word=None):
         """ beginning of a new line"""
 
         if template not in self.partial_lines:
             self.partial_lines[template] = []
 
-        for _ in range(k):
-            new_partial = Partial_Line(template, meter_dict, internal_rhymes)
+        for _ in range(self.k):
+            new_partial = Partial_Line(self, template, meter_dict, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
             self.partial_lines[template].append(new_partial)
 
     def branch(self, n, template):
@@ -516,105 +531,17 @@ class Line_Generator:
         """
         for template in self.partial_lines:
             self.update_all_partials(template)
+        return
 
-    def update_all_partials(self, template, j=0):
+    def update_all_partials(self, template, j=-1):
         """
         gets the next word for each partial line in self.partial_lines[template]
         Returns:
         """
         for p_l in self.partial_lines[template]:
-            if not p_l.line_finished: p_l.write_to_word(j)
-
-    def update(self, gpt_output, i, should_bigram=0, verbose=False, no_template=False):
-        """
-        Take in gpt_output and return next token
-        Parameters
-        ----------
-        i - word number
-        verbose
-        gpt_output - token scores
-
-        Returns
-        -------
-
-        """
-
-        if len(self.sub_tokens) == 0:  # first token of word
-            if no_template:
-                self.poss = self.sonnet_object.get_poss_words_no_pos(list(self.meter_dict.keys()))
-                space = self.space = " " * int(list(self.poss)[0] and i > 0)
-                self.poss_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.poss]
+            if j != -1:
+                p_l.write_to_word(j)
             else:
-                self.get_poss(i, verbose=verbose)
-
-        # all tokens
-
-        # next possible tokens are all the ones which could come after the ones already chosen
-        len_sub = len(self.sub_tokens)
-        checks = set([p[len_sub] for p in self.poss_tokens if
-                      p[:len_sub] == self.sub_tokens and len(
-                          p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
-
-        if len(checks) == 1:
-            token = checks.pop()
-            dist = ws = np.ones(len(self.gpt_tokens))
-        else:
-            # the same but for theme words
-            if self.theme_tokens: theme_checks = set([p[len_sub] for p in self.theme_tokens if
-                                                      p[:len_sub] == self.sub_tokens and len(p) > len_sub])
-
-            if no_template:
-                words = self.poss
-                word_scores = {}
-                for word in words:
-                    word_scores[word] = 1
-            else:
-                word_scores = self.sonnet_object.pos_to_words[helper.remove_punc(self.template[i].split("_")[0])]
-
-            if any(v != 1 for v in
-                   word_scores.values()):  # if words have different scores, get the scores of the relevant words
-                score_tokens = {self.gpt_tokenizer.encode(self.space + t)[len_sub]: v for t, v in word_scores.items() if
-                                len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
-                word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
-            else:
-                if verbose: print("replacing tokens")
-
-                word_scores = np.ones(len(self.gpt_tokens))
-
-            filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
-            # if verbose and self.internal_rhymes: print("number of shared filts", len([w for w in tokens if filt[w] > 0]))
-
-            ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
-            if ws.shape[0] == 1: ws = ws[0]
-
-            if self.weight_repetition:
-                ws = self.weight_repeated_words(checks, ws, verbose=verbose)
-
-            token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
-
-        # 2c
-        if verbose and not no_template: print("for ", self.template[i], end=': ')
-
-        if verbose: print("picked " + str(token) + ": '" + str(self.gpt_tokenizer.decode(token)) + "' with prob " + str(
-            dist[token]) + " initial score " + str(ws[token]))
-
-        if any(p == self.sub_tokens + [token] for p in self.poss_tokens):
-
-            word = self.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
-
-            if word not in ",.;?" and self.meter_dict:
-                meter = ""
-                # if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
-                while meter not in self.meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
-                self.meter_dict = self.meter_dict[meter]
-                if not no_template and "_" in self.template[i]:
-                    self.repeats[self.template[i]] = word
-            self.sub_tokens = []
-            self.curr_line += self.space + word
-            self.first_lets.add(word[0])
-            self.alliteration = self.alliteration if self.alliteration is None or self.alliteration == "s" else self.first_lets
-        else:
-            self.sub_tokens.append(token)
-
-        # maybe return token here?
-        return token
+                while not p_l.line_finished:
+                    p_l.get_next_word()
+        return
