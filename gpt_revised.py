@@ -62,6 +62,7 @@ class Partial_Line:
         self.sub_tokens = []
         self.first_lets = set()
         self.past = None  # need to give this to gpt
+        self.word_scores = []
 
         # misc
         self.verbose = verbose
@@ -76,19 +77,15 @@ class Partial_Line:
 
             self.update_constraints(first_token, first=True)
 
-            if self.internal_rhymes:
-                self.complete_word()
+            if self.rhyme_finishers:
+                self.restrict_words(finishers=self.rhyme_finishers)
 
             word.append(first_token)
             while len(self.sub_tokens) != 0:
 
-
                 gpt_output = self.get_gpt_scores()
-
-                token = self.get_next_token()
-
-                self.update_constraints(token, first=True)
-
+                token = self.get_next_token(gpt_output)
+                self.update_constraints(token, first=False)
                 word.append(token)
 
         return self.parent.gpt_tokenizer.decode(word)
@@ -105,10 +102,48 @@ class Partial_Line:
 
         return output
 
+    def get_next_token(self, gpt_output):
+        """
+        Call when: you have one token and need to finish a word, but it isn't a special case like internal rhyme or the last word of a line
+        Args:
+            gpt_output: the output from gpt_2
+
+        Returns:
+            a token
+        Updates:
+            Nothing, it's handled under update contraints
+        """
+
+        i = len(self.curr_line.split())
+        len_sub = len(self.sub_tokens)
+        checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
+
+        if len(checks) == 1:
+            token = checks.pop()
+            dist = ws = np.ones(len(self.parent.gpt_tokens))
+        else:
+            # the same but for theme words
+            if self.theme_tokens: theme_checks = set([p[len_sub] for p in self.theme_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+            else: theme_checks = []
+            # skipping no template
+            word_scores = self.word_scores
+            dist = self.create_dist(checks, word_scores, gpt_output, theme_checks)
+            token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
+
+        return token
+
     def get_next_token_no_template(self):
         print("piss off")
 
     def get_first_token(self, gpt_output):
+        """
+        This function gets the first token of a word. It does so factoring in things like internal rhyme, theme, and alliteration. It updates various global parameters to prepare to finish the word.
+        Args:
+            gpt_output:
+
+        Returns:
+            the first token of a word
+        """
 
         verbose = self.verbose
 
@@ -149,12 +184,11 @@ class Partial_Line:
                 self.handle_internal_rhymes(word_scores) #TODO this should change self.rhyme_finishers if successful
 
             dist = self.create_dist(checks, word_scores, gpt_output, theme_checks)
-
+            self.word_scores = word_scores
 
             token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
 
         return token
-
 
     def handle_internal_rhymes(self, word_scores):
 
@@ -177,8 +211,9 @@ class Partial_Line:
         len_sub = len(self.sub_tokens)
 
         all_tokens = [self.parent.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
-        tokens = self.rhyme_finishers = set([p[len_sub] for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
-
+        valid_tokens = [p for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub]
+        tokens = set(p[len_sub] for p in valid_tokens)
+        self.rhyme_finishers = all_tokens
         if verbose: print("number of shared tokens prior to rhyming", len([w for w in tokens if w in self.poss_tokens]))
         # tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos])
 
@@ -206,10 +241,12 @@ class Partial_Line:
 
         return word_scores
 
-    def complete_word(self, first_token, poss_words=None):
-        pass
+    def restrict_words(self, finishers):
+        """call when you want to complete a word in a specific way"""
 
     # also funcitons for each lit device etc.
+        len_sub = len(self.sub_tokens)
+        self.poss_tokens = [p for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and p in finishers]
 
     # copied from before code
     def get_poss(self, i):
@@ -359,7 +396,7 @@ class Partial_Line:
         1. Prepare whether or not a word needs to be finished
         """
         i = len(self.curr_line.split())
-        if any(p == self.sub_tokens + [token] for p in self.poss_tokens):
+        if any(p == self.sub_tokens + [token] for p in self.poss_tokens): #checks if the word is over
             word = self.parent.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
 
             if word not in ",.;?" and self.meter_dict:
@@ -370,6 +407,8 @@ class Partial_Line:
                 if self.template and "_" in self.template[i]:
                     self.repeats[self.template[i]] = word
 
+            self.word_scores = []
+            self.rhyme_finishers = []
             self.sub_tokens = [] #indicates we have moved onto new word
             self.curr_line += self.space + word
             self.first_lets.add(word[0])
@@ -381,8 +420,6 @@ class Partial_Line:
         if first:
             if self.internal_rhymes and self.parent.gpt_tokenizer.decoder[token] not in self.rhyme_finishers:
                 self.rhyme_finishers = []
-            #else:
-            #    self.any_finishers = True
 
             if len(self.curr_line.split()) == len(self.template) - 1:
                 self.rhyme_finishers = [self.poss_tokens[i] for i in range(len(self.poss_tokens)) if self.poss_tokens[i][0] == token]
