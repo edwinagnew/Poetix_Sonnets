@@ -39,17 +39,17 @@ class gpt_gen:
 
 
 class Partial_Line:
-    def __init__(self, parent, verbose=False):
+    def __init__(self, parent, template, meter_dict, internal_rhymes=[], verbose=False):
         # template
         self.parent = parent
-        self.template = None
-        self.meter_dict = None
+        self.template = template#.copy()
+        self.meter_dict = meter_dict.copy()
         self.poss = []  # all possible words
         self.poss_tokens = []  # tokenization of all possible words
 
         # poetic_constraints
         # self.alliteration = None
-        self.internal_rhymes = [] #previous words to rhyme with
+        self.internal_rhymes = internal_rhymes #previous words to rhyme with
         self.rhyme_finishers = [] #words/tokens that could be used to rhyme
 
         # syntactic coherance
@@ -66,32 +66,52 @@ class Partial_Line:
 
         # misc
         self.verbose = verbose
+        self.line_finished = False
+
+    def write_to_word(self, j):
+        while len(self.curr_line.split()) < j:
+            self.get_next_word()
+
 
     def get_next_word(self):
+        """
+
+        Given a partial line, return a word which fits the next POS from the template (mostly relies on get_first_token and get_next_token)
+        -------
+
+        """
+        assert len(self.curr_line.split()) < len(self.template)
+
         word = []
         if not self.template:
-            self.get_next_token_no_template()
+            self.get_next_token_no_template() #not implemented yet
         else:
             gpt_output = self.get_gpt_scores()
-            first_token = self.get_first_token(gpt_output)
+            first_token = self.get_first_token(gpt_output) #gets the first token
 
-            self.update_constraints(first_token, first=True)
+            self.update_constraints(first_token, first=True) #updates all of the global stuff (sub_tokens etc.) accordingly
 
-            if self.rhyme_finishers:
-                self.restrict_words(finishers=self.rhyme_finishers)
+            if self.rhyme_finishers: #if the word needs to be a rhymer (i.e. last word or first token was the beginning of a rhyme
+                self.restrict_words(finishers=self.rhyme_finishers) #updates self.poss_tokens accordingly
 
             word.append(first_token)
-            while len(self.sub_tokens) != 0:
+
+            while len(self.sub_tokens) != 0: #while the word is not complete
 
                 gpt_output = self.get_gpt_scores()
-                token = self.get_next_token(gpt_output)
-                self.update_constraints(token, first=False)
+                token = self.get_next_token(gpt_output) #gets the next token
+                self.update_constraints(token, first=False) #updates global stuff accordingly
                 word.append(token)
 
-        return self.parent.gpt_tokenizer.decode(word)
+        #return self.parent.gpt_tokenizer.decode(word) #not really necessary
 
 
     def get_gpt_scores(self):
+        """
+        Uses past and most recent token to get gpt scores
+
+
+        """
         last_token = self.tokens[-1]
         context = torch.tensor(last_token).unsqueeze(0).to(self.parent.model.device)
 
@@ -244,7 +264,6 @@ class Partial_Line:
     def restrict_words(self, finishers):
         """call when you want to complete a word in a specific way"""
 
-    # also funcitons for each lit device etc.
         len_sub = len(self.sub_tokens)
         self.poss_tokens = [p for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and p in finishers]
 
@@ -413,6 +432,9 @@ class Partial_Line:
             self.curr_line += self.space + word
             self.first_lets.add(word[0])
             self.parent.alliteration = self.parent.alliteration if (self.parent.alliteration is None or self.parent.alliteration == "s") else self.first_lets
+
+            if i == len(self.template): #line over
+                self.line_finished = True
         else:
             self.sub_tokens.append(token)
 
@@ -450,42 +472,19 @@ class Line_Generator:
         # beam search/multiple k
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
 
+
+    #def create_partial(self):
+
     def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[]):
-
-        """if not no_template:
-            self.template = template
-        self.meter_dict = meter_dict
-        self.rhyme_word = rhyme_word
-
-        self.sub_tokens = []
-
-        # self.punc_next = False
-
-        self.repeats = {}
-
-        self.poss_tokens = []
-        self.theme_tokens = []
-        self.theme_words = theme_words
-
-        self.alliteration = alliteration
-        self.weight_repetition = weight_repetition  # False
-        self.internal_rhymes = internal_rhymes
-
-        self.theme_threshold = theme_threshold
-
-        self.first_lets = set()
-
-        self.prev_lines = prev_lines
-        self.curr_line = ""
-        """
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1):
+        """ beginning of a new line"""
 
         if template not in self.partial_lines:
             self.partial_lines[template] = []
 
-        new_partial = Partial_Line(stuff)
-
-        self.partial_lines[template].append(new_partial)
+        for _ in range(k):
+            new_partial = Partial_Line(template, meter_dict, internal_rhymes)
+            self.partial_lines[template].append(new_partial)
 
     def branch(self, n, template):
         """
@@ -518,11 +517,13 @@ class Line_Generator:
         for template in self.partial_lines:
             self.update_all_partials(template)
 
-    def update_all_partials(self, template):
+    def update_all_partials(self, template, j=0):
         """
         gets the next word for each partial line in self.partial_lines[template]
         Returns:
         """
+        for p_l in self.partial_lines[template]:
+            if not p_l.line_finished: p_l.write_to_word(j)
 
     def update(self, gpt_output, i, should_bigram=0, verbose=False, no_template=False):
         """
