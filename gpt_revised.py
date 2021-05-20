@@ -67,19 +67,34 @@ class Partial_Line:
         self.verbose = verbose
 
     def get_next_word(self):
-        if no_template:
+        word = []
+        if not self.template:
             self.get_next_token_no_template()
         else:
-            first_token = self.get_first_token()
+            gpt_output = self.get_gpt_scores()
+            first_token = self.get_first_token(gpt_output)
 
             self.update_constraints(first_token, first=True)
 
             if self.internal_rhymes:
                 self.complete_word()
-            else:
-                self.get_next_token()
 
-    def get_next_token(self):
+            word.append(first_token)
+            while len(self.sub_tokens) != 0:
+
+
+                gpt_output = self.get_gpt_scores()
+
+                token = self.get_next_token()
+
+                self.update_constraints(token, first=True)
+
+                word.append(token)
+
+        return self.parent.gpt_tokenizer.decode(word)
+
+
+    def get_gpt_scores(self):
         last_token = self.tokens[-1]
         context = torch.tensor(last_token).unsqueeze(0).to(self.parent.model.device)
 
@@ -88,14 +103,7 @@ class Partial_Line:
 
         output += abs(torch.min(output))
 
-        # choose next token
-        i = len(self.curr_line.split())
-
-        if len(self.sub_tokens) == 0:  # first token of word
-            self.get_first_token()
-        else:
-
-            self.get_poss(i, verbose=self.verbose)
+        return output
 
     def get_next_token_no_template(self):
         print("piss off")
@@ -376,10 +384,10 @@ class Partial_Line:
             #else:
             #    self.any_finishers = True
 
-            #if len(self.curr_line.split()) == len(self.template) - 1:
-            #    self.rhyme_finishers = [self.poss_tokens[i] for i in range(len(self.poss_tokens)) if self.poss_tokens[i][0] == token]
+            if len(self.curr_line.split()) == len(self.template) - 1:
+                self.rhyme_finishers = [self.poss_tokens[i] for i in range(len(self.poss_tokens)) if self.poss_tokens[i][0] == token]
 
-
+        self.tokens.append(token)
 
 
 
