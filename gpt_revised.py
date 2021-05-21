@@ -65,6 +65,7 @@ class Partial_Line:
         self.first_lets = set()
         self.past = None  # need to give this to gpt
         self.word_scores = []
+        self.template_loc = 0
 
         # misc
         self.verbose = verbose
@@ -72,7 +73,7 @@ class Partial_Line:
 
 
     def write_to_word(self, j):
-        while len(self.curr_line.split()) < j:
+        while self.template_loc < j:
             self.get_next_word()
 
 
@@ -101,7 +102,8 @@ class Partial_Line:
 
         verbose = self.verbose
 
-        i = len(self.curr_line.split())
+        #i = len(self.curr_line.split())
+        i = self.template_loc
         self.get_poss(i)
 
         # next possible tokens are all the ones which could come after the ones already chosen
@@ -146,6 +148,9 @@ class Partial_Line:
 
             token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
 
+        if self.verbose: print("for", self.template[self.template_loc], "picked " + str(token) + ": '" + str(
+            self.parent.gpt_tokenizer.decode(token)) + "' with prob " + str(dist[token]))
+
         return token
 
 
@@ -159,9 +164,9 @@ class Partial_Line:
         if len(self.tokens) == 0 and len(self.parent.prev_lines) == 0:
             return self.write_first_word()
 
-        assert len(self.curr_line.split()) < len(self.template), self.curr_line
+        assert self.template_loc < len(self.template), self.curr_line
 
-        word = []
+        #word = []
         if not self.template:
             self.get_next_token_no_template() #not implemented yet
         else:
@@ -173,14 +178,15 @@ class Partial_Line:
             if self.rhyme_finishers: #if the word needs to be a rhymer (i.e. last word or first token was the beginning of a rhyme
                 self.restrict_words(finishers=self.rhyme_finishers) #updates self.poss_tokens accordingly
 
-            word.append(first_token)
+            #word.append(first_token)
 
             while len(self.sub_tokens) != 0: #while the word is not complete
 
                 gpt_output = self.get_gpt_scores()
+
                 token = self.get_next_token(gpt_output) #gets the next token
                 self.update_constraints(token, first=False) #updates global stuff accordingly
-                word.append(token)
+                #word.append(token)
 
         #return self.parent.gpt_tokenizer.decode(word) #not really necessary
 
@@ -225,7 +231,7 @@ class Partial_Line:
             Nothing, it's handled under update contraints
         """
 
-        i = len(self.curr_line.split())
+
         len_sub = len(self.sub_tokens)
         checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
 
@@ -241,11 +247,21 @@ class Partial_Line:
             dist = self.create_dist(checks, word_scores, gpt_output, theme_checks)
             token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
 
+        if self.verbose: print("for", self.template[self.template_loc], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' with prob " + str(dist[token]))
         return token
 
     def get_next_token_no_template(self):
         print("piss off")
 
+    def update_punc(self, punc):
+
+        scores = self.get_gpt_scores() #just to update past
+
+        p = random.choice(punc)
+
+        self.punc_next = False
+
+        return p
 
 
     def handle_internal_rhymes(self, word_scores):
@@ -332,8 +348,7 @@ class Partial_Line:
 
             # 1d - get potential next words
             else:
-                self.poss = set(
-                    self.parent.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys())))
+                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys())))
 
             r = None
             if i == len(self.template) - 1 and self.parent.rhyme_word:
@@ -397,8 +412,7 @@ class Partial_Line:
             p_lemma = self.parent.lemma.lemmatize(p)
             if lemmas.count(p_lemma) > 0 or lemmas_last.count(p_lemma) > 0:  # solved - doesnt allow repetition in the same line #changed to 0
                 if len(self.sub_tokens) == 0 and self.poss_tokens[j][0] in checks:  # fix
-                    if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                      "times")
+                    #if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma), "times")
                     repeated_token = self.poss_tokens[j][0]
                     # ws[repeated_token] = 0
                     dist = 0
@@ -431,14 +445,14 @@ class Partial_Line:
 
         if self.theme_tokens: theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
 
-        if verbose: print("maxest token", np.max(ws), np.argmax(ws), self.parent.gpt_tokens[np.argmax(ws)])
-        if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
+        #if verbose: print("maxest token", np.max(ws), np.argmax(ws), self.parent.gpt_tokens[np.argmax(ws)])
+        #if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
 
         if theme_scores and max(theme_scores)[0] / max(ws) > self.parent.theme_threshold:
-            if verbose: print("reducing to theme words")
+            #if verbose: print("reducing to theme words")
 
             ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(self.parent.gpt_tokens))])
-            if verbose: print("after", len(ws.nonzero()))
+            if verbose: print("after", len(ws.nonzero()), ws)
         if max(ws) <= 0:
             if verbose: print("something went wrong", max(ws))
             return None
@@ -452,26 +466,42 @@ class Partial_Line:
         2. Decides whether or not we have just completed a word
         1. Prepare whether or not a word needs to be finished
         """
-        i = len(self.curr_line.split())
-        if any(p == self.sub_tokens + [token] for p in self.poss_tokens): #checks if the word is over
-            word = self.parent.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
 
-            if word not in ",.;?" and self.meter_dict:
-                meter = ""
+        punc = ",.;?"
+
+        did_punc = False
+
+        word = self.parent.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
+
+        if any(p == self.sub_tokens + [token] for p in self.poss_tokens): #checks if the word is over
+
+            #if self.punc_next: word
+
+            if word not in punc and self.meter_dict:
+                meter = "X"
                 # if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
                 while meter not in self.meter_dict: meter = random.choice(self.parent.sonnet_object.get_meter(word))
                 self.meter_dict = self.meter_dict[meter]
-                if self.template and "_" in self.template[i]:
-                    self.repeats[self.template[i]] = word
+                if self.template and "_" in self.template[self.template_loc]:
+                    self.repeats[self.template[self.template_loc]] = word
+
+                self.first_lets.add(word[0])
+                self.parent.alliteration = self.parent.alliteration if (
+                            self.parent.alliteration is None or self.parent.alliteration == "s") else self.first_lets
 
             self.word_scores = []
             self.rhyme_finishers = []
             self.sub_tokens = [] #indicates we have moved onto new word
-            self.curr_line += self.space + word
-            self.first_lets.add(word[0])
-            self.parent.alliteration = self.parent.alliteration if (self.parent.alliteration is None or self.parent.alliteration == "s") else self.first_lets
 
-            if i == len(self.template) - 1: #line over
+            if self.punc_next:
+                did_punc = True
+
+
+            self.curr_line += self.space + word
+
+            self.template_loc += 1
+
+            if self.template_loc == len(self.template) - 1: #line over
                 self.line_finished = True
         else:
             self.sub_tokens.append(token)
@@ -481,10 +511,19 @@ class Partial_Line:
             if self.internal_rhymes and self.parent.gpt_tokenizer.decoder[token] not in self.rhyme_finishers:
                 self.rhyme_finishers = []
 
-            if len(self.curr_line.split()) == len(self.template) - 1:
+            if self.template_loc == len(self.template) - 1:
                 self.rhyme_finishers = [self.poss_tokens[i] for i in range(len(self.poss_tokens)) if self.poss_tokens[i][0] == token]
 
         self.tokens.append(token)
+
+        if did_punc:
+            punc = self.update_punc(self.punc_next)
+            #word += punc
+            token = self.parent.gpt_tokenizer.encode(punc)
+            self.tokens.append(token)
+
+
+
 
 
 
