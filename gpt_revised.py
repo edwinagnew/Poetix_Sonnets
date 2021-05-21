@@ -254,10 +254,10 @@ class Partial_Line:
         print("piss off")
 
     def update_punc(self, punc):
-
         scores = self.get_gpt_scores() #just to update past
 
         p = random.choice(punc)
+        print("the punctuation we're trying to add is " + p)
 
         self.punc_next = False
 
@@ -452,7 +452,7 @@ class Partial_Line:
             #if verbose: print("reducing to theme words")
 
             ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(self.parent.gpt_tokens))])
-            if verbose: print("after", len(ws.nonzero()), ws)
+            if verbose: print("after", len(ws.nonzero()), ws) #TODO this is dodgy
         if max(ws) <= 0:
             if verbose: print("something went wrong", max(ws))
             return None
@@ -501,7 +501,7 @@ class Partial_Line:
 
             self.template_loc += 1
 
-            if self.template_loc == len(self.template) - 1: #line over
+            if self.template_loc == len(self.template): #line over
                 self.line_finished = True
         else:
             self.sub_tokens.append(token)
@@ -521,6 +521,7 @@ class Partial_Line:
             #word += punc
             token = self.parent.gpt_tokenizer.encode(punc)
             self.tokens.append(token)
+            self.curr_line += punc
 
 
 
