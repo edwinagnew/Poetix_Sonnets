@@ -127,9 +127,6 @@ class gpt_gen:
         context = torch.tensor([generated]).to(self.model.device)
         past = None
 
-        print("context: ", context, context.size())
-        print(1/0)
-
         """
         1 - main loop
         """
