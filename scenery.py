@@ -593,6 +593,17 @@ class Scenery_Gen(poem_core.Poem):
                 templates.append(template)
                 meters.append(meter_dict)
 
+            if not any(m for m in meters):
+                if verbose: print("no meters resetting randomly")
+                if line_number == 13:
+                    line_number = 12
+                else:
+                    line_number -= 2
+
+                continue
+
+
+
             alliterating = alliterate and random.random() < 0.5  # 0.3
             if alliterating:
                 if random.random() < 0.85:
@@ -615,17 +626,18 @@ class Scenery_Gen(poem_core.Poem):
                 print(templates, meters, r)
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number // 4]
 
-            line_gen = gpt_revised.Line_Generator(self, templates, meters, self.gpt, rhyme_word=r, theme_words=t_w, alliteration=letters, weight_repetition=True, prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1, verbose=verbose)
-            all_beams = line_gen.complete_lines()
+            self.line_gen = gpt_revised.Line_Generator(self, templates, meters, self.gpt, rhyme_word=r, theme_words=t_w, alliteration=letters, weight_repetition=True, prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1, verbose=verbose)
+            all_beams = self.line_gen.complete_lines()
 
             best = (100, "", "")
 
             for t in all_beams:
                 for p_l in all_beams[t]:
                     line = p_l.curr_line
-                    best = min(best, (self.gpt.score_line("\n".join(lines) + line), line, t))
+                    best = min(best, (self.gpt.score_line("\n".join(lines) + "\n" + line), line, t))
 
-            print("the best was", best)
+            if verbose: print("the best was", best)
+
             lines.append(best[1])
             used_templates.append(best[2])
             line_number += 1
