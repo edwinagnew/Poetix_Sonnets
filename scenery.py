@@ -634,6 +634,7 @@ class Scenery_Gen(poem_core.Poem):
             for t in all_beams:
                 for p_l in all_beams[t]:
                     line = p_l.curr_line
+                    if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     best = min(best, (self.gpt.score_line("\n".join(lines) + "\n" + line), line, t))
 
             if verbose: print("the best was", best)
