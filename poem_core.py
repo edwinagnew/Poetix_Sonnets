@@ -530,6 +530,8 @@ class Poem:
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
+            gerund_templates = ["RB VBG VBD WHERE ALL PRPD$ JJ NNS VB,", "FOR VBG NN WITH PRPO RB,",
+                                "VBG A NN WHERE NNS VB,", "AND VBG A NN WHERE NNS VB,", "AND VBG PRPD$ NN BY PRPD$ NN,"]
             if used_templates[-1] == "FOR JJS NNS, PRPS VBP NNS": #checked 4/2/21
                 poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
                         ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
@@ -563,6 +565,12 @@ class Poem:
                         ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
                         ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
                         ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
+
+            elif used_templates[-1] in gerund_templates:
+                poss = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
+                        ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
+                        ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
+                        ("PRPS VBZ TO THE NN WHERE PRP$ NNS VB", "0_1_0_1_01_0_1_0_1")]
 
 
             if used_templates[-1][-1] in ".?":
