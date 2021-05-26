@@ -604,8 +604,9 @@ class Scenery_Gen(poem_core.Poem):
 
 
 
-            alliterating = alliterate and random.random() < 0.5  # 0.3
+            alliterating = alliterate and random.random() <= alliteration / 4  # 0.3
             if alliterating:
+                alliterate -= 1
                 if random.random() < 0.85:
                     letters = string.ascii_lowercase
                 else:

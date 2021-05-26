@@ -53,6 +53,7 @@ class Partial_Line:
         self.internal_rhymes = internal_rhymes #previous words to rhyme with
         self.rhyme_finishers = [] #words/tokens that could be used to rhyme
         self.theme_tokens = []
+        self.alliterated = False
 
         # syntactic coherance
         self.punc_next = False
