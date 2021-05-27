@@ -47,6 +47,13 @@ class Poem:
                     self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                       "#" not in line and len(line) > 1]
 
+        self.all_templates_dict = {}
+        for file in ["templates_present", "templates_past", "templates_future", "templates_basic"]:
+            file_path = "poems/" + file + ".txt"
+            f = open(file_path, "r")
+            for line in f.readlines():
+                self.all_templates_dict[" ".join(line.split()[:-1])] = line.split()[-1]
+
         self.special_words = helper.get_finer_pos_words()
 
         self.dict_meters = helper.create_syll_dict([syllables_file], extra_stress_file)
@@ -308,7 +315,7 @@ class Poem:
     def suitable_last_word(self, word, punc=False):  # checks pos is in self.end_pos and has correct possible meters
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos for w in self.get_word_pos(word)) and any(
-            t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if
+            t in self.end_pos[pos] for t in self.get_meter(word) for pos in self.get_word_pos(word) if
             pos in self.end_pos)
 
     def write_line_gpt(self, template=None, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
@@ -470,11 +477,11 @@ class Poem:
             for meter in self.possible_meters:
                 if "PRP" in pos:
                     self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                        word in self.dict_meters and meter in self.dict_meters[
-                                                            word] and word in self.gender]
+                                                        word in self.dict_meters and meter in self.get_meter(word)
+                                                        and word in self.gender]
                 else:
                     self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                        word in self.dict_meters and meter in self.dict_meters[word]]
+                                                        word in self.dict_meters and meter in self.get_meter(word)]
         for word in self.special_words:
             if word in self.dict_meters:
                 meter = self.dict_meters[word]
@@ -495,8 +502,7 @@ class Poem:
         for pos in possible_pos:
             for meter in self.possible_meters:
                 self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                    word in self.dict_meters and meter in self.dict_meters[
-                                                        word] and word in self.gender]
+                                                    word in self.dict_meters and meter in self.get_meter(word) and word in self.gender]
 
     def get_template_from_line(self, line, backwards=False):
         words = line if type(line) == list else line.lower().split()

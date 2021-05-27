@@ -7,6 +7,7 @@ import string
 import pandas as pd
 
 
+
 from py_files import helper
 
 import theme_word_file
@@ -150,6 +151,7 @@ class Scenery_Gen(poem_core.Poem):
                                 self.dict_meters[word][0]) == len(self.templates[i - 1][1].split("_")[-1]) and any(
                                 self.suitable_last_word(r, i + 1) for r in rhyme_dict[scheme[i]][word]):
                             self.dict_meters[word].append(self.templates[i - 1][1].split("_")[-1])
+
                             print("cheated with ", word, " ", self.dict_meters[word],
                                   self.suitable_last_word(word, i - 1))
                     j += 1
@@ -627,7 +629,7 @@ class Scenery_Gen(poem_core.Poem):
                 print(templates, meters, r)
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number // 4]
 
-            self.line_gen = gpt_revised.Line_Generator(self, templates, meters, self.gpt, rhyme_word=r, theme_words=t_w, alliteration=letters, weight_repetition=True, prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1, verbose=verbose)
+            self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w, alliteration=letters, weight_repetition=True, prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1, verbose=verbose)
             all_beams = self.line_gen.complete_lines()
 
             best = (100, "", "")

@@ -37,6 +37,14 @@ class gpt_gen:
         print("loaded", model)
         self.gpt_tokens = list(self.tokenizer.get_vocab().keys())
 
+    def score_line(self, line):
+        if type(line) == list: return [self.score_line(li.strip()) for li in line]
+        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        with torch.no_grad():
+            outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
+        # loss, logits = outputs[:2]
+        return outputs[0].item()
+
 
 class Partial_Line:
     def __init__(self, parent, template, meter_dict, internal_rhymes=[], verbose=False):
@@ -207,10 +215,10 @@ class Partial_Line:
         else:
             past_text = (self.parent.prev_lines + "\n" + self.curr_line).strip()
             last_tokens = self.parent.gpt_tokenizer.encode(past_text)# + [self.sub_tokens]
-            print(last_tokens)
+            if self.verbose: print(last_tokens)
             context = torch.tensor([last_tokens]).to(self.parent.gpt_model.device)
 
-            print("context: ", context, context.size())
+            if self.verbose: print("context: ", context, context.size())
 
 
         with torch.no_grad():
@@ -258,7 +266,7 @@ class Partial_Line:
         scores = self.get_gpt_scores() #just to update past
 
         p = random.choice(punc)
-        print("the punctuation we're trying to add is " + p)
+        if self.verbose: print("the punctuation we're trying to add is " + p)
 
         self.punc_next = False
 
@@ -355,7 +363,7 @@ class Partial_Line:
             if i == len(self.template) - 1 and self.parent.rhyme_word:
                 r = self.parent.rhyme_word
                 if self.meter_dict == {}:
-                    print("made it here for rhyming w/o meter")
+                    if self.verbose: print("made it here for rhyming w/o meter")
                     self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=None, rhyme=r))
                 else:
                     self.poss = set(
@@ -530,9 +538,13 @@ class Partial_Line:
 
 
 class Line_Generator:
-    def __init__(self, sonnet_object, templates, meter_dicts, gpt_object, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
+    def __init__(self, sonnet_object, gpt_object, templates=None, meter_dicts=None, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
                  theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False):
         # global logistics
+        if templates is None:
+            templates = []
+        if meter_dicts is None:
+            meter_dicts = []
         self.rhyme_word = rhyme_word
         self.space = ""
         self.weight_repetition = weight_repetition
@@ -573,6 +585,8 @@ class Line_Generator:
 
     def new_line(self, template, meter_dict, rhyme_word=None):
         """ beginning of a new line"""
+
+        self.rhyme_word = rhyme_word
 
         if template not in self.partial_lines:
             self.partial_lines[template] = []
@@ -625,3 +639,9 @@ class Line_Generator:
                 while not p_l.line_finished:
                     p_l.get_next_word()
         return
+
+
+    def reset(self):
+        self.partial_lines = {}
+
+        self.prev_lines = ""
