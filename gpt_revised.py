@@ -1,6 +1,6 @@
 # import sonnet_basic
 import poem_core
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2Config, GPTNeoForCausalLM
 import torch
 import numpy as np
 import random
@@ -27,9 +27,19 @@ class gpt_gen:
         # if torch.cuda.is_available(): model = "gpt2-large"
         self.model_size = model
 
-        self.tokenizer = GPT2Tokenizer.from_pretrained(model)
 
-        self.model = GPT2LMHeadModel.from_pretrained(model)
+        if self.model_size == "custom":
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+            config = GPT2Config.from_json_file('retrained_model/config.json')
+            self.model = GPT2LMHeadModel.from_pretrained('retrained_model/pytorch_model.bin',  config=config)
+        elif model == "gpt3":
+
+            self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
+            self.model = GPTNeoForCausalLM.from_pretrained('EleutherAI/gpt-neo-1.3B')
+        else:
+            self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+            self.model = GPT2LMHeadModel.from_pretrained(model)
         if torch.cuda.is_available():
             print("putting to gpu")
             self.model.to('cuda')
