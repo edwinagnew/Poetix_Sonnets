@@ -506,7 +506,7 @@ class Poem:
 
     def get_template_from_line(self, line, backwards=False):
         words = line if type(line) == list else line.lower().split()
-        poss = self.templates
+        poss = list(self.all_templates_dict.keys())
         if not backwards:
             for i, word in enumerate(words):
                 word = word.split("_")[0]

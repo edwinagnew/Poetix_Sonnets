@@ -45,6 +45,9 @@ class Succession_Trainer:
             m1 = self.scenery_object.all_templates_dict[t1]
 
         m1_dict = self.scenery_object.get_meter_dict(t1, m1)
+        if not m1_dict:
+            self.line_gen.reset()
+            return "fail1"
 
 
         self.line_gen.new_line(t1, m1_dict)
@@ -54,7 +57,9 @@ class Succession_Trainer:
         m2_dict = self.scenery_object.get_meter_dict(t2, m2)
 
         self.line_gen.prev_lines = line1
-        assert m2_dict is not None, t2 + m2 + " gives empty meter dict:" + str(m2_dict)
+        if not m2_dict:
+            self.line_gen.reset()
+            return "fail2"
         self.line_gen.new_line(t2, m2_dict)
 
         line2 = self.line_gen.complete_lines()[t2][0].curr_line
@@ -76,6 +81,7 @@ class Succession_Trainer:
                 self.scenery_object.reset_gender()
                 c = self.gen_couplet(template)
                 if verbose: print("generated:", c)
+            self.save_matrix_dict()
 
 
 
