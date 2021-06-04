@@ -580,7 +580,7 @@ class Line_Generator:
 
     def complete_lines(self):
         for template in self.partial_lines:
-            self.update_all_partials(template)
+            self.update_all_partials(template) #finishes all partial lines if called without a number
         return self.partial_lines
 
     def new_line(self, template, meter_dict, rhyme_word=None):
