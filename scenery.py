@@ -442,19 +442,13 @@ class Scenery_Gen(poem_core.Poem):
 
         return ret
 
-<<<<<<< HEAD
 
     def write_poem_revised(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
                         theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                         gpt_size="gpt2", tense="present", internal_rhyme=0, dynamik=False):
-=======
-    def write_poem_revised(self, theme="love", verbose=False, rhyme_lines=True,
-                           theme_lines=0, k=5, alliteration=1, theme_choice="or", theme_cutoff=0.35,
-                           theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                           gpt_size="gpt2", tense="present", internal_rhyme=0):
->>>>>>> 972581f51eb9a42479b943db3b5ef4a7eb3cbea8
+
         if tense != self.tense:
             self.tense = tense
             if tense == None:
