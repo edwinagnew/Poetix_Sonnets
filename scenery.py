@@ -442,10 +442,12 @@ class Scenery_Gen(poem_core.Poem):
 
         return ret
 
-    def write_poem_revised(self, theme="love", verbose=False, rhyme_lines=True,
-                           theme_lines=0, k=5, alliteration=1, theme_choice="or", theme_cutoff=0.35,
-                           theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                           gpt_size="gpt2", tense="present", internal_rhyme=0):
+    def write_poem_revised(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
+                        theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
+                        theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
+                        theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
+                        gpt_size="gpt2", tense="present", internal_rhyme=0, dynamik=False):
+
         if tense != self.tense:
             self.tense = tense
             if tense == None:
@@ -662,6 +664,12 @@ class Scenery_Gen(poem_core.Poem):
                     best = min(best, (self.gpt.score_line("\n".join(lines) + "\n" + line), line, t))
 
             if verbose: print("the best was", best)
+
+            if best[0] > 6 and dynamik:
+                if verbose:
+                    print("best option not up to snuff, trying again.")
+                    print(best[1] + " was the best for line", line_number)
+                continue
 
             lines.append(best[1])
             used_templates.append(best[2])
