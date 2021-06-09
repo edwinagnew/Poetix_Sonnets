@@ -26,6 +26,7 @@ import logging
 import math
 import os
 import random
+import pickle
 
 import datasets
 import torch
@@ -55,9 +56,9 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a transformers model on a causal language modeling task")
-    lr = random.choice([0.01, 0.001, 0.0001, 0.00001, 0.000001])
+    lr = random.choice([0.001, 0.0005, 0.0001, 0.00005, 0.00001])
     wd = random.choice([0.1, 0.01, 0.001, 0.0001, 0.00001])
-    ga = random.choice([2, 4, 8, 16, 32, 64, 128, 256, 512])
+    ga = random.choice([4, 8, 16, 32, 64, 128, 256])
     parser.add_argument(
         "--dataset_name",
         type=str,
@@ -447,7 +448,7 @@ def main():
             eval_perplexity = math.exp(torch.mean(losses))
         except OverflowError:
             eval_perplexity = float("inf")
-
+        losses = []
         for step, batch in enumerate(train_dataloader):
             with torch.no_grad():
                 outputs = model(**batch)
@@ -468,6 +469,10 @@ def main():
         accelerator.wait_for_everyone()
         unwrapped_model = accelerator.unwrap_model(model)
         unwrapped_model.save_pretrained(args.output_dir, save_function=accelerator.save)
+
+    d = pickle.load(open("params_dict.p", "rb"))
+    d[(args.learning_rate, args.weight_decay, args.gradient_accumulation_steps)] = (train_perplexity, eval_perplexity)
+    pickle.dump(d, open("params_dict.p", "wb"))
 
 
 if __name__ == "__main__":
