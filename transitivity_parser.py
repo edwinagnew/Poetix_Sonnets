@@ -6,7 +6,7 @@ import pickle
 
 nlp = spacy.load('en')
 
-
+print("loading...")
 
 def get_trans(response):
     jsons = response.json()
@@ -35,7 +35,7 @@ orig_counts = len(t_dict)
 flag = False
 
 #for pos in poem.pos_to_words.keys():
-for pos in ['VB', 'VBD', 'VBZ', 'VBP', 'VBN', 'VBG']:
+for pos in ['VBD', 'VBZ', 'VBP', 'VBN', 'VBG', 'VB']:
     if flag:
         break
     if "VB" not in pos:
@@ -65,9 +65,9 @@ for pos in ['VB', 'VBD', 'VBZ', 'VBP', 'VBN', 'VBG']:
 
 
         counts = len(t_dict) - orig_counts
-        if counts >= 960:
-            print("out of counts")
-            break
+        #if counts >= 960:
+            #print("out of counts")
+            #break
 
 print("ended with", len(t_dict), "verbs!")
 pickle.dump(t_dict, open("saved_objects/verb_trans.p", "wb"))
