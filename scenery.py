@@ -8,7 +8,7 @@ import pandas as pd
 from py_files import helper
 
 import theme_word_file
-#import gpt_2
+import gpt_2
 import gpt_revised
 import word_embeddings
 from difflib import SequenceMatcher
