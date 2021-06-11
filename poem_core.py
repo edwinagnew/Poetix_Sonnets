@@ -532,12 +532,13 @@ class Poem:
 
         """
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
-        poss = [p for p in self.templates if used_templates.count(p) < 2]
+        poss = [p for p in self.templates if used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
             gerund_templates = ["RB VBG VBD WHERE ALL PRPD$ JJ NNS VB,", "FOR VBG NN WITH PRPO RB,",
-                                "VBG A NN WHERE NNS VB,", "AND VBG A NN WHERE NNS VB,", "AND VBG PRPD$ NN BY PRPD$ NN,"]
+                              "VBG A NN WHERE NNS VB,", "AND VBG A NN WHERE NNS VB,", "AND VBG PRPD$ NN BY PRPD$ NN,"]
+            gerund_templates = []
             if used_templates[-1] == "FOR JJS NNS, PRPS VBP NNS": #checked 4/2/21
                 poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
                         ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
@@ -573,10 +574,11 @@ class Poem:
                         ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
 
             elif used_templates[-1] in gerund_templates:
-                poss = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
+                followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
                         ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
                         ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
                         ("PRPS VBZ TO THE NN WHERE PRP$ NNS VB", "0_1_0_1_01_0_1_0_1")]
+                poss = list(set(followers).intersection(set(poss)))
 
 
             if used_templates[-1][-1] in ".?":
@@ -613,7 +615,7 @@ class Poem:
             if len(poss) == 0: poss = starters
 
         if len(poss) == 0:
-            print("theres no templates " + str(len(used_templates)) + used_templates[-1])
+            print("there are no templates " + str(len(used_templates)) + used_templates[-1])
             return 1/0
             #return self.fix_template(random.choice(self.templates))
 
