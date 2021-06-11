@@ -270,7 +270,7 @@ class Partial_Line:
         return token
 
     def get_next_token_no_template(self):
-        print("piss off")
+        print("uh oh, this hasn't been finished yet")
 
     def update_punc(self, punc):
         scores = self.get_gpt_scores() #just to update past

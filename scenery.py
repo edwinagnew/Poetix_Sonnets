@@ -670,14 +670,13 @@ class Scenery_Gen(poem_core.Poem):
                 if verbose:
                     print("best option not up to snuff, trying again.")
                     print(best[1] + " was the best for line", line_number)
-                continue
+            else:
+                lines.append(best[1])
+                used_templates.append(best[2])
+                line_number += 1
 
-            lines.append(best[1])
-            used_templates.append(best[2])
-            line_number += 1
-
-            last = helper.remove_punc(lines[-1].split()[-1])
-            if last in rhymes: rhymes = [r for r in rhymes if r != last]
+                last = helper.remove_punc(lines[-1].split()[-1])
+                if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "\n") if theme else ""
