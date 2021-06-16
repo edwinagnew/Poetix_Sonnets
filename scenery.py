@@ -662,11 +662,14 @@ class Scenery_Gen(poem_core.Poem):
                 for p_l in all_beams[t]:
                     line = p_l.curr_line
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                    line = line.replace(" i ", " I ")
                     best = min(best, (self.gpt.score_line("\n".join(lines) + "\n" + line), line, t))
 
             if verbose: print("the best was", best)
 
-            if best[0] > 6 and dynamik:
+
+            bound = 6 # if gpt_size == "custom" else 6
+            if best[0] > bound and dynamik:
                 if verbose:
                     print("best option not up to snuff, trying again.")
                     print(best[1] + " was the best for line", line_number)
