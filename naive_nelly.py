@@ -15,12 +15,14 @@ def remove_punc(s):
     return s
 
 
-def normalize(count_dict):
+def normalize(count_dict, old_dict=None):
 
     normalized = {}
     for key in count_dict:
         dist = count_dict[key]
         prob = (dist[1] + .5 * dist[3]) / sum(dist)
+        if key in old_dict:
+            prob = 0.5 * old_dict[key] + prob * 0.5
         normalized[key] = prob
     return normalized
 
@@ -33,8 +35,11 @@ if __name__ == "__main__":
     gpt = gpt_revised.gpt_gen(sonnet_object=p_c)
 
 
-    dataset = load_dataset("poem_sentiment")
+    dataset = load_dataset("imdb")
 
+
+    #count_dict = {}
+    old_dict = pickle.load(open("saved_objects/bayes_token.p", "rb"))
 
     count_dict = {}
 
@@ -43,7 +48,7 @@ if __name__ == "__main__":
     for i, row in enumerate(dataset['train']):
 
         #remove stopwords
-        text = [remove_punc(word) for word in row['verse_text'].split() if remove_punc(word) not in STOP_WORDS]
+        text = [remove_punc(word) for word in row['text'].split() if remove_punc(word) not in STOP_WORDS]
         encoded = tokenize_words(gpt, text)
         for tokens in encoded:
             for token in tokens:
@@ -52,7 +57,7 @@ if __name__ == "__main__":
                 if token:
                     count_dict[token][row['label']] += 1
 
-    final = normalize(count_dict)
+    final = normalize(count_dict, old_dict)
     print(final)
 
     pickle.dump(final, open("saved_objects/bayes_token.p", "wb"))
