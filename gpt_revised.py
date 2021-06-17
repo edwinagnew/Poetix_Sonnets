@@ -6,6 +6,7 @@ import numpy as np
 import random
 import nltk
 import string
+import pickle
 
 from py_files import helper
 
@@ -46,6 +47,7 @@ class gpt_gen:
         self.mc_model = None
         print("loaded", model)
         self.gpt_tokens = list(self.tokenizer.get_vocab().keys())
+        self.token_sentiment = pickle.load(open("saved_objects/bayes_token.p", "rb"))
 
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
@@ -145,9 +147,8 @@ class Partial_Line:
             word_scores_dict = self.parent.sonnet_object.pos_to_words[next_pos]
 
             if any(v != 1 for v in
-                   word_scores_dict.values()):  # if words have different scores, get the scores of the relevant words
+                word_scores_dict.values()):  # if words have different scores, get the scores of the relevant words
                 # score_tokens = {self.parent.gpt_tokenizer.encode(self.space + t)[0]: v for t, v in word_scores_dict.items()}
-
                 # word_scores = np.array([score_tokens[t][0] if t in score_tokens else 0 for t in range(len(self.parent.gpt_tokens))])
                 word_scores = np.ones(len(self.parent.gpt_tokens))
                 print("youll probably never get here", 0 / 0)
@@ -215,8 +216,6 @@ class Partial_Line:
         Uses past and most recent token to get gpt scores
 
         """
-
-
 
         if self.past:
             last_token = self.tokens[-1]
@@ -462,16 +461,20 @@ class Partial_Line:
 
         theme_scores = []
 
-        if self.theme_tokens: theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
+        if self.theme_tokens:
+            theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
+            for i in range(len(theme_scores)):
+                if theme_scores[i][1] in self.parent.theme_bayes:
+                    theme_scores[i] = (theme_scores[i][0] * self.parent.theme_bayes[theme_scores[i][1]], theme_scores[i][1])
 
         #if verbose: print("maxest token", np.max(ws), np.argmax(ws), self.parent.gpt_tokens[np.argmax(ws)])
         #if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
 
         if theme_scores and max(theme_scores)[0] / max(ws) > self.parent.theme_threshold:
             #if verbose: print("reducing to theme words")
-
             ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(self.parent.gpt_tokens))])
             if verbose: print("after", len(ws.nonzero()), ws) #TODO this is dodgy
+
         if max(ws) <= 0:
             if verbose: print("something went wrong", max(ws))
             return None
@@ -549,7 +552,7 @@ class Partial_Line:
 
 class Line_Generator:
     def __init__(self, sonnet_object, gpt_object, templates=None, meter_dicts=None, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False):
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False, theme_tone = None):
         # global logistics
         if templates is None:
             templates = []
@@ -569,15 +572,20 @@ class Line_Generator:
         self.k = k
         self.verbose = verbose
 
-        # theme
-        self.theme_tokens = []
-        self.theme_words = theme_words
-
         # gpt
         self.gpt_model = gpt_object.model
         self.gpt_tokens = list(gpt_object.tokenizer.get_vocab().keys())
         self.gpt_tokenizer = gpt_object.tokenizer
         self.prev_lines = ""
+
+        # theme
+        self.theme_tokens = []
+        self.theme_words = theme_words
+        if theme_tone == "negative":
+            for key in gpt_object.token_sentiment:
+                gpt_object.token_sentiment[key] = 1 - gpt_object.token_sentiment[key]
+        self.theme_bayes = gpt_object.token_sentiment
+
 
         # beam search/multiple k
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
