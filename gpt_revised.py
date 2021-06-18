@@ -34,7 +34,7 @@ class gpt_gen:
 
             config = GPT2Config.from_json_file('retrained_model/config.json')
             self.model = GPT2LMHeadModel.from_pretrained('retrained_model/pytorch_model.bin',  config=config)
-        elif model == "gpt3":
+        elif self.model_size == "gpt3":
 
             self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
             self.model = GPTNeoForCausalLM.from_pretrained('EleutherAI/gpt-neo-1.3B')
@@ -228,11 +228,14 @@ class Partial_Line:
             if self.verbose: print("last_tokens: ", last_tokens)
             context = torch.tensor([last_tokens]).to(self.parent.gpt_model.device)
 
-            if self.verbose: print("context: ", context, context.size())
+            #if self.verbose: print("context: ", context, context.size())
 
 
         with torch.no_grad():
-            output, self.past = self.parent.gpt_model(context, past_key_values=self.past, use_cache=True).values()
+            #output, self.past = self.parent.gpt_model(context, past_key_values=self.past, use_cache=True).values()
+            outputs = self.parent.gpt_model(context, past_key_values=self.past, use_cache=True)
+            self.past = outputs.past_key_values
+            output = outputs.logits
 
         output += abs(torch.min(output))
 
@@ -444,8 +447,7 @@ class Partial_Line:
 
                     ws[repeated_token] *= dist
                     if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                      "times so deweighted", repeated_token, self.parent.gpt_tokenizer.decode(repeated_token),
-                                      "\n")
+                                      "times so deweighted", repeated_token, self.parent.gpt_tokenizer.decode(repeated_token))
                 else:
                     pass
 
