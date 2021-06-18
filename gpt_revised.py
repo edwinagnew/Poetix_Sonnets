@@ -181,7 +181,8 @@ class Partial_Line:
         -------
 
         """
-        if len(self.tokens) == 0 and len(self.parent.prev_lines) == 0:
+        if len(self.tokens) == 0 and len(self.parent.prev_lines.strip()) == 0:
+            if self.verbose: print("writing first word")
             return self.write_first_word()
 
         assert self.template_loc < len(self.template), self.curr_line
@@ -224,7 +225,7 @@ class Partial_Line:
         else:
             past_text = (self.parent.prev_lines + "\n" + self.curr_line).strip()
             last_tokens = self.parent.gpt_tokenizer.encode(past_text)# + [self.sub_tokens]
-            if self.verbose: print(last_tokens)
+            if self.verbose: print("last_tokens: ", last_tokens)
             context = torch.tensor([last_tokens]).to(self.parent.gpt_model.device)
 
             if self.verbose: print("context: ", context, context.size())
@@ -421,8 +422,10 @@ class Partial_Line:
 
     def weight_repeated_words(self, checks, ws, verbose):
 
-        seed_words = helper.remove_punc(self.parent.prev_lines.lower().replace("'s", "")).split()
-        lemmas = [self.parent.lemma.lemmatize(word) for word in seed_words]  # gets lemmas for all words in poem
+        past_words = helper.remove_punc(self.parent.prev_lines.lower().replace("'s", "")).split()
+        print("\non repeating... past_words=", past_words)
+        lemmas = [self.parent.lemma.lemmatize(word) for word in past_words]  # gets lemmas for all words in poem
+        print("lemmas=", lemmas, "\n")
 
         lemmas_last = [self.parent.lemma.lemmatize(word) for word in helper.remove_punc(self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
 
@@ -576,7 +579,7 @@ class Line_Generator:
         self.gpt_model = gpt_object.model
         self.gpt_tokens = list(gpt_object.tokenizer.get_vocab().keys())
         self.gpt_tokenizer = gpt_object.tokenizer
-        self.prev_lines = ""
+        #self.prev_lines = ""
 
         # theme
         self.theme_tokens = []
