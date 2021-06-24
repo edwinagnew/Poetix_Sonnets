@@ -57,6 +57,11 @@ class gpt_gen:
         # loss, logits = outputs[:2]
         return outputs[0].item()
 
+    def get_sentiment(self, word):
+        tokenized = self.tokenizer.encode(word)
+        sentiment_score = self.token_sentiment[tokenized[0]]
+        return sentiment_score
+
 
 class Partial_Line:
     def __init__(self, parent, template, meter_dict, internal_rhymes=[], verbose=False):
