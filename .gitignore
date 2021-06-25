@@ -16,4 +16,4 @@ py_files/.ipynb_checkpoints/
 saved_objects/fasttext/wiki-news-300d-1M.vec
 saved_objects/fasttext/
 test.py
-retrained_model/
+fine_tuning/

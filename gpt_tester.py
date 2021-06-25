@@ -6,8 +6,9 @@ import random
 """
 Things to change
 """
-model_size = "gpt2"
-seed = "From darkest forests"
+model_size = "custom"
+model_path = "fine_tuning/twice_retrained"
+seed = "Shall I compare"
 
 selection_k = 5
 """
@@ -21,8 +22,8 @@ print("loading", model_size)
 if model_size == "custom":
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-    config = GPT2Config.from_json_file('retrained_model/config.json')
-    model = GPT2LMHeadModel.from_pretrained('retrained_model/pytorch_model.bin', config=config)
+    config = GPT2Config.from_json_file(model_path + '/config.json')
+    model = GPT2LMHeadModel.from_pretrained(model_path + '/pytorch_model.bin', config=config)
 else:
     tokenizer = GPT2Tokenizer.from_pretrained(model_size)
     model = GPT2LMHeadModel.from_pretrained(model_size)
@@ -42,7 +43,7 @@ generated = list(context[0])
 
 past = None
 
-for i in range(100):
+for i in range(50):
     print(i)
     with torch.no_grad():
         outputs = model(context, past_key_values=past, use_cache=True)

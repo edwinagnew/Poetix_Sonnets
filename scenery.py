@@ -447,7 +447,7 @@ class Scenery_Gen(poem_core.Poem):
                         theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                        gpt_size="gpt2", tense="rand", internal_rhyme=0, dynamik=False):
+                        gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False):
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
