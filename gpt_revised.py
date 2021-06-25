@@ -13,7 +13,7 @@ from py_files import helper
 
 class gpt_gen:
 
-    def __init__(self, sonnet_object=None, model="gpt2"):
+    def __init__(self, sonnet_object=None, model="gpt2", model_path="fine_tuning/twice_retrained"):
         if sonnet_object:
             # self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
@@ -32,8 +32,9 @@ class gpt_gen:
         if self.model_size == "custom":
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-            config = GPT2Config.from_json_file('retrained_model/config.json')
-            self.model = GPT2LMHeadModel.from_pretrained('retrained_model/pytorch_model.bin',  config=config)
+            config = GPT2Config.from_json_file(model_path + '/config.json')
+            self.model = GPT2LMHeadModel.from_pretrained(model_path + '/pytorch_model.bin', config=config)
+
         elif self.model_size == "gpt3":
 
             self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
