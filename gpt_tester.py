@@ -7,10 +7,12 @@ import random
 Things to change
 """
 model_size = "custom"
-model_path = "fine_tuning/twice_retrained"
+model_path = "fine_tuning/sonnet_retrained_model"
 seed = "Shall I compare"
 
 selection_k = 5
+
+n_tokens = 50
 """
 end
 """
@@ -43,7 +45,7 @@ generated = list(context[0])
 
 past = None
 
-for i in range(50):
+for i in range(n_tokens):
     print(i)
     with torch.no_grad():
         outputs = model(context, past_key_values=past, use_cache=True)

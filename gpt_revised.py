@@ -13,7 +13,7 @@ from py_files import helper
 
 class gpt_gen:
 
-    def __init__(self, sonnet_object=None, model="gpt2", model_path="fine_tuning/twice_retrained"):
+    def __init__(self, sonnet_object=None, model="gpt2"):
         if sonnet_object:
             # self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
@@ -29,7 +29,9 @@ class gpt_gen:
         self.model_size = model
 
 
-        if self.model_size == "custom":
+        if "custom" in self.model_size:
+            assert len(self.model_size.split()) == 2, "custom should be in the form 'custom fine_tuning/twice_retrained' or something like that"
+            model_path = model = self.model_size.split()[1]
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
             config = GPT2Config.from_json_file(model_path + '/config.json')
