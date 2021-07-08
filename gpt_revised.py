@@ -58,7 +58,8 @@ class gpt_gen:
         with torch.no_grad():
             outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
         # loss, logits = outputs[:2]
-        return outputs[0].item()
+        tok_count = len(input_ids[0])
+        return outputs[0].item()/tok_count
 
     def get_sentiment(self, word):
         tokenized = self.tokenizer.encode(word)
