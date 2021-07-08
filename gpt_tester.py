@@ -7,8 +7,8 @@ import random
 Things to change
 """
 model_size = "custom"
-model_path = "fine_tuning/sonnet_retrained_model"
-seed = "Shall I compare"
+model_path = "fine_tuning/twice_retrained"
+seed = "From darkest forests"
 
 selection_k = 5
 
