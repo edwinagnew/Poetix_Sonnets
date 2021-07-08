@@ -29,12 +29,15 @@ class gpt_gen:
         self.model_size = model
 
 
-        if self.model_size == "custom":
+        if "custom" in self.model_size:
+            assert len(self.model_size.split()) == 2, "custom should be in the form 'custom fine_tuning/twice_retrained' or something like that"
+            model_path = model = self.model_size.split()[1]
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-            config = GPT2Config.from_json_file('retrained_model/config.json')
-            self.model = GPT2LMHeadModel.from_pretrained('retrained_model/pytorch_model.bin',  config=config)
-        elif model == "gpt3":
+            config = GPT2Config.from_json_file(model_path + '/config.json')
+            self.model = GPT2LMHeadModel.from_pretrained(model_path + '/pytorch_model.bin', config=config)
+
+        elif self.model_size == "gpt3":
 
             self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
             self.model = GPTNeoForCausalLM.from_pretrained('EleutherAI/gpt-neo-1.3B')
@@ -69,7 +72,11 @@ class Partial_Line:
         self.parent = parent
 
         self.template = template.split()#.copy()
-        self.meter_dict = meter_dict.copy()
+        if meter_dict:
+            self.meter_dict = meter_dict.copy()
+        else:
+            assert parent.no_meter, "no meter but should meter"
+            self.meter_dict = None
         self.poss = []  # all possible words
         self.poss_tokens = []  # tokenization of all possible words
 
@@ -233,11 +240,14 @@ class Partial_Line:
             if self.verbose: print("last_tokens: ", last_tokens)
             context = torch.tensor([last_tokens]).to(self.parent.gpt_model.device)
 
-            if self.verbose: print("context: ", context, context.size())
+            #if self.verbose: print("context: ", context, context.size())
 
 
         with torch.no_grad():
-            output, self.past = self.parent.gpt_model(context, past_key_values=self.past, use_cache=True).values()
+            #output, self.past = self.parent.gpt_model(context, past_key_values=self.past, use_cache=True).values()
+            outputs = self.parent.gpt_model(context, past_key_values=self.past, use_cache=True)
+            self.past = outputs.past_key_values
+            output = outputs.logits
 
         output += abs(torch.min(output))
 
@@ -349,6 +359,9 @@ class Partial_Line:
     def get_poss(self, i):
         verbose = self.verbose
         punc = ",.;?"
+
+        meters = list(self.meter_dict.keys()) if self.meter_dict else None
+
         if self.punc_next:
             self.poss = set(self.punc_next)
             self.punc_next = False
@@ -367,47 +380,44 @@ class Partial_Line:
                     self.poss = [self.repeats[self.template[i]]]
                 else:
                     self.poss = self.parent.sonnet_object.get_pos_words(self.template[i].split("_")[0],
-                                                                        meter=list(self.meter_dict.keys()))
+                                                                        meter=meters)
                     self.poss = set([p for p in self.poss if p not in self.repeats.values()])
 
             # 1d - get potential next words
             else:
-                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys())))
+                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters))
 
             r = None
             if i == len(self.template) - 1 and self.parent.rhyme_word:
                 r = self.parent.rhyme_word
-                if self.meter_dict == {}:
-                    if self.verbose: print("made it here for rhyming w/o meter")
-                    self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=None, rhyme=r))
-                else:
-                    self.poss = set(
-                        self.parent.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()),
-                                                                rhyme=r))
+                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters))
 
                 if verbose: print("restricting to rhymes", self.parent.rhyme_word, self.poss)
 
         if len(self.poss) == 0:
             if "PRP" in self.template[i] and self.template[i] in self.parent.sonnet_object.pos_to_words:
-                self.poss = [p for p in self.parent.sonnet_object.pos_to_words[self.template[i]] if
-                             any(m in self.meter_dict for m in self.parent.sonnet_object.get_meter(p))]
+                if self.meter_dict:
+                    self.poss = [p for p in self.parent.sonnet_object.pos_to_words[self.template[i]] if
+                                 any(m in self.meter_dict for m in self.parent.sonnet_object.get_meter(p))]
+                else:
+                    self.poss = [p for p in self.parent.sonnet_object.pos_to_words[self.template[i]]]
 
             if "sc" in self.template[i]:
                 if verbose: print("there arent any words so removing sc from", self.template[i])
                 self.template[i] = self.template[i].replace("sc", "")
 
                 self.poss = set(
-                    self.parent.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()),
+                    self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters,
                                                             rhyme=r))
 
             if self.parent.sonnet_object.backup_words:  # in case were using byron vocab
                 if verbose: print("getting backup words")
                 self.poss = set(
-                    self.parent.sonnet_object.get_backup_pos_words(self.template[i], list(self.meter_dict.keys()),
+                    self.parent.sonnet_object.get_backup_pos_words(self.template[i], meters,
                                                                    rhyme=r))
 
             if len(self.poss) == 0:  # still
-                if verbose: print("there arent any words so giving up", self.template[i], self.meter_dict.keys())
+                if verbose: print("there arent any words so giving up", self.template[i], meters)
                 return 1 / 0
 
         space = self.space = " " * int(list(self.poss)[0] not in punc + "'s" and i > 0)
@@ -449,8 +459,7 @@ class Partial_Line:
 
                     ws[repeated_token] *= dist
                     if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                      "times so deweighted", repeated_token, self.parent.gpt_tokenizer.decode(repeated_token),
-                                      "\n")
+                                      "times so deweighted", repeated_token, self.parent.gpt_tokenizer.decode(repeated_token))
                 else:
                     pass
 
@@ -562,10 +571,14 @@ class Line_Generator:
     def __init__(self, sonnet_object, gpt_object, templates=None, meter_dicts=None, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
                  theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False, theme_tone = None):
         # global logistics
+        self.no_meter = False
         if templates is None:
             templates = []
         if meter_dicts is None:
             meter_dicts = []
+        elif len(meter_dicts) != len(templates):
+            assert len(meter_dicts) == 0, "expected no meters"
+            self.no_meter = True
         self.rhyme_word = rhyme_word
         self.space = ""
         self.weight_repetition = weight_repetition
@@ -598,8 +611,11 @@ class Line_Generator:
         # beam search/multiple k
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
         for i, template in enumerate(templates):
-            if meter_dicts[i]:
+            if self.no_meter:
+                self.new_line(template, None, rhyme_word=self.rhyme_word)
+            elif meter_dicts[i]:
                 self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
+
 
 
     #def create_partial(self):
