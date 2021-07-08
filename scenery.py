@@ -678,7 +678,7 @@ class Scenery_Gen(poem_core.Poem):
             if verbose: print("the best was", best)
 
 
-            bound = 6 # if gpt_size == "custom" else 6
+            bound = 5.5 if "custom" in gpt_size else 6
             if best[0] > bound and dynamik:
                 if verbose:
                     print("best option not up to snuff, trying again.")

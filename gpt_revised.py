@@ -52,13 +52,15 @@ class gpt_gen:
         self.gpt_tokens = list(self.tokenizer.get_vocab().keys())
         self.token_sentiment = pickle.load(open("saved_objects/bayes_token.p", "rb"))
 
+        self.checked_for_rhymes = {}
+
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         with torch.no_grad():
             outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
         # loss, logits = outputs[:2]
-        tok_count = len(input_ids[0])
+        tok_count = 1 #len(input_ids[0]) #TODO - normalise lines
         return outputs[0].item()/tok_count
 
     def get_sentiment(self, word):
@@ -332,7 +334,7 @@ class Partial_Line:
             wws[self.parent.gpt_tokenizer.encoder[t]] = 1
 
         orig = word_scores.copy()
-        word_scores[wws != 0] *= 2
+        word_scores[wws != 0] *= 2 #TODO - maybe tweak to avoid pungent beavers
 
 
         if verbose: print("internal rhyming", sum(orig != word_scores), len(wws.nonzero()[0]), len(rhymes),
