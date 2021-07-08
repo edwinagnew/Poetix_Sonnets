@@ -443,9 +443,13 @@ class Scenery_Gen(poem_core.Poem):
         return ret
 
 
+    def write_poem_test(self, theme, k=3, gpt="gpt2"):
+        return self.write_poem_revised(theme=theme, k=k, verbose=True, alliteration=0, internal_rhyme=0, rhyme_lines=False, no_meter=False, gpt_size=gpt, weight_repetition=False)
+
+
     def write_poem_revised(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
                         theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
-                        theme_choice="or", theme_cutoff=0.35, sum_similarity=True,
+                        theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                         gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False):
 
@@ -606,27 +610,32 @@ class Scenery_Gen(poem_core.Poem):
             templates = []
             meters = []
 
-            for _ in range(k):
-                tries = 0
-                meter_dict = None
-                while tries < len(self.templates) and meter_dict is None:
-                    template, meter = self.get_next_template(used_templates, end=r)
-                    if not template:
-                        print("no template", 1 / 0)
-
-                    meter_dict = self.get_meter_dict(template, meter, rhyme_word=r, verbose=verbose)
-                    tries += 1
+            if no_meter:
+                template, _ = self.get_next_template(used_templates, end=r)
                 templates.append(template)
-                meters.append(meter_dict)
+            else:
+                for _ in range(k):
+                    tries = 0
+                    meter_dict = None
+                    template = ""
+                    while tries < len(self.templates) and meter_dict is None:
+                        template, meter = self.get_next_template(used_templates, end=r)
+                        if not template:
+                            print("no template", 1 / 0)
 
-            if not any(m for m in meters):
-                if verbose: print("no meters resetting randomly")
-                if line_number == 13:
-                    line_number = 12
-                else:
-                    line_number -= 2
+                        meter_dict = self.get_meter_dict(template, meter, rhyme_word=r, verbose=verbose)
+                        tries += 1
+                    templates.append(template)
+                    meters.append(meter_dict)
 
-                continue
+                if not any(m for m in meters):
+                    if verbose: print("no meters resetting randomly")
+                    if line_number == 13:
+                        line_number = 12
+                    else:
+                        line_number -= 2
+
+                    continue
 
             alliterating = alliterate and random.random() <= alliteration / 4  # 0.3
             if alliterating:
@@ -652,7 +661,7 @@ class Scenery_Gen(poem_core.Poem):
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number // 4]
 
             self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
-                                                       alliteration=letters, weight_repetition=True,
+                                                       alliteration=letters, weight_repetition=weight_repetition,
                                                        prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1,
                                                        verbose=verbose)
             all_beams = self.line_gen.complete_lines()
