@@ -112,6 +112,36 @@ class Partial_Line:
         while self.template_loc < j:
             self.get_next_word()
 
+    def copy(self):
+        # template
+        p_copy = Partial_Line(self.parent, self.template, self.meter_dict.copy(), self.internal_rhymes.copy(), self.verbose)
+
+        p_copy.poss = self.poss.copy()  # all possible words
+        p_copy.poss_tokens = self.poss_tokens.copy()  # tokenization of all possible words
+
+        # poetic_constraints
+        # self.alliteration = None
+        p_copy.internal_rhymes = self.internal_rhymes.copy()  # previous words to rhyme with
+        p_copy.rhyme_finishers = self.rhyme_finishers.copy()  # words/tokens that could be used to rhyme
+        p_copy.theme_tokens = self.theme_tokens.copy()
+        p_copy.alliterated = self.alliterated
+
+        # syntactic coherance
+        p_copy.punc_next = self.punc_next
+        p_copy.repeats = self.repeats.copy()
+
+        # history
+        p_copy.curr_line = self.curr_line
+        p_copy.tokens = self.tokens.copy() # tokenized version of curr_line
+        p_copy.sub_tokens = self.sub_tokens.copy()
+        p_copy.first_lets = self.first_lets.copy()
+        p_copy.past = self.past.copy()  # need to give this to gpt
+        p_copy.word_scores = self.word_scores.copy()
+        p_copy.template_loc = self.template_loc
+
+        # misc
+        p_copy.line_finished = self.line_finished
+
 
     def write_first_word(self):
 
@@ -650,6 +680,11 @@ class Line_Generator:
         Returns:
 
         """
+        poss_lines = self.partial_lines[template]
+        for pl in poss_lines:
+            for i in range(n):
+                self.partial_lines[template].append(pl.copy())
+
 
     def merge(self, k, template):
         """
@@ -662,6 +697,8 @@ class Line_Generator:
 
         """
         k = min(k, len(self.partial_lines[template]))
+        self.partial_lines[template].sort(key=lambda x: self.gpt_model.score_line(x.curr_line))
+        self.partial_lines[template] = self.partial_lines[template][:k]
 
     def update_templates(self):
         """
