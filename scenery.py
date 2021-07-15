@@ -451,7 +451,7 @@ class Scenery_Gen(poem_core.Poem):
                         theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                        gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False):
+                        gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False, branching=1, b_inc=1):
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -685,7 +685,7 @@ class Scenery_Gen(poem_core.Poem):
             self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
                                                        alliteration=letters, weight_repetition=weight_repetition,
                                                        prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1,
-                                                       verbose=verbose)
+                                                       verbose=verbose, branching=branching, b_inc=b_inc)
             all_beams = self.line_gen.complete_lines()
 
             best = (100, "", "")

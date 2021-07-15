@@ -9,7 +9,7 @@ import string
 import pickle
 
 from py_files import helper
-
+from copy import deepcopy
 
 class gpt_gen:
 
@@ -73,8 +73,10 @@ class Partial_Line:
     def __init__(self, parent, template, meter_dict, internal_rhymes=[], verbose=False):
         # template
         self.parent = parent
-
-        self.template = template.split()#.copy()
+        if type(template) == str:
+            self.template = template.split()#.copy()
+        else:
+            self.template = template.copy()
         if meter_dict:
             self.meter_dict = meter_dict.copy()
         else:
@@ -135,12 +137,17 @@ class Partial_Line:
         p_copy.tokens = self.tokens.copy() # tokenized version of curr_line
         p_copy.sub_tokens = self.sub_tokens.copy()
         p_copy.first_lets = self.first_lets.copy()
-        p_copy.past = self.past.copy()  # need to give this to gpt
+
+        if self.past:
+            p_copy.past = deepcopy(self.past)  # need to give this to gpt
+        else:
+            p_copy.past = None
         p_copy.word_scores = self.word_scores.copy()
         p_copy.template_loc = self.template_loc
 
         # misc
         p_copy.line_finished = self.line_finished
+        return p_copy
 
 
     def write_first_word(self):
@@ -602,7 +609,7 @@ class Partial_Line:
 
 class Line_Generator:
     def __init__(self, sonnet_object, gpt_object, templates=None, meter_dicts=None, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False, theme_tone = None):
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False, theme_tone = None, branching=1, b_inc = 1):
         # global logistics
         self.no_meter = False
         if templates is None:
@@ -627,6 +634,7 @@ class Line_Generator:
         self.verbose = verbose
 
         # gpt
+        self.gpt = gpt_object
         self.gpt_model = gpt_object.model
         self.gpt_tokens = list(gpt_object.tokenizer.get_vocab().keys())
         self.gpt_tokenizer = gpt_object.tokenizer
@@ -643,6 +651,8 @@ class Line_Generator:
 
         # beam search/multiple k
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
+        self.branching = branching
+        self.b_inc = b_inc
         for i, template in enumerate(templates):
             if self.no_meter:
                 self.new_line(template, None, rhyme_word=self.rhyme_word)
@@ -654,8 +664,24 @@ class Line_Generator:
     #def create_partial(self):
 
     def complete_lines(self):
-        for template in self.partial_lines:
-            self.update_all_partials(template) #finishes all partial lines if called without a number
+        if self.branching == 1:
+            for template in self.partial_lines:
+                self.update_all_partials(template) #finishes all partial lines if called without a number
+        else:
+            for template in self.partial_lines:
+                k = 0
+                while any(not pl.line_finished for pl in self.partial_lines[template]):
+                    print("updating beams")
+                    print("k is currently ", k)
+                    self.branch(self.branching, template)
+                    print("finished branching for this iteration")
+                    k += self.b_inc
+                    k = min(k, len(template.split()))
+                    print("k is now ", k)
+                    self.update_all_partials(template, j=k)
+                    print("finished updating partials")
+                    self.merge(self.branching, template)
+                print("finished the beams for a template")
         return self.partial_lines
 
     def new_line(self, template, meter_dict, rhyme_word=None):
@@ -681,9 +707,15 @@ class Line_Generator:
 
         """
         poss_lines = self.partial_lines[template]
+        new_lines = []
+        print("hey dummy ", poss_lines[0].curr_line)
         for pl in poss_lines:
             for i in range(n):
-                self.partial_lines[template].append(pl.copy())
+                new_lines.append(pl.copy())
+                #print("copying line ", i)
+            print("created n copies")
+        self.partial_lines[template].extend(new_lines)
+        print("finished copying for branching")
 
 
     def merge(self, k, template):
@@ -696,8 +728,9 @@ class Line_Generator:
         Returns:
 
         """
+        print("made it to merging")
         k = min(k, len(self.partial_lines[template]))
-        self.partial_lines[template].sort(key=lambda x: self.gpt_model.score_line(x.curr_line))
+        self.partial_lines[template].sort(key=lambda x: self.gpt.score_line(x.curr_line))
         self.partial_lines[template] = self.partial_lines[template][:k]
 
     def update_templates(self):
@@ -716,6 +749,7 @@ class Line_Generator:
         """
         for p_l in self.partial_lines[template]:
             if j != -1:
+                print(p_l)
                 p_l.write_to_word(j)
             else:
                 while not p_l.line_finished:
