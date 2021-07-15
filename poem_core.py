@@ -97,6 +97,9 @@ class Poem:
 
         self.tense = tense
 
+        self.saved_poems = {}
+        self.save_poems = False
+
     def get_meter(self, word):
         if not word or len(word) == 0: return [""]
         if word[-1] in ".,?;":

@@ -444,7 +444,7 @@ class Scenery_Gen(poem_core.Poem):
 
 
     def write_poem_test(self, theme, k=3, gpt="gpt2"):
-        return self.write_poem_revised(theme=theme, k=k, verbose=True, alliteration=0, internal_rhyme=0, rhyme_lines=False, no_meter=False, gpt_size=gpt, weight_repetition=False)
+        return self.write_poem_revised(theme=theme, k=k, verbose=True, alliteration=0, internal_rhyme=0, rhyme_lines=True, no_meter=False, gpt_size=gpt, weight_repetition=False)
 
 
     def write_poem_revised(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
@@ -482,10 +482,35 @@ class Scenery_Gen(poem_core.Poem):
         else:
             self.story_graph = None
 
-        if theme_lines > 0: self.update_theme_words(theme=theme)
-        theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
-        if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.",
-                                          random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
+
+        if type(theme_lines) == int:
+            if theme_lines > 0: self.update_theme_words(theme=theme)
+            theme_contexts = self.theme_gen.get_cases(theme) if theme_lines > 0 else [""]
+            if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.",
+                                              random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
+            sample_seed = "\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else ""
+        else:
+            assert theme_lines == "stanza" or theme_lines == "poem", "expected 'stanza' or 'poem' "
+            if not self.save_poems:
+                self.save_poems = True
+            if theme not in self.saved_poems:
+                if verbose: print("generating seed poem first")
+                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, random_templates=random_templates, rhyme_lines=rhyme_lines, all_verbs=all_verbs,
+                            theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold, no_meter=no_meter,
+                            theme_choice=theme_choice, theme_cutoff=theme_cutoff, sum_similarity=sum_similarity, weight_repetition=False,
+                            theme_progression=theme_progression, story=story, story_file=story_file,
+                            gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False)#.split("\n")
+                #seed_stanzas = ["\n".join(seed_poem_lines[1:5]), "\n".join(seed_poem_lines[6:10]), "\n".join(seed_poem_lines[11:15])]
+                self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+
+            sample_lines = self.saved_poems[theme].split("\n")
+            if theme_lines == "poem":
+                sample_seed = "\n".join(sample_lines)
+            elif theme_lines == "stanza":
+                sample_seed = "\n".join(sample_lines[10:14]) #last stanza
+
+        if verbose: print("samples: ", sample_seed)
+
 
         if theme and not theme_progression:
             # sub_theme = " ".join([w for w in theme.split() if len(w) > 3])
@@ -565,9 +590,6 @@ class Scenery_Gen(poem_core.Poem):
                                   set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
-        samples = ["\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else "" for i in
-                   range(4)]  # one for each stanza
-        if verbose: print("samples, ", samples)
         # rhymes = []
         # theme = None
 
@@ -648,9 +670,9 @@ class Scenery_Gen(poem_core.Poem):
             else:
                 letters = None
 
-            self.gpt_past = samples[0] + "\n"
+            self.gpt_past = sample_seed + "\n"
             for i in range(len(lines)):
-                if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
+                #if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
                 self.gpt_past += lines[i] + "\n"
             self.reset_letter_words()
 
@@ -699,6 +721,9 @@ class Scenery_Gen(poem_core.Poem):
         if verbose: print(ret)
 
         self.pos_to_words = self.vocab_orig.copy()
+
+        if self.save_poems:
+            self.saved_poems[theme] = "\n".join(ret.split("\n")[1:]) #to cut out title
 
         return ret
 

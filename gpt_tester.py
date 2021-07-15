@@ -7,7 +7,7 @@ import random
 Things to change
 """
 model_size = "custom"
-model_path = "fine_tuning/twice_retrained"
+model_path = "fine_tuning/long_pft"
 seed = "From darkest forests"
 
 selection_k = 5
