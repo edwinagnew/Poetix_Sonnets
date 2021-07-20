@@ -5,7 +5,7 @@ import math
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2Config
 
 
-validation_file = 'fine_tuning/datasets/sonnets.csv'
+validation_file = 'fine_tuning/datasets/sonnets_validation.csv'
 
 val_set = pd.read_csv(validation_file)
 #val_set = val_set['text']
@@ -16,7 +16,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
 val_set['tokens'] = [tokenizer(text, return_tensors="pt") for text in val_set['text']]
 
-for model_path in ["gpt2", "fine_tuning/sonnet_retrained_model", "fine_tuning/pft_model", "fine_tuning/twice_retrained"]:
+for model_path in ["gpt2", "fine_tuning/twice_retrained", "fine_tuning/long_pft", "fine_tuning/retrained_model_2"]:
 
     if model_path == "gpt2":
         model = GPT2LMHeadModel.from_pretrained(model_path)
