@@ -46,7 +46,7 @@ class gpt_gen:
         print("loaded", model)
         self.lemma = nltk.wordnet.WordNetLemmatizer()
 
-        #self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
+        self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
 
 
         self.checked_for_rhymes = {}
