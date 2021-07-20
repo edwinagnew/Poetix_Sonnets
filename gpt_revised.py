@@ -430,7 +430,7 @@ class Partial_Line:
             r = None
             if i == len(self.template) - 1 and self.parent.rhyme_word:
                 r = self.parent.rhyme_word
-                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters))
+                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters, rhyme=r))
 
                 if verbose: print("restricting to rhymes", self.parent.rhyme_word, self.poss)
 
@@ -671,17 +671,18 @@ class Line_Generator:
             for template in self.partial_lines:
                 k = 0
                 while any(not pl.line_finished for pl in self.partial_lines[template]):
-                    print("updating beams")
-                    print("k is currently ", k)
+                    if self.verbose:
+                        print("updating beams")
+                        print("k is currently ", k)
                     self.branch(self.branching, template)
-                    print("finished branching for this iteration")
+                    if self. verbose: print("finished branching for this iteration")
                     k += self.b_inc
                     k = min(k, len(template.split()))
-                    print("k is now ", k)
+                    if self.verbose: print("k is now ", k)
                     self.update_all_partials(template, j=k)
-                    print("finished updating partials")
+                    if self.verbose: print("finished updating partials")
                     self.merge(self.branching, template)
-                print("finished the beams for a template")
+                if self.verbose: print("finished the beams for a template")
         return self.partial_lines
 
     def new_line(self, template, meter_dict, rhyme_word=None):
@@ -708,14 +709,13 @@ class Line_Generator:
         """
         poss_lines = self.partial_lines[template]
         new_lines = []
-        print("hey dummy ", poss_lines[0].curr_line)
         for pl in poss_lines:
             for i in range(n):
                 new_lines.append(pl.copy())
                 #print("copying line ", i)
-            print("created n copies")
+            if self.verbose: print("created n copies")
         self.partial_lines[template].extend(new_lines)
-        print("finished copying for branching")
+        if self.verbose: print("finished copying for branching")
 
 
     def merge(self, k, template):
@@ -749,7 +749,6 @@ class Line_Generator:
         """
         for p_l in self.partial_lines[template]:
             if j != -1:
-                print(p_l)
                 p_l.write_to_word(j)
             else:
                 while not p_l.line_finished:
