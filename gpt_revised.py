@@ -175,6 +175,12 @@ class Partial_Line:
 
         verbose = self.verbose
 
+        if self.curr_line in self.parent.token_cache:
+            assert self.parent.branching > 1, "edwin says you shouldnt be here"
+            token = self.parent.token_cache[self.curr_line].pop()
+            self.word_scores = self.parent.word_scores_cache[self.curr_line]
+            return token
+
         #i = len(self.curr_line.split())
         i = self.template_loc
         self.get_poss(i)
@@ -218,11 +224,67 @@ class Partial_Line:
             dist = self.create_dist(checks, word_scores, gpt_output, theme_checks)
             self.word_scores = word_scores
 
-            token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
+
+
+
+            #token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item() #old line
+
+            if self.parent.random_selection:
+                token_indices = np.random.sample(np.arange(len(self.parent.gpt_tokens)), self.parent.branching, p=dist)
+            else:
+                token_indices = torch.topk(torch.tensor(dist), self.parent.branching).indices
+
+            tokens = [i for i in token_indices if dist[i] > 0]
+
+            while len(tokens) < self.parent.branching:
+                tokens += [tokens[0]]
+
+            self.parent.token_cache[self.curr_line] = tokens
+            token = self.parent.token_cache[self.curr_line].pop()
+
+            self.parent.word_scores_cache[self.curr_line] = self.word_scores  #????
+
+
 
         if self.verbose: print("for", self.template[self.template_loc], "picked " + str(token) + ": '" + str(
             self.parent.gpt_tokenizer.decode(token)) + "' with prob " + str(dist[token]))
 
+        return token
+
+
+    def get_next_token(self, gpt_output):
+        """
+        Call when: you have one token and need to finish a word, but it isn't a special case like internal rhyme or the last word of a line
+        Args:
+            gpt_output: the output from gpt_2
+
+        Returns:
+            a token
+        Updates:
+            Nothing, it's handled under update contraints
+        """
+
+
+        len_sub = len(self.sub_tokens)
+        checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
+
+        if len(checks) == 1:
+            token = checks.pop()
+            dist = ws = np.ones(len(self.parent.gpt_tokens))
+        else:
+            # the same but for theme words
+            if self.theme_tokens: theme_checks = set([p[len_sub] for p in self.theme_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+            else: theme_checks = []
+            # skipping no template
+            word_scores = self.word_scores
+            dist = self.create_dist(checks, word_scores, gpt_output, theme_checks)
+
+            if self.parent.random_selection:
+                token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
+            else:
+                token = np.argmax(dist).item()
+
+        if self.verbose: print("for", self.template[self.template_loc], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' with prob " + str(dist[token]))
         return token
 
 
@@ -245,6 +307,7 @@ class Partial_Line:
         else:
             gpt_output = self.get_gpt_scores()
             first_token = self.get_first_token(gpt_output) #gets the first token
+
 
             self.update_constraints(first_token, first=True) #updates all of the global stuff (sub_tokens etc.) accordingly
 
@@ -293,36 +356,6 @@ class Partial_Line:
 
         return output
 
-    def get_next_token(self, gpt_output):
-        """
-        Call when: you have one token and need to finish a word, but it isn't a special case like internal rhyme or the last word of a line
-        Args:
-            gpt_output: the output from gpt_2
-
-        Returns:
-            a token
-        Updates:
-            Nothing, it's handled under update contraints
-        """
-
-
-        len_sub = len(self.sub_tokens)
-        checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
-
-        if len(checks) == 1:
-            token = checks.pop()
-            dist = ws = np.ones(len(self.parent.gpt_tokens))
-        else:
-            # the same but for theme words
-            if self.theme_tokens: theme_checks = set([p[len_sub] for p in self.theme_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
-            else: theme_checks = []
-            # skipping no template
-            word_scores = self.word_scores
-            dist = self.create_dist(checks, word_scores, gpt_output, theme_checks)
-            token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
-
-        if self.verbose: print("for", self.template[self.template_loc], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' with prob " + str(dist[token]))
-        return token
 
     def get_next_token_no_template(self):
         print("uh oh, this hasn't been finished yet")
@@ -632,6 +665,8 @@ class Line_Generator:
         self.internal_rhymes = internal_rhymes
         self.k = k
         self.verbose = verbose
+        self.random_selection = False
+        self.word_scores_cache = {}
 
         # gpt
         self.gpt = gpt_object
@@ -653,11 +688,14 @@ class Line_Generator:
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
         self.branching = branching
         self.b_inc = b_inc
+        self.token_cache = {}
         for i, template in enumerate(templates):
             if self.no_meter:
                 self.new_line(template, None, rhyme_word=self.rhyme_word)
             elif meter_dicts[i]:
                 self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
+
+
 
 
 
@@ -717,7 +755,6 @@ class Line_Generator:
         self.partial_lines[template].extend(new_lines)
         if self.verbose: print("finished copying for branching")
 
-
     def merge(self, k, template):
         """
 
@@ -728,10 +765,17 @@ class Line_Generator:
         Returns:
 
         """
-        print("made it to merging")
+        for key in self.token_cache:
+            assert len(self.token_cache[key]) == 0, str(key) + " was not empty. sanity f̴̟̥̰̀̃ą̵̲̘̝̐̋͂̓͗i̶̡̠̻̝͋̾l̶̼͊͆̉̅e̶͖͒̾̾̀͝d̴̮̟̪̪̫̀̄̄͆"
+
+        if self.verbose: print("made it to merging")
         k = min(k, len(self.partial_lines[template]))
         self.partial_lines[template].sort(key=lambda x: self.gpt.score_line(x.curr_line))
         self.partial_lines[template] = self.partial_lines[template][:k]
+
+
+        self.token_cache = {}
+        self.word_scores_cache = {}
 
     def update_templates(self):
         """
