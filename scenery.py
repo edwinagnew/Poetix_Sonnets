@@ -451,7 +451,7 @@ class Scenery_Gen(poem_core.Poem):
                         theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                         theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                         theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                        gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False, branching=1, b_inc=1):
+                        gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False, branching=1, b_inc=1, random_word_selection=False):
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -499,7 +499,7 @@ class Scenery_Gen(poem_core.Poem):
                             theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold, no_meter=no_meter,
                             theme_choice=theme_choice, theme_cutoff=theme_cutoff, sum_similarity=sum_similarity, weight_repetition=False,
                             theme_progression=theme_progression, story=story, story_file=story_file,
-                            gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False)#.split("\n")
+                            gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False, random_word_selection=random_word_selection)#.split("\n")
                 #seed_stanzas = ["\n".join(seed_poem_lines[1:5]), "\n".join(seed_poem_lines[6:10]), "\n".join(seed_poem_lines[11:15])]
                 self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
 
@@ -685,7 +685,7 @@ class Scenery_Gen(poem_core.Poem):
             self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
                                                        alliteration=letters, weight_repetition=weight_repetition,
                                                        prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1,
-                                                       verbose=verbose, branching=branching, b_inc=b_inc)
+                                                       verbose=verbose, branching=branching, b_inc=b_inc, random_selection=random_word_selection)
             all_beams = self.line_gen.complete_lines()
 
             best = (100, "", "")
@@ -714,7 +714,7 @@ class Scenery_Gen(poem_core.Poem):
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         # if not verbose and len(choices) == 0: print("done")
-        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "\n") if theme else ""
+        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "b=" + str(branching) + "\n") if theme else ""
         for cand in range(len(lines)):
             ret += str(lines[cand]) + "\n"
             if (cand + 1) % 4 == 0: ret += "\n"
