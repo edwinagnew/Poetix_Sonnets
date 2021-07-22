@@ -184,7 +184,7 @@ class Scenery_Gen(poem_core.Poem):
             with open(s) as tf:
                 self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                   "#" not in line and len(line) > 1]
-                print("updated templates to ", s)
+                if verbose: print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
@@ -316,8 +316,8 @@ class Scenery_Gen(poem_core.Poem):
             used_templates = used_templates[:line_number]
 
             if internal_rhyme > 0:
-                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).split()
-                print("words before the internal rhyme are as follows", internal_rhymes)
+                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).lower().split()
+                if verbose: print("words before the internal rhyme are as follows", internal_rhymes)
 
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number - 2].split()[-1])  # last word in rhyming couplet
@@ -616,8 +616,8 @@ class Scenery_Gen(poem_core.Poem):
             used_templates = used_templates[:line_number]
 
             if internal_rhyme > 0:
-                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).split()
-                print("words before the internal rhyme are as follows", internal_rhymes)
+                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).lower().split()
+                if verbose: print("words before the internal rhyme are as follows", internal_rhymes)
 
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number - 2].split()[-1])  # last word in rhyming couplet
@@ -686,13 +686,16 @@ class Scenery_Gen(poem_core.Poem):
                                                        alliteration=letters, weight_repetition=weight_repetition,
                                                        prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1,
                                                        verbose=verbose, branching=branching, b_inc=b_inc, random_selection=random_word_selection)
-            all_beams = self.line_gen.complete_lines()
+            #all_beams = self.line_gen.complete_lines()
+            completed_beams = self.line_gen.beam_search_tokenwise()
 
             best = (100, "", "")
 
-            for t in all_beams:
-                for p_l in all_beams[t]:
-                    line = p_l.curr_line
+            #for t in all_beams:
+            #    for p_l in all_beams[t]:
+            #        line = p_l.curr_line
+            for t in completed_beams:
+                for line in completed_beams[t]:
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     line = line.replace(" i ", " I ")
                     best = min(best, (self.gpt.score_line("\n".join(lines) + "\n" + line), line, t))
@@ -714,7 +717,7 @@ class Scenery_Gen(poem_core.Poem):
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         # if not verbose and len(choices) == 0: print("done")
-        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + "b=" + str(branching) + "\n") if theme else ""
+        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(branching) + "\n") if theme else ""
         for cand in range(len(lines)):
             ret += str(lines[cand]) + "\n"
             if (cand + 1) % 4 == 0: ret += "\n"
