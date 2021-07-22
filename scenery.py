@@ -184,7 +184,7 @@ class Scenery_Gen(poem_core.Poem):
             with open(s) as tf:
                 self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                   "#" not in line and len(line) > 1]
-                print("updated templates to ", s)
+                if verbose: print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
@@ -316,8 +316,8 @@ class Scenery_Gen(poem_core.Poem):
             used_templates = used_templates[:line_number]
 
             if internal_rhyme > 0:
-                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).split()
-                print("words before the internal rhyme are as follows", internal_rhymes)
+                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).lower().split()
+                if verbose: print("words before the internal rhyme are as follows", internal_rhymes)
 
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number - 2].split()[-1])  # last word in rhyming couplet
@@ -616,8 +616,8 @@ class Scenery_Gen(poem_core.Poem):
             used_templates = used_templates[:line_number]
 
             if internal_rhyme > 0:
-                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).split()
-                print("words before the internal rhyme are as follows", internal_rhymes)
+                internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).lower().split()
+                if verbose: print("words before the internal rhyme are as follows", internal_rhymes)
 
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number - 2].split()[-1])  # last word in rhyming couplet

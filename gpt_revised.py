@@ -840,7 +840,10 @@ class Line_Generator:
                         potential_partials.append(new_hyp)
                     k = min(self.branching, len(potential_partials))
                     potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
-                    self.partial_lines[template] = potential_partials[:k]
+                    self.partial_lines[template] = []
+                    for p_p in potential_partials:
+                        if len(self.partial_lines[template]) < k and p_p.tokens not in [p.tokens for p in self.partial_lines[template]]:
+                            self.partial_lines[template].append(p_p)
 
                     if self.verbose: print("reduced back to ", len(self.partial_lines[template]), "hyps", [p.curr_line for p in self.partial_lines[template]])
 
