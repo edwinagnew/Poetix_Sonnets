@@ -60,7 +60,7 @@ class gpt_gen:
         with torch.no_grad():
             outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
         # loss, logits = outputs[:2]
-        tok_count = 1 #len(input_ids[0]) #TODO - normalise lines
+        tok_count = 1#len(input_ids[0]) #TODO - normalise lines
         return outputs[0].item()/tok_count
 
     def get_sentiment(self, word):
@@ -92,7 +92,7 @@ class Partial_Line:
         self.theme_tokens = []
         self.alliterated = False
 
-        # syntactic coherance
+        # syntactic coherence
         self.punc_next = False
         self.repeats = {}
 
@@ -108,6 +108,7 @@ class Partial_Line:
         # misc
         self.verbose = verbose
         self.line_finished = False
+        self.space = ""
 
 
     def write_to_word(self, j):
@@ -147,6 +148,7 @@ class Partial_Line:
 
         # misc
         p_copy.line_finished = self.line_finished
+        p_copy.space = self.space
         return p_copy
 
 
@@ -163,7 +165,7 @@ class Partial_Line:
 
         self.update_constraints(word_tokens[-1])
 
-    def get_first_token(self, gpt_output):
+    def get_first_token(self, gpt_output, n_ret=1):
         """
         This function gets the first token of a word. It does so factoring in things like internal rhyme, theme, and alliteration. It updates various global parameters to prepare to finish the word.
         Args:
@@ -180,6 +182,7 @@ class Partial_Line:
         self.get_poss(i)
 
         if self.curr_line in self.parent.token_cache:
+            assert False, "you temporarily shouldnt be here"
             assert self.parent.branching > 1, "edwin says you shouldnt be here"
             token = self.parent.token_cache[self.curr_line].pop()
             self.word_scores = self.parent.word_scores_cache[self.curr_line]
@@ -194,7 +197,7 @@ class Partial_Line:
                       self.poss_tokens])  # if p[:len_sub] == self.sub_tokens and len(p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
 
         if len(checks) == 1:
-            token = checks.pop()
+            tokens = [checks.pop()]
             dist = ws = np.ones(len(self.parent.gpt_tokens))
         else:
             # the same but for theme words
@@ -232,28 +235,31 @@ class Partial_Line:
 
 
             #token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item() #old line
-            template_str = self.template if type(self.template) == str else " ".join(self.template)
-            n_branches = len([p for p in self.parent.partial_lines[template_str] if self.curr_line == p.curr_line])
+            #template_str = self.template if type(self.template) == str else " ".join(self.template)
+            #n_branches = len([p for p in self.parent.partial_lines[template_str] if self.curr_line == p.curr_line])
 
             if self.parent.random_selection:
-                token_indices = np.random.choice(np.arange(len(self.parent.gpt_tokens)), n_branches, p=dist)
+                token_indices = np.random.choice(np.arange(len(self.parent.gpt_tokens)), n_ret, p=dist)
             else:
-                token_indices = [i for i in torch.topk(torch.tensor(dist), n_branches).indices]
+                token_indices = [i for i in torch.topk(torch.tensor(dist), n_ret).indices]
 
             tokens = [i if type(i) == int else i.item() for i in token_indices if dist[i] > 0]
-            if verbose: print("token types: ", type(tokens[0]))
+            #if verbose: print("token types: ", type(tokens[0]))
 
-            while len(tokens) < n_branches:
-                tokens += [tokens[0]]
+        while len(tokens) < n_ret:
+            tokens += [tokens[0]]
 
-            self.parent.token_cache[self.curr_line] = tokens
-            token = self.parent.token_cache[self.curr_line].pop()
+        #self.parent.token_cache[self.curr_line] = tokens #word level beam search
+        #token = self.parent.token_cache[self.curr_line].pop()
+        if n_ret > 1:
+            return tokens
+        token = tokens[0]
 
-            assert type(token) == int, str(type(token)) + " aint no int m9"
+        assert type(token) == int, str(type(token)) + " aint no int m9"
 
-            self.parent.word_scores_cache[self.curr_line] = self.word_scores  #????
+            #self.parent.word_scores_cache[self.curr_line] = self.word_scores  #????
 
-            if verbose: print("cache size", len(self.parent.token_cache), self.parent.token_cache[self.curr_line])
+            #if verbose and self.parent.token_cache: print("cache size", len(self.parent.token_cache), self.parent.token_cache[self.curr_line])
 
 
 
@@ -263,7 +269,7 @@ class Partial_Line:
         return token
 
 
-    def get_next_token(self, gpt_output):
+    def get_next_token(self, gpt_output, n_ret=1):
         """
         Call when: you have one token and need to finish a word, but it isn't a special case like internal rhyme or the last word of a line
         Args:
@@ -273,6 +279,11 @@ class Partial_Line:
             a token
         Updates:
             Nothing, it's handled under update contraints
+
+        Parameters
+        ----------
+        gpt_output
+        n_ret - number of tokens to return
         """
 
 
@@ -280,7 +291,7 @@ class Partial_Line:
         checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])  # creates a list of tokens that could follow the current token based on our vocab
 
         if len(checks) == 1:
-            token = checks.pop()
+            tokens = [checks.pop()]
             dist = ws = np.ones(len(self.parent.gpt_tokens))
         else:
             # the same but for theme words
@@ -294,17 +305,66 @@ class Partial_Line:
             assert dist is not None, "dist is None"
 
 
-
             if self.parent.random_selection:
-                token = np.random.choice(np.arange(len(self.parent.gpt_tokens)), p=dist).item()
+                token_indices = np.random.choice(np.arange(len(self.parent.gpt_tokens)), n_ret, p=dist)
             else:
-                token = np.argmax(dist).item()
+                token_indices = [i for i in torch.topk(torch.tensor(dist), n_ret).indices]
+
+            tokens = [i if type(i) == int else i.item() for i in token_indices if dist[i] > 0]
+            #if self.verbose: print("token types: ", type(tokens[0]))
+
+        while len(tokens) < n_ret:
+            tokens += [tokens[0]]
+
+        if n_ret == 1:
+            token = tokens[0]
+        else:
+            if self.verbose: print("returning", n_ret, "tokens here", tokens)
+            return tokens
 
 
 
 
         if self.verbose: print("for", self.template[self.template_loc], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' with prob " + str(dist[token]))
         return token
+
+    def get_top_tokens(self, num_tokens):
+        assert len(self.tokens) > 0, "no tokens, first word should be done elsewhere"
+
+
+        assert self.template_loc < len(self.template), self.curr_line
+
+        gpt_output = self.get_gpt_scores()
+
+        if len(self.sub_tokens) == 0: #new word
+            tokens = self.get_first_token(gpt_output, n_ret=num_tokens)
+        else:
+            tokens = self.get_next_token(gpt_output, n_ret=num_tokens)
+
+        assert len(tokens) <= num_tokens, "too many tokens"
+
+        return tokens
+
+
+    def choose_token(self, token):
+        """
+        Called from beam search, assigns the next token and updates constraints
+        Parameters
+        ----------
+        token - which token to insert
+
+        Returns
+        -------
+
+        """
+
+        is_first = (len(self.sub_tokens) == 0)
+
+        self.update_constraints(token, first=is_first)
+
+        if self.verbose: print("for", self.template[self.template_loc-1], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' because I was told to", is_first)
+
+
 
 
     def get_next_word(self):
@@ -535,9 +595,9 @@ class Partial_Line:
     def weight_repeated_words(self, checks, ws, verbose):
 
         past_words = helper.remove_punc(self.parent.prev_lines.lower().replace("'s", "")).split()
-        print("\non repeating... past_words=", past_words)
+        #print("\non repeating... past_words=", past_words)
         lemmas = [self.parent.lemma.lemmatize(word) for word in past_words]  # gets lemmas for all words in poem
-        print("lemmas=", lemmas, "\n")
+        #print("lemmas=", lemmas, "\n")
 
         lemmas_last = [self.parent.lemma.lemmatize(word) for word in helper.remove_punc(self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
 
@@ -719,6 +779,8 @@ class Line_Generator:
             elif meter_dicts[i]:
                 self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
 
+        self.completed_lines = {}
+
 
 
 
@@ -747,6 +809,44 @@ class Line_Generator:
                 if self.verbose: print("finished the beams for a template")
         return self.partial_lines
 
+    def beam_search_tokenwise(self):
+        if self.branching == 1:
+            for template in self.partial_lines:
+                self.update_all_partials(template) #finishes all partial lines if called without a number
+                self.completed_lines[template] = [h.curr_line for h in self.partial_lines[template] if h.line_finished]
+        else:
+            for template in self.partial_lines:
+                self.write_all_first_words(template)
+                while len(self.partial_lines[template]) > 0:
+                    if self.verbose: print("about to update all partials")
+                    all_tokens = []
+                    for i, hyp in enumerate(self.partial_lines[template].copy()):
+                        if not hyp.line_finished:
+                            if self.verbose: print("getting top tokens for hyp", i)
+                            top_hyp_tokens = hyp.get_top_tokens(self.branching) # list of tokens
+                            all_tokens.extend([(t, hyp) for t in top_hyp_tokens])
+                        else:
+                            if template not in self.completed_lines: self.completed_lines[template] = []
+                            self.completed_lines[template].append(hyp.curr_line)
+                            self.partial_lines[template].remove(hyp)
+                            #probably not very beamy but...
+
+                    if self.verbose: print("out of", len(all_tokens), set([a[0] for a in all_tokens]), ":")
+                    potential_partials = []
+                    for (tok, hyp) in all_tokens:
+                        assert not hyp.line_finished, "copying a completed line (bad news)"
+                        new_hyp = hyp.copy()
+                        new_hyp.choose_token(tok)
+                        potential_partials.append(new_hyp)
+                    k = min(self.branching, len(potential_partials))
+                    potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
+                    self.partial_lines[template] = potential_partials[:k]
+
+                    if self.verbose: print("reduced back to ", len(self.partial_lines[template]), "hyps", [p.curr_line for p in self.partial_lines[template]])
+
+        return self.completed_lines
+
+
     def new_line(self, template, meter_dict, rhyme_word=None):
         """ beginning of a new line"""
 
@@ -755,7 +855,7 @@ class Line_Generator:
         if template not in self.partial_lines:
             self.partial_lines[template] = []
 
-        for _ in range(self.k):
+        for _ in range(self.k): #really?
             new_partial = Partial_Line(self, template, meter_dict, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
             self.partial_lines[template].append(new_partial)
 
@@ -832,3 +932,8 @@ class Line_Generator:
         self.partial_lines = {}
 
         self.prev_lines = ""
+
+    def write_all_first_words(self, template):
+        if self.verbose: print("writing first words", template)
+        for hyp in self.partial_lines[template]:
+            hyp.write_first_word()
