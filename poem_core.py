@@ -401,7 +401,7 @@ class Poem:
             r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
                      x in self.get_meter(w)]) if rhyme_word else None
             if (meter and len(r) == 0) or len(rhyme_words) == 0:
-                if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words, r)
+                if verbose: print("couldn't get a rhyme here:", template, rhyme_pos, rhyme_word, rhyme_words, r)
                 return None
         else:
             r = None
