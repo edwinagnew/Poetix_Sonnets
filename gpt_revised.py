@@ -54,14 +54,21 @@ class gpt_gen:
 
         self.checked_for_rhymes = {}
 
+
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        return self.score_tokens(input_ids.to(self.model.device))
+
+    def score_tokens(self, tokens):
+        if type(tokens) == tuple or type(tokens) == list: tokens = torch.tensor(tokens).to(self.model.device)
         with torch.no_grad():
-            outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
+            outputs = self.model(tokens, labels=tokens)
         # loss, logits = outputs[:2]
         tok_count = 1#len(input_ids[0]) #TODO - normalise lines
         return outputs[0].item()/tok_count
+        #return torch.mean(outputs[1])
+
 
     def get_sentiment(self, word):
         tokenized = self.tokenizer.encode(word)
@@ -387,7 +394,7 @@ class Partial_Line:
             gpt_output = self.get_gpt_scores()
             first_token = self.get_first_token(gpt_output) #gets the first token
 
-            if self.verbose: print("got first token", first_token)
+            #if self.verbose: print("got first token", first_token)
 
 
             self.update_constraints(first_token, first=True) #updates all of the global stuff (sub_tokens etc.) accordingly
@@ -710,13 +717,15 @@ class Partial_Line:
             if self.template_loc == len(self.template) - 1:
                 self.rhyme_finishers = [self.poss_tokens[i] for i in range(len(self.poss_tokens)) if self.poss_tokens[i][0] == token]
 
+
         self.tokens.append(token)
 
         if did_punc:
             punc = self.update_punc(self.punc_next)
             #word += punc
             token = self.parent.gpt_tokenizer.encode(punc)
-            self.tokens.append(token)
+
+            self.tokens += token
             self.curr_line += punc
 
 
@@ -838,11 +847,22 @@ class Line_Generator:
                         new_hyp = hyp.copy()
                         new_hyp.choose_token(tok)
                         potential_partials.append(new_hyp)
+
                     k = min(self.branching, len(potential_partials))
-                    potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
+
+                    partial_scores = {}
+                    for pot in potential_partials:
+                        toks = tuple(pot.tokens)
+                        #print(toks, type(toks))
+                        if toks not in partial_scores:
+                            partial_scores[toks] = self.gpt.score_tokens(toks)
+
+                    #potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
+                    potential_partials.sort(key=lambda x: partial_scores[tuple(x.tokens)])   # TODO -  Maybe just use token score rather than line score?
+
                     self.partial_lines[template] = []
                     for p_p in potential_partials:
-                        if len(self.partial_lines[template]) < k and p_p.tokens not in [p.tokens for p in self.partial_lines[template]]:
+                        if len(self.partial_lines[template]) < k and p_p.tokens not in [p.tokens for p in self.partial_lines[template]]: #the line hasnt already been added
                             self.partial_lines[template].append(p_p)
 
                     if self.verbose: print("reduced back to ", len(self.partial_lines[template]), "hyps", [p.curr_line for p in self.partial_lines[template]])
