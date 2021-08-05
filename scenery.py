@@ -8,7 +8,7 @@ import pandas as pd
 from py_files import helper
 
 import theme_word_file
-import gpt_2
+
 import gpt_revised
 import word_embeddings
 from difflib import SequenceMatcher
@@ -49,6 +49,8 @@ class Scenery_Gen(poem_core.Poem):
         self.word_embeddings = word_embeddings.Sim_finder()
 
         self.theme = ""
+
+        self.all_beam_histories = []
 
     # override
     def get_pos_words(self, pos, meter=None, rhyme=None, phrase=()):
@@ -187,7 +189,7 @@ class Scenery_Gen(poem_core.Poem):
                 if verbose: print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
-            self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
+            self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
 
         self.reset_gender()
 
@@ -314,6 +316,7 @@ class Scenery_Gen(poem_core.Poem):
                     self.set_meter_pos_dict()
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
+            self.all_beam_histories = self.all_beam_histories[:line_number]
 
             if internal_rhyme > 0:
                 internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).lower().split()
@@ -451,7 +454,7 @@ class Scenery_Gen(poem_core.Poem):
                            theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                           gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False, b=1, b_inc=1, random_word_selection=False):
+                           gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False, b=1, b_inc=1, random_word_selection=False, beam_score="line"):
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -462,12 +465,14 @@ class Scenery_Gen(poem_core.Poem):
             with open(s) as tf:
                 self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                   "#" not in line and len(line) > 1]
-                print("updated templates to ", s)
+                if verbose: print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
 
         self.reset_gender()
+
+        self.all_beam_histories = []
 
         self.theme = theme
 
@@ -636,7 +641,7 @@ class Scenery_Gen(poem_core.Poem):
                 template, _ = self.get_next_template(used_templates, end=r)
                 templates.append(template)
             else:
-                print("\nlooking for the next template to rhyme with", r, ":")
+                if verbose: print("\nlooking for the next template to rhyme with", r, ":")
                 for _ in range(k):
                     tries = 0
                     meter_dict = None
@@ -685,10 +690,13 @@ class Scenery_Gen(poem_core.Poem):
 
             self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
                                                        alliteration=letters, weight_repetition=weight_repetition,
-                                                       prev_lines=self.gpt_past, internal_rhymes=internal_rhymes, k=1,
-                                                       verbose=verbose, branching=b, b_inc=b_inc, random_selection=random_word_selection)
+                                                       prev_lines=self.gpt_past, internal_rhymes=internal_rhymes,
+                                                       verbose=verbose, branching=b, b_inc=b_inc,
+                                                       random_selection=random_word_selection, beam_score=beam_score)
             #all_beams = self.line_gen.complete_lines()
             completed_beams = self.line_gen.beam_search_tokenwise()
+
+            self.all_beam_histories.append(self.line_gen.beam_history)
 
             best = (100, "", "")
 
@@ -884,7 +892,7 @@ class Scenery_Gen(poem_core.Poem):
 
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
-            self.gpt = gpt_2.gpt_gen(sonnet_object=self, model=gpt_size)
+            self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
 
         self.reset_gender()
 
@@ -1022,3 +1030,36 @@ class Scenery_Gen(poem_core.Poem):
             if len(self.get_rhymes(word)) > rhyme_count:
                 return
         return
+
+
+    def print_beam_history(self, lines=range(14)):
+        """
+        Prints the beam history of the most recent poem
+
+        Parameters
+        ----------
+        lines - which of the lines to print for (all by default)
+
+        """
+
+        assert self.line_gen, "no line gen"
+
+        if type(lines) == int:
+            lines = [lines]
+
+        for l, hist in enumerate(self.all_beam_histories):
+            if l not in lines:
+                continue
+
+            print("for line", l, ":")
+            for template in hist:
+                print("\tfor template", template, ":")
+                for num_toks in hist[template]:
+                    print("\t\tat len", num_toks)
+                    print("\t", end="\t")
+                    for toks in hist[template][num_toks]:
+                        print(self.gpt.tokenizer.decode(toks), "(", self.gpt.score_tokens(toks), end="), ")
+                    print("")
+
+
+
