@@ -619,6 +619,7 @@ class Scenery_Gen(poem_core.Poem):
                     self.set_meter_pos_dict()
             lines = lines[:line_number]
             used_templates = used_templates[:line_number]
+            self.all_beam_histories = self.all_beam_histories[:line_number]
 
             if internal_rhyme > 0:
                 internal_rhymes = " ".join(lines[-min(len(lines), internal_rhyme):]).lower().split()
@@ -1055,10 +1056,12 @@ class Scenery_Gen(poem_core.Poem):
             for template in hist:
                 print("\tfor template", template, ":")
                 for num_toks in hist[template]:
-                    print("\t\tat len", num_toks)
+                    print("\t\tafter step", num_toks)
                     print("\t", end="\t")
-                    for toks in hist[template][num_toks]:
-                        print(self.gpt.tokenizer.decode(toks), "(", self.gpt.score_tokens(toks), end="), ")
+                    for toks, score in hist[template][num_toks]:
+                        #print(self.gpt.tokenizer.decode(toks), "(" + str(round(self.gpt.score_tokens(toks), 2)), end="), ")
+                        print(self.gpt.tokenizer.decode(toks[:-1]) + "*" + self.gpt.tokenizer.decode(toks[-1]) + "*", "(" + str(round(score, 4)), end="), ")
+
                     print("")
 
 

@@ -164,13 +164,15 @@ class Partial_Line:
 
         self.get_poss(0)
 
-        word = random.choice(list(self.poss))
+        word = random.choice(list(self.poss))#.capitalize() #TODO - somehow capitalization breaks everything
 
         word_tokens = self.parent.gpt_tokenizer.encode(word)
 
         self.sub_tokens = word_tokens[:-1]
 
         self.update_constraints(word_tokens[-1])
+
+        return word
 
     def get_first_token(self, gpt_output, n_ret=1):
         """
@@ -225,8 +227,6 @@ class Partial_Line:
                 word_scores = np.ones(len(self.parent.gpt_tokens))
                 print("youll probably never get here", 0 / 0)
             else:
-                if verbose: print("replacing tokens")
-
                 word_scores = np.ones(len(self.parent.gpt_tokens))
 
             if self.parent.alliteration:
@@ -259,6 +259,7 @@ class Partial_Line:
         #self.parent.token_cache[self.curr_line] = tokens #word level beam search
         #token = self.parent.token_cache[self.curr_line].pop()
         if n_ret > 1:
+            if self.verbose: print("f returning", n_ret, "tokens here", tokens)
             return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
         token = tokens[0]
 
@@ -346,7 +347,10 @@ class Partial_Line:
         -------
 
         """
-        assert len(self.tokens) > 0, "no tokens, first word should be done elsewhere"
+        if len(self.tokens) == 0 and len(self.parent.prev_lines.strip()) == 0:
+            if self.verbose: print("picking first word first")
+            self.write_first_word()
+
 
 
         assert self.template_loc < len(self.template), self.curr_line
@@ -379,7 +383,7 @@ class Partial_Line:
 
         self.update_constraints(token, first=is_first)
 
-        if self.verbose: print("for", self.template[self.template_loc-1], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' because I was told to", is_first)
+        #if self.verbose: print("for", self.template[self.template_loc-1], "picked " + str(token) + ": '" + str(self.parent.gpt_tokenizer.decode(token)) + "' because I was told to", is_first)
 
 
 
@@ -441,7 +445,7 @@ class Partial_Line:
         else:
             past_text = (self.parent.prev_lines + "\n" + self.curr_line).strip()
             last_tokens = self.parent.gpt_tokenizer.encode(past_text)# + [self.sub_tokens]
-            if self.verbose: print("last_tokens: ", last_tokens)
+            if self.verbose: print("no past: last_tokens =", last_tokens)
             context = torch.tensor([last_tokens]).to(self.parent.gpt_model.device)
 
             #if self.verbose: print("context: ", context, context.size())
@@ -640,9 +644,9 @@ class Partial_Line:
     def create_dist(self, checks, word_scores, gpt_output, theme_checks):
         verbose = self.verbose
 
-        filt = np.array([int(i in checks) for i in range(len(self.parent.gpt_tokens))]) * word_scores
+        filt = np.array([int(i in checks) for i in range(len(self.parent.gpt_tokens))]) * word_scores #score of valid words
 
-        ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
+        ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt #gpt output filtered by validity
         if ws.shape[0] == 1: ws = ws[0]
 
         if self.parent.weight_repetition:
@@ -662,13 +666,17 @@ class Partial_Line:
         if theme_scores and max(theme_scores)[0] / max(ws) > self.parent.theme_threshold:
             #if verbose: print("reducing to theme words")
             ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(self.parent.gpt_tokens))])
-            if verbose: print("after", len(ws.nonzero()), ws) #TODO this is dodgy
+            if verbose: print("after", len(ws.nonzero()[0]), ws)
 
         if max(ws) <= 0:
             if verbose: print("something went wrong", max(ws))
             return None
 
         dist = helper.softmax(ws, exclude_zeros=True)
+
+        if verbose: print("after2", len(dist.nonzero()[0]), sum(dist), dist)
+
+        assert 0.99 <= sum(dist) <= 1.01, sum(dist)
 
         return dist
 
@@ -837,9 +845,9 @@ class Line_Generator:
                 self.completed_lines[template] = [h.curr_line for h in self.partial_lines[template] if h.line_finished]
         else:
             for template in self.partial_lines:
-                self.write_all_first_words(template)
+                #self.write_all_first_words(template)
                 while len(self.partial_lines[template]) > 0:
-                    if self.verbose: print("about to update all partials")
+                    if self.verbose: print("about to update all", len(self.partial_lines[template]), "partials")
                     all_tokens = []
                     for i, hyp in enumerate(self.partial_lines[template].copy()):
                         if not hyp.line_finished:
@@ -852,7 +860,7 @@ class Line_Generator:
                             self.partial_lines[template].remove(hyp)
                             #probably not very beamy but...
 
-                    if self.verbose: print("out of", len(all_tokens), set([a[0] for a in all_tokens]), ":")
+                    if self.verbose: print("out of", len(all_tokens), "options", set([a[0] for a in all_tokens]), ":")
 
                     potential_partials = []
                     for (tok, tok_score, hyp) in all_tokens:
@@ -871,18 +879,27 @@ class Line_Generator:
                         #print(toks, type(toks))
                         if toks not in partial_scores:
                             if self.beam_score == "line":
-                                partial_scores[toks] = self.gpt.score_tokens(toks)
+                                partial_scores[toks] = -self.gpt.score_tokens(toks)
                             elif self.beam_score == "token":
                                 partial_scores[toks] = all_tokens[i][1] #score of token returned from gpt
+                            elif self.beam_score == "token_gpt":
+                                context = torch.tensor(toks[:-1]).to(self.gpt.model.device)
+                                if len(context) == 0:
+                                    partial_scores[toks] = 0
+                                else:
+                                    output = self.gpt.model(context)
+                                    last_score = output.logits[-1, toks[-1]] #gets the gpt score for outputting the final token
+                                    partial_scores[toks] = last_score.item()
+                                #print(partial_scores[toks], type(partial_scores[toks]))
                             else:
                                 print(1/0, "was expecting 'line' or 'token' as beam_score")
                             num_toks = len(toks)
                             if num_toks not in self.beam_history[template]:
                                 self.beam_history[template][num_toks] = []
-                            self.beam_history[template][num_toks].append(toks)
+                            self.beam_history[template][num_toks].append((toks, partial_scores[toks]))
 
                     #potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
-                    potential_partials.sort(key=lambda x: partial_scores[tuple(x.tokens)])
+                    potential_partials.sort(key=lambda x: partial_scores[tuple(x.tokens)], reverse=True)
 
                     self.partial_lines[template] = []
                     picked_lines = set()
@@ -891,7 +908,7 @@ class Line_Generator:
                             self.partial_lines[template].append(p_p)
                             picked_lines.add(tuple(p_p.tokens))
 
-                    if self.verbose: print("reduced back to ", len(self.partial_lines[template]), "hyps", [p.curr_line for p in self.partial_lines[template]])
+                    if self.verbose: print("reduced back to ", len(self.partial_lines[template]), "hyps", [self.gpt_tokenizer.decode(p.tokens) for p in self.partial_lines[template]])
 
         return self.completed_lines
 
@@ -986,4 +1003,9 @@ class Line_Generator:
     def write_all_first_words(self, template):
         if self.verbose: print("writing first words", template)
         for hyp in self.partial_lines[template]:
-            hyp.write_first_word()
+            word = hyp.write_first_word()
+            if self.verbose: print("first word: '" + word + "', loc:", hyp.template_loc, hyp.template[hyp.template_loc])
+            num_toks = len(hyp.tokens)
+            if num_toks not in self.beam_history[template]:
+                self.beam_history[template][num_toks] = []
+            self.beam_history[template][num_toks].append((hyp.tokens, 0))
