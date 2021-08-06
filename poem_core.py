@@ -10,6 +10,7 @@ import pronouncing
 from os import path
 
 
+
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
                  templates_file=('poems/templates_basic.txt', "poems/rhetorical_templates.txt"),
@@ -401,7 +402,7 @@ class Poem:
             r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
                      x in self.get_meter(w)]) if rhyme_word else None
             if (meter and len(r) == 0) or len(rhyme_words) == 0:
-                if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words, r)
+                if verbose: print("couldn't get a rhyme here:", template, rhyme_pos, rhyme_word, rhyme_words, r)
                 return None
         else:
             r = None
@@ -613,7 +614,6 @@ class Poem:
                     ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
                     ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
                     ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
-                    ("THERE IS VBN, PRPD$ JJ NN, JJR OF;", "0_1_01_0_10_1_0_1"),
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01")]
 
             poss = [p for p in starters if p in self.templates]

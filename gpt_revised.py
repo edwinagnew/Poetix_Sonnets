@@ -54,14 +54,21 @@ class gpt_gen:
 
         self.checked_for_rhymes = {}
 
+
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        return self.score_tokens(input_ids.to(self.model.device))
+
+    def score_tokens(self, tokens):
+        if type(tokens) == tuple or type(tokens) == list: tokens = torch.tensor(tokens).to(self.model.device)
         with torch.no_grad():
-            outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
+            outputs = self.model(tokens, labels=tokens)
         # loss, logits = outputs[:2]
         tok_count = 1#len(input_ids[0]) #TODO - normalise lines
         return outputs[0].item()/tok_count
+        #return torch.mean(outputs[1])
+
 
     def get_sentiment(self, word):
         tokenized = self.tokenizer.encode(word)
@@ -252,7 +259,7 @@ class Partial_Line:
         #self.parent.token_cache[self.curr_line] = tokens #word level beam search
         #token = self.parent.token_cache[self.curr_line].pop()
         if n_ret > 1:
-            return tokens
+            return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
         token = tokens[0]
 
         assert type(token) == int, str(type(token)) + " aint no int m9"
@@ -320,7 +327,7 @@ class Partial_Line:
             token = tokens[0]
         else:
             if self.verbose: print("returning", n_ret, "tokens here", tokens)
-            return tokens
+            return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
 
 
 
@@ -329,6 +336,16 @@ class Partial_Line:
         return token
 
     def get_top_tokens(self, num_tokens):
+        """
+        Gets the best num_tokens and returns a list of tuples (token, score)
+        Parameters
+        ----------
+        num_tokens
+
+        Returns
+        -------
+
+        """
         assert len(self.tokens) > 0, "no tokens, first word should be done elsewhere"
 
 
@@ -387,7 +404,7 @@ class Partial_Line:
             gpt_output = self.get_gpt_scores()
             first_token = self.get_first_token(gpt_output) #gets the first token
 
-            if self.verbose: print("got first token", first_token)
+            #if self.verbose: print("got first token", first_token)
 
 
             self.update_constraints(first_token, first=True) #updates all of the global stuff (sub_tokens etc.) accordingly
@@ -615,8 +632,6 @@ class Partial_Line:
                         dist = (sep / 150) / freq  # for now
 
                     ws[repeated_token] *= dist
-                    if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
-                                      "times so deweighted", repeated_token, self.parent.gpt_tokenizer.decode(repeated_token))
                 else:
                     pass
 
@@ -710,13 +725,15 @@ class Partial_Line:
             if self.template_loc == len(self.template) - 1:
                 self.rhyme_finishers = [self.poss_tokens[i] for i in range(len(self.poss_tokens)) if self.poss_tokens[i][0] == token]
 
+
         self.tokens.append(token)
 
         if did_punc:
             punc = self.update_punc(self.punc_next)
             #word += punc
             token = self.parent.gpt_tokenizer.encode(punc)
-            self.tokens.append(token)
+
+            self.tokens += token
             self.curr_line += punc
 
 
@@ -726,7 +743,7 @@ class Partial_Line:
 
 class Line_Generator:
     def __init__(self, sonnet_object, gpt_object, templates=None, meter_dicts=None, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
-                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], k=1, verbose=False, theme_tone=None, branching=1, b_inc=1, random_selection=False):
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[], verbose=False, theme_tone=None, branching=1, b_inc=1, random_selection=False, beam_score="line"):
         # global logistics
         self.no_meter = False
         if templates is None:
@@ -747,7 +764,7 @@ class Line_Generator:
         self.prev_lines = prev_lines
         self.no_template = no_template
         self.internal_rhymes = internal_rhymes
-        self.k = k
+        #self.k = k
         self.verbose = verbose
         self.random_selection = random_selection
         self.word_scores_cache = {}
@@ -770,9 +787,11 @@ class Line_Generator:
 
         # beam search/multiple k
         self.partial_lines = {}  # dictionary mapping templates to a list of partial line objects
+        self.beam_history = {}
         self.branching = branching
         self.b_inc = b_inc
         self.token_cache = {}
+        self.beam_score = beam_score
         for i, template in enumerate(templates):
             if self.no_meter:
                 self.new_line(template, None, rhyme_word=self.rhyme_word)
@@ -780,6 +799,8 @@ class Line_Generator:
                 self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
 
         self.completed_lines = {}
+
+
 
 
 
@@ -823,8 +844,8 @@ class Line_Generator:
                     for i, hyp in enumerate(self.partial_lines[template].copy()):
                         if not hyp.line_finished:
                             if self.verbose: print("getting top tokens for hyp", i)
-                            top_hyp_tokens = hyp.get_top_tokens(self.branching) # list of tokens
-                            all_tokens.extend([(t, hyp) for t in top_hyp_tokens])
+                            top_hyp_tokens = hyp.get_top_tokens(self.branching) # list of tuples of tokens and scores
+                            all_tokens.extend([(t[0], t[1], hyp) for t in top_hyp_tokens])
                         else:
                             if template not in self.completed_lines: self.completed_lines[template] = []
                             self.completed_lines[template].append(hyp.curr_line)
@@ -832,18 +853,43 @@ class Line_Generator:
                             #probably not very beamy but...
 
                     if self.verbose: print("out of", len(all_tokens), set([a[0] for a in all_tokens]), ":")
+
                     potential_partials = []
-                    for (tok, hyp) in all_tokens:
+                    for (tok, tok_score, hyp) in all_tokens:
                         assert not hyp.line_finished, "copying a completed line (bad news)"
                         new_hyp = hyp.copy()
                         new_hyp.choose_token(tok)
                         potential_partials.append(new_hyp)
+
+
+
                     k = min(self.branching, len(potential_partials))
-                    potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
+
+                    partial_scores = {}
+                    for (i, pot) in enumerate(potential_partials):
+                        toks = tuple(pot.tokens)
+                        #print(toks, type(toks))
+                        if toks not in partial_scores:
+                            if self.beam_score == "line":
+                                partial_scores[toks] = self.gpt.score_tokens(toks)
+                            elif self.beam_score == "token":
+                                partial_scores[toks] = all_tokens[i][1] #score of token returned from gpt
+                            else:
+                                print(1/0, "was expecting 'line' or 'token' as beam_score")
+                            num_toks = len(toks)
+                            if num_toks not in self.beam_history[template]:
+                                self.beam_history[template][num_toks] = []
+                            self.beam_history[template][num_toks].append(toks)
+
+                    #potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
+                    potential_partials.sort(key=lambda x: partial_scores[tuple(x.tokens)])
+
                     self.partial_lines[template] = []
+                    picked_lines = set()
                     for p_p in potential_partials:
-                        if len(self.partial_lines[template]) < k and p_p.tokens not in [p.tokens for p in self.partial_lines[template]]:
+                        if len(self.partial_lines[template]) < k and tuple(p_p.tokens) not in picked_lines: #the line hasnt already been added
                             self.partial_lines[template].append(p_p)
+                            picked_lines.add(tuple(p_p.tokens))
 
                     if self.verbose: print("reduced back to ", len(self.partial_lines[template]), "hyps", [p.curr_line for p in self.partial_lines[template]])
 
@@ -857,10 +903,11 @@ class Line_Generator:
 
         if template not in self.partial_lines:
             self.partial_lines[template] = []
+            self.beam_history[template] = {}
 
-        for _ in range(self.k): #really?
-            new_partial = Partial_Line(self, template, meter_dict, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
-            self.partial_lines[template].append(new_partial)
+        #for _ in range(self.k): #really?
+        new_partial = Partial_Line(self, template, meter_dict, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
+        self.partial_lines[template].append(new_partial)
 
     def branch(self, n, template):
         """
