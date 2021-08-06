@@ -534,6 +534,9 @@ class Poem:
         -------
 
         """
+        if type(used_templates) == str:
+            used_templates = [used_templates]
+
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
         poss = [p for p in self.templates if used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
         # incomplete = ",;" + string.ascii_lowercase
