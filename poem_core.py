@@ -539,7 +539,10 @@ class Poem:
             used_templates = [used_templates]
 
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
-        poss = [p for p in self.templates if used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
+        poss = [(p,q) for (p,q) in self.templates if used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
+        # L- p is a tuple, but the items in used_templates are strings?
+        # L- second part of and statement makes sure that the next possible template is not the same as the most recently
+        # used template
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
@@ -590,22 +593,37 @@ class Poem:
 
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
+            # L- if most recently used template ends in '.' or '?', next template cannot start with 'and', 'that', 'or', etc.
             # elif used_templates[-1][-1] in incomplete:
             #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
+
+            # L- ensure you can't have a stanza of 4 separate sentences
+            # ensure that if the first two lines in a stanza ended in a period, then the next one shouldn't
+            # (though maybe first one or first three?)
+            # Beware of templates that end like "<./,>" - you're allowed to replace that with just "," if you want
+            if n % 4 == 2 and (used_templates[-1][-1] == "." and used_templates[-2][-1] == "."):
+                poss = [(p, q) for p, q in poss if p[-1] != '.']
+                poss = [(p.replace("/.", "").replace("<./", "<"), q) for p, q in poss if p[-1] in ".>"]
+            # L- for the second line in every stanza, if the two most recently used templates both ended in '.',
+            # remove next possible templates that end in '.'
 
             if n % 4 == 3 or n == 13:
                 # poss = [p for p in poss if p[0][-1] not in ",;" + string.ascii_uppercase]
                 poss = [(p.replace("/,", "").replace("<,/", "<"), q) for p, q in poss if p[-1] in ">."]
+                # L- for the third line in every stanza or the second-to-last line in the sonnet, remove comma as punctuation
+                # choice for next possible template
                 # print("last line of stanza so:", poss)
 
             if n % 4 == 0:
                 poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND", "OR"]]
             elif sum([int("_" in t) for t in used_templates]) > 1:
                 poss = [(p,q) for p,q in poss if "_" not in p]
-
+            # L- for the last line in every stanza, the next possible template cannot begin with 'and' or 'or'
 
             if n % 4 > 1 or n == 13:
                 poss = [(p, q) for p, q in poss if "_" not in p.split()[-1]]
+            #for the second and third line in every stanza or the second-to-last line in the sonnet, drop next possible
+            # L- templates that end in '_' (are there any basic templates like this?)
 
         else:
             # starting templates taken from google doc
@@ -626,13 +644,15 @@ class Poem:
             #return self.fix_template(random.choice(self.templates))
 
 
-        poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
+        # poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
+        # L- if a template has been used 2 or more times in the sonnet already, it cannot be used again
 
         if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))
         # t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
         return t[0], t[1]
+        # L- chooses punctuation between <>
 
     def fix_template(self, template):
         if type(template) == tuple: return self.fix_template(template[0]), template[1]
