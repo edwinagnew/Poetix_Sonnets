@@ -454,7 +454,8 @@ class Scenery_Gen(poem_core.Poem):
                            theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
-                           gpt_size="gpt2", tense="rand", internal_rhyme=1, dynamik=False, b=1, b_inc=1, random_word_selection=False, beam_score="line"):
+                           gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False, random_word_selection=False,
+                           b=1, b_inc=1, beam_score="line", phi_score=False):
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -642,7 +643,7 @@ class Scenery_Gen(poem_core.Poem):
                 template, _ = self.get_next_template(used_templates, end=r)
                 templates.append(template)
             else:
-                if verbose: print("\nlooking for the next template to rhyme with", r, ":")
+                if verbose: print("\nlooking for the next template to rhyme with '" + str(r) + "'", used_templates, " :")
                 for _ in range(k):
                     tries = 0
                     meter_dict = None
@@ -692,7 +693,7 @@ class Scenery_Gen(poem_core.Poem):
             self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
                                                        alliteration=letters, weight_repetition=weight_repetition,
                                                        prev_lines=self.gpt_past, internal_rhymes=internal_rhymes,
-                                                       verbose=verbose, branching=b, b_inc=b_inc,
+                                                       verbose=verbose, branching=b, b_inc=b_inc, phi_score=phi_score,
                                                        random_selection=random_word_selection, beam_score=beam_score)
             #all_beams = self.line_gen.complete_lines()
             completed_beams = self.line_gen.beam_search_tokenwise()
