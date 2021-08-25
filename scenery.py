@@ -455,7 +455,7 @@ class Scenery_Gen(poem_core.Poem):
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False, random_word_selection=False,
-                           b=1, b_inc=1, beam_score="line", phi_score=False):
+                           b=1, b_inc=1, beam_score="token", phi_score=False):
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -649,7 +649,7 @@ class Scenery_Gen(poem_core.Poem):
                     meter_dict = None
                     template = ""
                     while tries < len(self.templates) and meter_dict is None:
-                        template, meter = self.get_next_template(used_templates, end=r)
+                        template, meter = self.get_next_template_old(used_templates, end=r)
                         if not template:
                             print("no template", 1 / 0)
 
@@ -666,6 +666,8 @@ class Scenery_Gen(poem_core.Poem):
                         line_number -= 2
 
                     continue
+                else:
+                    if verbose: print('success')
 
             alliterating = alliterate and random.random() <= alliteration / 4  # 0.3
             if alliterating:
