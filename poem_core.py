@@ -522,6 +522,14 @@ class Poem:
                 if len(poss) == 1: return poss
         return poss
 
+    #Hi Lily, just following up on this. It seems that the new get_next_templates function sometimes cant
+    #find a template and so gives up. When called with the same arguments, the old one manages to find one
+    #so I’m pretty sure we changed something we shouldn’t of, or maybe that fixing it has given rise to a new
+    #bug. You should be able to reproduce this if you pull from git and compare sc.get_used_templates(used),
+    #with sc.get_used_templates_old(used), where
+    #used_templates = ['A JJ NN VBD IN NNS OF NN.','ABNN AND ABNN VBD WITHIN THE NN','FOR VBG NN WITH PRPO RB,']
+    #Since we now group templates according to tense (past, present) it might be that all the followers are present or
+    #something. We should make sure that a gerund templates is in templates_past.txt only if its followers are
     def get_next_template(self, used_templates, end=""):
         """
 
@@ -540,7 +548,7 @@ class Poem:
 
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
         poss = [(p, q) for (p, q) in self.templates if used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
-        # L- p is a tuple, but the items in used_templates are strings?
+        # L- makes sure that a template isn't used more than twice
         # L- second part of and statement makes sure that the next possible template is not the same as the most recently
         # used template
         # incomplete = ",;" + string.ascii_lowercase

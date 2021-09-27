@@ -450,12 +450,32 @@ class Scenery_Gen(poem_core.Poem):
         return self.write_poem_revised(theme=theme, k=k, verbose=True, alliteration=0, internal_rhyme=0, rhyme_lines=True, no_meter=False, gpt_size=gpt, weight_repetition=False)
 
 
-    def write_poem_revised(self, theme="love", verbose=False, random_templates=True, rhyme_lines=True, all_verbs=False,
-                           theme_lines=0, k=5, alliteration=1, theme_threshold=0.5, no_meter=False,
+    def write_poem_revised(self, theme="love", verbose=False, rhyme_lines=True, all_verbs=False,
+                           theme_lines=0, k=1, alliteration=1, theme_threshold=0.5, no_meter=False,
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False, random_word_selection=False,
                            b=1, b_inc=1, beam_score="token", phi_score=False):
+
+# deleted random_templates
+# changed default k to 1, for testing efficiency purposes
+
+# test all_verbs
+# test theme_lines - either int (0 or positive int) or str (poem or stanza)
+# test dif combinations of theme words' pos for theme_choice (for 2 or more word themes)
+# test theme_cutoff and theme_progression
+# no_meter and rhyme_lines
+# see if sum_similarity is used in write_poem_revised
+# test dif numbers for weight_rep
+# ignore story and story_file b_inc phi_score
+# gpt_size twice_retrained vs xl
+# see if some themes are better in past vs present
+# test random_word_selection for low beam
+# compare token and line for beam_score
+
+# Btw forgot to mention last time but since the write_poem_revised function is a bit long, it would be
+# great to put parts of it in helper functions so if you encounter arguments where that could be easily
+# done (e..g maybe the theme_word preparation stuff at the beginning) it would be great to outsource
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -495,25 +515,28 @@ class Scenery_Gen(poem_core.Poem):
             if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.",
                                               random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
             sample_seed = "\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else ""
+            #L- set sample_seed if theme_lines > 0, otherwise set sample_seed to an empty string
         else:
-            assert theme_lines in ["stanza", "poem"], "expected 'stanza' or 'poem' "
+            assert theme_lines in ["stanza", "poem"], "expected 'stanza' or 'poem'"
             if not self.save_poems:
                 self.save_poems = True
             if theme not in self.saved_poems:
                 if verbose: print("generating seed poem first")
-                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, random_templates=random_templates, rhyme_lines=rhyme_lines, all_verbs=all_verbs,
+                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, rhyme_lines=rhyme_lines, all_verbs=all_verbs,
                             theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold, no_meter=no_meter,
                             theme_choice=theme_choice, theme_cutoff=theme_cutoff, sum_similarity=sum_similarity, weight_repetition=False,
                             theme_progression=theme_progression, story=story, story_file=story_file,
                             gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False, random_word_selection=random_word_selection)#.split("\n")
                 #seed_stanzas = ["\n".join(seed_poem_lines[1:5]), "\n".join(seed_poem_lines[6:10]), "\n".join(seed_poem_lines[11:15])]
-                self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+                self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:]) #cut out title
 
             sample_lines = self.saved_poems[theme].split("\n")
             if theme_lines == "poem":
                 sample_seed = "\n".join(sample_lines)
+                #L- seed poem with saved poem for that theme
             elif theme_lines == "stanza":
-                sample_seed = "\n".join(sample_lines[10:14]) #last stanza
+                sample_seed = "\n".join(sample_lines[10:14]) #last 4 lines
+                #L- seed poem with last 4 lines of saved poem for that theme (change to last 2 lines? 6 lines?)
 
         if verbose: print("samples: ", sample_seed)
 
