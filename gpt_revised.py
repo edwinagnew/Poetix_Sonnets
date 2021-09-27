@@ -1,20 +1,23 @@
 # import sonnet_basic
 import poem_core
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2Config, GPTNeoForCausalLM
 import torch
 import numpy as np
 import random
 import nltk
 import string
 import pickle
+import time
 
 from py_files import helper
 from copy import deepcopy
 
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2TokenizerFast, GPT2Config, GPTNeoForCausalLM
+from custom_beam_scorer import CustomGPT2Model
+
 
 class gpt_gen:
 
-    def __init__(self, sonnet_object=None, model="gpt2"):
+    def __init__(self, sonnet_object=None, model="gpt2", fast_tokenizer=True):
         if sonnet_object:
             # self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
@@ -33,7 +36,11 @@ class gpt_gen:
             assert len(
                 self.model_size.split()) == 2, "custom should be in the form 'custom fine_tuning/twice_retrained' or something like that"
             model_path = model = self.model_size.split()[1]
-            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+            if fast_tokenizer:
+                self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+            else:
+                self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
             config = GPT2Config.from_json_file(model_path + '/config.json')
             self.model = GPT2LMHeadModel.from_pretrained(model_path + '/pytorch_model.bin', config=config)
@@ -43,7 +50,10 @@ class gpt_gen:
             self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
             self.model = GPTNeoForCausalLM.from_pretrained('EleutherAI/gpt-neo-1.3B')
         else:
-            self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+            if fast_tokenizer:
+                self.tokenizer = GPT2TokenizerFast.from_pretrained(model)
+            else:
+                self.tokenizer = GPT2Tokenizer.from_pretrained(model)
             self.model = GPT2LMHeadModel.from_pretrained(model)
         if torch.cuda.is_available():
             print("putting to gpu")
@@ -83,7 +93,7 @@ class Partial_Line:
             self.template = template.split()  # .copy()
         else:
             self.template = template.copy()
-        if meter_dict:
+        if meter_dict is not None:
             self.meter_dict = meter_dict.copy()
         else:
             assert parent.no_meter, "no meter but should meter"
@@ -110,6 +120,7 @@ class Partial_Line:
         self.past = None  # need to give this to gpt
         self.word_scores = []
         self.template_loc = 0
+        self.seed_tokens = []
 
         # misc
         self.verbose = verbose
@@ -136,6 +147,7 @@ class Partial_Line:
         p_copy.theme_tokens = self.theme_tokens.copy()
         p_copy.alliterated = self.alliterated
 
+
         # syntactic coherance
         p_copy.punc_next = self.punc_next
         p_copy.repeats = self.repeats.copy()
@@ -145,6 +157,7 @@ class Partial_Line:
         p_copy.tokens = self.tokens.copy()  # tokenized version of curr_line
         p_copy.sub_tokens = self.sub_tokens.copy()
         p_copy.first_lets = self.first_lets.copy()
+        p_copy.seed_tokens = self.seed_tokens.copy()
 
         if self.past:
             p_copy.past = deepcopy(self.past)  # need to give this to gpt
@@ -156,9 +169,10 @@ class Partial_Line:
         # misc
         p_copy.line_finished = self.line_finished
         p_copy.space = self.space
+        p_copy.punc_next = self.punc_next
         return p_copy
 
-    def write_first_word(self):
+    def write_first_word(self, ret_word=True):
 
         self.get_poss(0)
 
@@ -170,7 +184,9 @@ class Partial_Line:
 
         self.update_constraints(word_tokens[-1])
 
-        return word
+        if ret_word: return word
+
+        return word_tokens
 
     def get_first_token(self, gpt_output, n_ret=1):
         """
@@ -255,7 +271,10 @@ class Partial_Line:
         if n_ret > 1:
             if self.verbose: print("f returning", n_ret, "tokens here", tokens)
             if self.parent.phi_score:
-                return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
+                #assert dist.min() >= 0, "dist is negative still"
+                #assert np.isclose(dist.sum(), 1), "not sum to 1"
+                #return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
+                return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
             else:
                 return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
         token = tokens[0]
@@ -326,7 +345,10 @@ class Partial_Line:
         else:
             if self.verbose: print("returning", n_ret, "tokens here", tokens)
             if self.parent.phi_score:
-                return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
+                #assert dist.min() >= 0, "dist is negative still"
+                #assert np.isclose(dist.sum(), 1), "not sum to 1" + str(dist.sum())
+                #return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
+                return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
             else:
                 return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
 
@@ -361,6 +383,10 @@ class Partial_Line:
         assert len(tokens) <= num_tokens, "too many tokens"
 
         return tokens
+
+    def valid(self, t, len_sub):
+        # Gets all the words token could be part of by iterating through poss_tokens and indexing at the correct
+        return t[:len_sub] == self.sub_tokens and len(t) > len_sub
 
     def choose_token(self, token):
         """
@@ -451,128 +477,159 @@ class Partial_Line:
 
         return output
 
-    def score_custom_dists(self, token, gpt_score, w_alliteration=0, w_repetition=0, w_rhyme=0):
-        """
+    def get_all_custom(self, gpt_scores,  w_alliteration=0, w_repetition=0, w_rhyme=0):
 
-        Parameters
-        ----------
-        token
-        gpt_output
-        w_alliteration - how much to weight alliteration
-        w_repetition - how much to weight repetitio0n
-        w_rhyme - how to weight internal rhyme
+        #TODO - rewrite individual ones to only consider tokens in pot_tokens and so on (for speedup)
 
-        Returns
-        -------
+        #TODO - include theme scores
 
-        """
+        n = len(self.parent.gpt_tokens)
 
-        token_string = self.parent.gpt_tokenizer.decode(token).strip()
-
-        return gpt_score + (w_alliteration * self.alliteration_score(token, token_string)) + (
-                    w_repetition * self.repetition_score(token, token_string)) + (
-                           w_rhyme * self.internal_rhyme_score(token, token_string))
-
-    def alliteration_score(self, token, token_string):
-        if not self.parent.alliteration or len(
-                self.sub_tokens) != 0:  # alliteration only counts at the beginning of the word
-            return 0
-
-        first_letter = token_string[0]
-
-        if first_letter in self.parent.alliteration: return 1
-
-        return 0
-
-    def repetition_score(self, token, token_string):
-        """
-
-        Parameters
-        ----------
-        token
-
-        Returns
-        -------
-
-        """
-        if not self.parent.weight_repetition: return 0
-
-        # memoisation
-        if not self.score_cache:
-            self.score_cache = {}
-        if 'lemma' not in self.score_cache:
-            self.score_cache['lemma'] = {}
-
-        if len(self.tokens) not in self.score_cache['lemma']:
-            past_words = helper.remove_punc(self.parent.prev_lines.lower().replace("'s", "")).split()
-            lemmas = [self.parent.lemma.lemmatize(word) for word in past_words]  # gets lemmas for all words in poem
-            lemmas_last = [self.parent.lemma.lemmatize(word) for word in helper.remove_punc(
-                self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
-            self.score_cache['lemma'][len(self.tokens)] = lemmas, lemmas_last
+        if w_alliteration == 0:
+            alliteration_vector = torch.zeros(n)
         else:
-            lemmas, lemmas_last = self.score_cache['lemma'][len(self.tokens)]
+            alliteration_vector = self.get_alliteration_vector()
+        #print("a vector", type(alliteration_vector), alliteration_vector.shape, alliteration_vector.sum(), alliteration_vector)
 
-        # Gets all the words token could be part of by iterating through poss_tokens and indexing at the correct
-        def valid(t, len_sub):
-            return t[:len_sub] == self.sub_tokens and len(t) > len_sub
+        if w_repetition == 0:
+            repetition_vector = torch.zeros(n)
+        else:
+            repetition_vector = self.get_repetition_vector()
+        #print("re vector", type(repetition_vector), repetition_vector.shape, repetition_vector.sum(), repetition_vector)
 
+        if w_rhyme == 0:
+            rhyme_vector = torch.zeros(n)
+        else:
+            rhyme_vector = self.get_rhyme_vector()
+        #print("ry vector", type(rhyme_vector), rhyme_vector.shape, rhyme_vector.sum(), rhyme_vector)
+
+
+        return gpt_scores + (w_alliteration * alliteration_vector) + (w_repetition * repetition_vector) + (w_rhyme * rhyme_vector)
+
+    def get_alliteration_vector(self):
+
+        tokens = self.parent.gpt_tokens
+
+        if not self.parent.alliteration or len(self.sub_tokens) != 0: return np.zeros(len(tokens))
+
+        alliterates = set(["Ġ" + a for a in self.parent.alliteration])
+
+        alliteration_vector = np.array([int(t in alliterates) for t in tokens])
+
+        return alliteration_vector
+
+    def get_repetition_vector(self):
+        tokens = self.parent.gpt_tokens
+
+        if not self.parent.weight_repetition: return np.zeros(len(tokens))
+
+        past_words = helper.remove_punc(self.parent.prev_lines.lower().replace("'s", "")).split()
+        lemmas = [self.parent.lemma.lemmatize(word) for word in past_words]  # gets lemmas for all words in poem
+        lemmas_last = [self.parent.lemma.lemmatize(word) for word in helper.remove_punc(
+            self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
+        #self.score_cache['lemma'][len(self.tokens)] = lemmas, lemmas_last
+
+        r_v = []
         # cacheable?
-        pot_words = [list(self.poss)[j] for j, toks in enumerate(self.poss_tokens) if
-                     valid(toks, len(self.sub_tokens)) and toks[len(self.sub_tokens)] == token]
+        for token in tokens:
+            pot_words = [list(self.poss)[j] for j, toks in enumerate(self.poss_tokens) if
+                         self.valid(toks, len(self.sub_tokens)) and toks[len(self.sub_tokens)] == token]
 
-        scores = []
+            scores = []
 
-        for p in pot_words:
-            p_lemma = self.parent.lemma.lemmatize(p)
-            score = max(0, lemmas.count(p_lemma) - 1) + lemmas_last.count(
-                p_lemma)  # counts occurences of word more than once in poem or at all in current line
-            scores.append(-score)  # negates since 0 is ideal and the more, the worse
+            for p in pot_words:
+                p_lemma = self.parent.lemma.lemmatize(p)
+                score = max(0, lemmas.count(p_lemma) - 1) + lemmas_last.count(
+                    p_lemma)  # counts occurences of word more than once in poem or at all in current line
+                scores.append(score)  # negates since 0 is ideal and the more, the worse
 
-        return np.mean(scores)  # averages over all potential words
+            if len(scores) == 0:
+                r_v.append(0)
+            else:
+                r_v.append(np.mean(scores))
 
-    def internal_rhyme_score(self, token, token_string):
-        verbose = self.verbose
+        return np.array(r_v)
 
-        # maybe some check out being first token of word or nah?
+    def get_rhyme_vector(self):
 
-        # memoisation
-        if not self.score_cache:
-            self.score_cache = {}
-        if 'rhyme' not in self.score_cache:
-            self.score_cache['rhyme'] = {}
+        tokens = np.array(self.parent.gpt_tokens)
 
-        if self.curr_line not in self.score_cache['rhyme']:
+        if not self.parent.internal_rhymes: return np.zeros(len(tokens))
 
-            # assume internal_rhyme is a set of words that we want to rhyme.
-            # for now only increase weight of first token
 
-            rhymes = []
-            for w in self.internal_rhymes + self.curr_line.split():
-                if w not in self.parent.sonnet_object.gpt.checked_for_rhymes:
-                    temp_rhymes = self.parent.sonnet_object.get_rhyme_words(w)
-                    self.parent.sonnet_object.gpt.checked_for_rhymes[w] = temp_rhymes if len(temp_rhymes) > 3 else []
 
-                rhymes += self.parent.sonnet_object.gpt.checked_for_rhymes[w]
+        rhymes = []
+        #gets a list of all words that rhyme with existing words in poem
+        for w in self.internal_rhymes + self.curr_line.split():
+            if w not in self.parent.sonnet_object.gpt.checked_for_rhymes:
+                temp_rhymes = self.parent.sonnet_object.get_rhyme_words(w)
+                self.parent.sonnet_object.gpt.checked_for_rhymes[w] = temp_rhymes if len(temp_rhymes) > 3 else []
 
-            all_tokens = [self.parent.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
-            self.rhyme_finishers = all_tokens  # can't remember what this does
-            self.score_cache['rhyme'][self.curr_line] = all_tokens
-        else:
-            all_tokens = self.score_cache['rhyme'][self.curr_line]
+            rhymes += self.parent.sonnet_object.gpt.checked_for_rhymes[w]
+
+        all_tokens = [self.parent.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
+        #self.rhyme_finishers = all_tokens  # can't remember what this does
+        #self.score_cache['rhyme'][self.curr_line] = all_tokens
 
         # tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos and len(self.gpt_tokenizer.tokenize((w))) > len_sub])
         len_sub = len(self.sub_tokens)
 
         valid_tokens = [p for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub]
-        tokens = set(p[len_sub] for p in valid_tokens)
+        rhyme_tokens = set(p[len_sub] for p in valid_tokens)
 
-        return int(token in tokens)  # simple as
+        return np.array([int(token in rhyme_tokens) for token in tokens])  # simple as
+        #return np.isin(tokens, rhyme_tokens) # slightly slower?
+
+    def adjust_logits(self, logits):
+        #template constraints
+        assert len(logits.shape) == 1 #1 dimensional
+        assert len(logits) == len(self.parent.gpt_tokens)
+
+        n = logits.shape[0]
+
+        i = self.template_loc
+        if i >= len(self.template):
+            if self.tokens[-1] == self.parent.newline_token:
+                print("end of the road, forcing", self.parent.eos_token)
+                checks = {self.parent.eos_token}
+            else:
+                print("adding newline", self.parent.eos_token)
+                checks = {self.parent.newline_token} #if template is over only allow eos token
+
+        else:
+            len_sub = len(self.sub_tokens)
+            if len_sub == 0:
+                self.get_poss(i)
+
+            checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+
+        mask = torch.tensor([1 if i in checks else 0 for i in range(n)]) #could be sped up
+        ninfs = torch.ones(n) * -np.inf
+        logits = torch.where(mask == torch.zeros(n), ninfs, logits)
+
+        if all(logits == -np.inf):
+            print("all bad")
+            print("poss tokens", self.poss_tokens)
+            print("checks", checks)
+            print("subtokens", self.sub_tokens)
+            print("mask", mask, len(mask.nonzero()))
+            print(1/0)
+
+
+        return self.get_all_custom(logits)
+
+
+
+
+
+        #remeber to update once
+
 
     def get_next_token_no_template(self):
         assert False, ("uh oh, this hasn't been finished yet")
 
     def update_punc(self, punc):
-        scores = self.get_gpt_scores()  # just to update past
+        if self.past is not None: scores = self.get_gpt_scores()  # just to update past
 
         p = random.choice(punc)
         if self.verbose: print("the punctuation we're trying to add is " + p)
@@ -642,62 +699,65 @@ class Partial_Line:
 
         meters = list(self.meter_dict.keys()) if self.meter_dict else None
 
+        next_pos = self.template[i]
+
         if self.punc_next:
+            #if verbose: print("puncing", self.punc_next)
             self.poss = set(self.punc_next)
             self.punc_next = False
         else:
-            if self.template[i][-1] == ">":
-                self.template[i], self.punc_next = self.template[i].split("<")[0], self.template[i].split("<")[
+            if next_pos[-1] == ">":
+                next_pos, self.punc_next = next_pos.split("<")[0], next_pos.split("<")[
                     -1].strip(">").split("/")
 
-            elif self.template[i][-1] in punc:
-                self.template[i], self.punc_next = self.template[i][:-1], self.template[i][-1]
+            elif next_pos[-1] in punc:
+                next_pos, self.punc_next = self.template[i][:-1], self.template[i][-1]
 
             # 1c - deal with repetition templates
-            if "_" in self.template[i]:
-                if self.template[i] in self.repeats:
-                    if verbose: print("choosing", self.template[i], "from", self.repeats)
-                    self.poss = [self.repeats[self.template[i]]]
+            if "_" in next_pos:
+                if next_pos in self.repeats:
+                    if verbose: print("choosing", next_pos, "from", self.repeats)
+                    self.poss = [self.repeats[next_pos]]
                 else:
-                    self.poss = self.parent.sonnet_object.get_pos_words(self.template[i].split("_")[0],
+                    self.poss = self.parent.sonnet_object.get_pos_words(next_pos.split("_")[0],
                                                                         meter=meters)
                     self.poss = set([p for p in self.poss if p not in self.repeats.values()])
 
             # 1d - get potential next words
             else:
-                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters))
+                self.poss = set(self.parent.sonnet_object.get_pos_words(next_pos, meter=meters))
 
             r = None
             if i == len(self.template) - 1 and self.parent.rhyme_word:
                 r = self.parent.rhyme_word
-                self.poss = set(self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters, rhyme=r))
+                self.poss = set(self.parent.sonnet_object.get_pos_words(next_pos, meter=meters, rhyme=r))
 
                 if verbose: print("restricting to rhymes", self.parent.rhyme_word, self.poss)
 
         if len(self.poss) == 0:
-            if "PRP" in self.template[i] and self.template[i] in self.parent.sonnet_object.pos_to_words:
+            if "PRP" in self.template[i] and next_pos in self.parent.sonnet_object.pos_to_words:
                 if self.meter_dict:
-                    self.poss = [p for p in self.parent.sonnet_object.pos_to_words[self.template[i]] if
+                    self.poss = [p for p in self.parent.sonnet_object.pos_to_words[next_pos] if
                                  any(m in self.meter_dict for m in self.parent.sonnet_object.get_meter(p))]
                 else:
-                    self.poss = [p for p in self.parent.sonnet_object.pos_to_words[self.template[i]]]
+                    self.poss = [p for p in self.parent.sonnet_object.pos_to_words[next_pos]]
 
-            if "sc" in self.template[i]:
-                if verbose: print("there arent any words so removing sc from", self.template[i])
-                self.template[i] = self.template[i].replace("sc", "")
+            if "sc" in next_pos:
+                if verbose: print("there arent any words so removing sc from", next_pos)
+                next_pos = next_pos.replace("sc", "")
 
                 self.poss = set(
-                    self.parent.sonnet_object.get_pos_words(self.template[i], meter=meters,
+                    self.parent.sonnet_object.get_pos_words(next_pos, meter=meters,
                                                             rhyme=r))
 
             if self.parent.sonnet_object.backup_words:  # in case were using byron vocab
                 if verbose: print("getting backup words")
                 self.poss = set(
-                    self.parent.sonnet_object.get_backup_pos_words(self.template[i], meters,
+                    self.parent.sonnet_object.get_backup_pos_words(next_pos, meters,
                                                                    rhyme=r))
 
             if len(self.poss) == 0:  # still
-                if verbose: print("there arent any words so giving up", self.template[i], meters)
+                if verbose: print("there arent any words so giving up", next_pos, meters)
                 return 1 / 0
 
         space = self.space = " " * int(list(self.poss)[0] not in punc + "'s" and i > 0)
@@ -710,9 +770,10 @@ class Partial_Line:
             # dist = ws = np.ones(len(self.gpt_tokens))
         else:
             self.poss_tokens = [self.parent.gpt_tokenizer.encode(space + p) for p in self.poss]
-            if self.template[i] in self.parent.theme_words:
+            if next_pos in self.parent.theme_words:
                 self.theme_tokens = [self.parent.gpt_tokenizer.encode(space + p) for p in
-                                     self.parent.theme_words[self.template[i]] if
+                                     self.parent.theme_words[next_pos] if
+                                     self.parent.theme_words[next_pos] if
                                      p in self.poss]
 
     def weight_repeated_words(self, checks, ws, verbose):
@@ -759,7 +820,7 @@ class Partial_Line:
 
         theme_scores = []
 
-        if self.theme_tokens:
+        if not self.parent.phi_score and self.theme_tokens:
             theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
             for i in range(len(theme_scores)):
                 if theme_scores[i][1] in self.parent.theme_bayes:
@@ -776,9 +837,34 @@ class Partial_Line:
 
         if max(ws) <= 0:
             if verbose: print("something went wrong", max(ws))
-            return None
+            return 1/0
 
-        dist = helper.softmax(ws, exclude_zeros=True)
+        #dist = helper.softmax(ws, exclude_zeros=True)
+        dist = ws
+
+        if self.parent.phi_score:
+            #dist = self.get_all_custom(ws)
+            a = time.time()
+            #dist1 = [self.score_custom_dists(i, ws[i]) for i in range(len(ws))]
+            b = time.time()
+
+            #print("one by one took", b-a)
+
+            a = time.time()
+            dist = self.get_all_custom(ws)
+            b = time.time()
+
+            print("all together took", b-a)
+            assert dist is not None, "dist is None"
+            assert type(dist) == type(ws), "wrong type"
+            assert dist.shape == ws.shape, "wrong length"
+            print("dist:", type(dist), dist.shape, dist.sum(), dist)
+            #print(np.isclose(dist1, dist).sum(), np.isclose(dist1, dist))
+            #input("contine?")
+
+
+        dist = helper.softmax(dist, exclude_zeros=True)
+
 
         if verbose: print("after2", len(dist.nonzero()[0]), sum(dist), dist)
 
@@ -794,7 +880,7 @@ class Partial_Line:
 
         punc = ",.;?"
 
-        did_punc = False
+        #did_punc = False
 
         word = self.parent.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
 
@@ -818,12 +904,10 @@ class Partial_Line:
             self.rhyme_finishers = []
             self.sub_tokens = []  # indicates we have moved onto new word
 
-            if self.punc_next:
-                did_punc = True
 
             self.curr_line += self.space + word
 
-            self.template_loc += 1
+            if not self.punc_next: self.template_loc += 1
 
             if self.template_loc == len(self.template):  # line over
                 self.line_finished = True
@@ -831,7 +915,7 @@ class Partial_Line:
             self.sub_tokens.append(token)
 
         if first:
-            if self.internal_rhymes and self.parent.gpt_tokenizer.decoder[token] not in self.rhyme_finishers:
+            if self.internal_rhymes and self.parent.gpt_tokenizer.decode([token]) not in self.rhyme_finishers:
                 self.rhyme_finishers = []
 
             if self.template_loc == len(self.template) - 1:
@@ -840,7 +924,7 @@ class Partial_Line:
 
         self.tokens.append(token)
 
-        if did_punc:
+        if False and did_punc:
             punc = self.update_punc(self.punc_next)
             # word += punc
             token = self.parent.gpt_tokenizer.encode(punc)
@@ -908,6 +992,8 @@ class Line_Generator:
                 self.new_line(template, None, rhyme_word=self.rhyme_word)
             elif meter_dicts[i]:
                 self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
+
+        #self.
 
         self.completed_lines = {}
 
@@ -1110,3 +1196,106 @@ class Line_Generator:
             if num_toks not in self.beam_history[template]:
                 self.beam_history[template][num_toks] = []
             self.beam_history[template][num_toks].append((hyp.tokens, 0))
+
+class BeamManager:
+    def __init__(self, gpt_size, tokenizer, sonnet_object, verbose=False):
+
+        self.sonnet_object = sonnet_object
+
+        self.partial_lines = []
+
+        self.rhyme_word = None
+        self.theme_words = []
+        self.alliteration = None
+        self.seed = ""
+        self.internal_rhymes = None
+
+        self.verbose = verbose
+
+        if 'custom' in gpt_size:
+            #self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+            assert len(gpt_size.split()) == 2, "custom should be in the form 'custom fine_tuning/twice_retrained' or something like that"
+            model_path = gpt_size.split()[1]
+
+            config = GPT2Config.from_json_file(model_path + '/config.json')
+            self.model = CustomGPT2Model.from_pretrained(model_path + '/pytorch_model.bin', config=config)
+        else:
+            #self.tokenizer = GPT2TokenizerFast.from_pretrained(gpt_size)
+            self.model = CustomGPT2Model.from_pretrained(gpt_size)
+
+        self.model_size = gpt_size
+        self.model.poem_object = self #looks dodgy but...
+
+        self.gpt_tokenizer = tokenizer
+        self.gpt_tokens = list(self.gpt_tokenizer.get_vocab().keys())
+
+        self.eos_token = self.gpt_tokenizer.eos_token = self.model.config.eos_token_id
+        self.newline_token = 198 # new line character
+
+    def reset_to_new_line(self, rhyme_word, theme_words, alliteration, seed, internal_rhymes):
+
+        self.partial_lines = []
+
+        self.rhyme_word = rhyme_word
+        self.theme_words = theme_words
+        self.alliteration = alliteration
+        self.seed = seed
+        self.internal_rhymes = internal_rhymes
+
+
+
+    def generate(self, template, meter, num_beams):
+
+        if self.verbose: print("generating", num_beams, template, meter)
+
+        new_partial = Partial_Line(self, template, meter, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
+        if not self.seed.strip():
+            #write first word
+            first_word = new_partial.write_first_word()
+            self.seed = first_word
+
+            new_partial.tokens = []
+
+        input_ids = self.gpt_tokenizer(self.seed, return_tensors="pt").input_ids
+        new_partial.seed_tokens = input_ids.tolist()[0]
+
+        for _ in range(num_beams):
+            self.partial_lines.append(new_partial.copy())
+
+        print("input_ids", input_ids)
+
+        outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams, early_stopping=False, max_length=input_ids.shape[-1] + 30)
+
+        sliced_outputs = [out[len(input_ids[0]):] for out in outputs]
+
+        print("news", sliced_outputs)
+
+
+        return self.gpt_tokenizer.batch_decode(sliced_outputs, skip_special_tokens=True)
+
+    def get_hyp_from_tokens(self, tokens, exclude=[]):
+        tok_list = tokens.tolist()
+        for partial in self.partial_lines:
+            #all_tokens = partial.seed_tokens + partial.tokens
+            all_tokens = partial.tokens
+            assert len(all_tokens) == len(tokens), [all_tokens] + [tok_list]
+            #print("\n\n", partial.tokens, tokens)
+            #print(partial.tokens == tokens)
+            if partial not in exclude and all_tokens == tok_list:
+                return partial
+
+        print('couldnt get any partials', tok_list, [p.seed_tokens + p.tokens for p in self.partial_lines], [e.tokens for e in exclude])
+        return 1/0
+
+    def update_beams(self, next_tokens, beam_ids, beam_dict):
+        #if self.verbose: print("picked", next_tokens, "for", beam_ids, "\n")
+        new_beams = []
+        for j, id in enumerate(beam_ids):
+            old_hyp = beam_dict[id.item()]
+
+            new_hyp = old_hyp.copy()
+            new_hyp.choose_token(int(next_tokens[j]))
+            new_beams.append(new_hyp)
+
+        self.partial_lines = new_beams
