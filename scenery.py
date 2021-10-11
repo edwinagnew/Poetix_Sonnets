@@ -468,8 +468,9 @@ class Scenery_Gen(poem_core.Poem):
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
 
-            if b > 1:
-                self.beam_manager = gpt_revised.BeamManager(gpt_size, self.gpt.tokenizer, sonnet_object=self, verbose=verbose)
+            if b > 0:
+                self.beam_manager = gpt_revised.BeamManager(gpt_size, self.gpt.tokenizer, sonnet_object=self,
+                                                            verbose=verbose)
 
         self.reset_gender()
 
@@ -512,6 +513,7 @@ class Scenery_Gen(poem_core.Poem):
                                                     random_word_selection=random_word_selection)  # .split("\n")
                 # seed_stanzas = ["\n".join(seed_poem_lines[1:5]), "\n".join(seed_poem_lines[6:10]), "\n".join(seed_poem_lines[11:15])]
                 self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+                # print("done: seed poems is ", self.saved_poems[theme], "\n\n")
 
             sample_lines = self.saved_poems[theme].split("\n")
             if theme_lines == "poem":
@@ -690,7 +692,7 @@ class Scenery_Gen(poem_core.Poem):
             if len(self.gpt_past) > 0 and self.gpt_past[-1] != "\n": self.gpt_past += "\n"
             for i in range(len(lines)):
                 # if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
-                self.gpt_past += lines[i] # + "\n"
+                self.gpt_past += lines[i]  # + "\n"
             self.reset_letter_words()
 
             if verbose:
@@ -699,26 +701,29 @@ class Scenery_Gen(poem_core.Poem):
                 print(templates, meters, r)
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number // 4]
 
-            if b <= 1:
-                self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
-                                                       alliteration=letters, weight_repetition=weight_repetition,
-                                                       prev_lines=self.gpt_past, internal_rhymes=internal_rhymes,
-                                                       verbose=verbose, branching=b, b_inc=b_inc, phi_score=phi_score,
-                                                       random_selection=random_word_selection, beam_score=beam_score)
+            if b <= 0:
+                self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r,
+                                                           theme_words=t_w,
+                                                           alliteration=letters, weight_repetition=weight_repetition,
+                                                           prev_lines=self.gpt_past, internal_rhymes=internal_rhymes,
+                                                           verbose=verbose, branching=b, b_inc=b_inc,
+                                                           phi_score=phi_score,
+                                                           random_selection=random_word_selection,
+                                                           beam_score=beam_score)
                 # all_beams = self.line_gen.complete_lines()
                 completed_beams = self.line_gen.beam_search_tokenwise()
 
                 self.all_beam_histories.append(self.line_gen.beam_history)
             else:
                 completed_beams = {}
-                #new code
-                self.beam_manager.reset_to_new_line(rhyme_word=r, theme_words=t_w, alliteration=letters, seed=self.gpt_past, internal_rhymes=internal_rhymes)
+                # new code
+                self.beam_manager.reset_to_new_line(rhyme_word=r, theme_words=t_w, alliteration=letters,
+                                                    seed=self.gpt_past, internal_rhymes=internal_rhymes)
 
                 for i in range(len(templates)):
                     self.beam_manager.partial_lines = []
                     outs = self.beam_manager.generate(templates[i], meters[i], b)
                     completed_beams[templates[i]] = outs
-
 
             best = (100, "", "")
 
@@ -728,12 +733,13 @@ class Scenery_Gen(poem_core.Poem):
             for t in completed_beams:
                 for line in completed_beams[t]:
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                    if line[-1] != "\n": line += "\n"
                     line = line.replace(" i ", " I ")
                     best = min(best, (self.gpt.score_line("".join(lines) + line), line, t))
 
             if verbose: print("the best was", best)
 
-            bound = 5.5 if "custom" in gpt_size else 6
+            bound = 5.8 if "custom" in gpt_size else 6
             if best[0] > bound and dynamik:
                 if verbose:
                     print("best option not up to snuff, trying again.")
@@ -749,7 +755,7 @@ class Scenery_Gen(poem_core.Poem):
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):
-            ret += str(lines[cand]) #+ "\n"
+            ret += str(lines[cand])  # + "\n"
             if (cand + 1) % 4 == 0: ret += "\n"
         if verbose: print(ret)
 
