@@ -452,7 +452,7 @@ class Scenery_Gen(poem_core.Poem):
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False,
                            random_word_selection=False,
-                           b=1, b_inc=1, beam_score="token", phi_score=False):
+                           b=5, b_inc=1, beam_score="token", phi_score=False):
 
 # deleted random_templates
 # changed default k to 1, for testing efficiency purposes
