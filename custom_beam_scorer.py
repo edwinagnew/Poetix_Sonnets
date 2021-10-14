@@ -31,7 +31,7 @@ class CustomGPT2Model(GPT2LMHeadModel):
         input_ids = kwargs['input_ids']
         seed_len = kwargs['seed_len']
 
-        assert logits.shape[0] == input_ids.shape[0]
+        assert logits.shape[0] == input_ids.shape[0], "wrong shape"
 
         picked = []
         for i, beam_tokens in enumerate(input_ids): #TODO - make parallel

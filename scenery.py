@@ -522,7 +522,7 @@ class Scenery_Gen(poem_core.Poem):
             if theme not in self.saved_poems:
                 if verbose: print("generating seed poem first")
                 seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, random_templates=random_templates,
-                                                    rhyme_lines=rhyme_lines, all_verbs=all_verbs,
+                                                    rhyme_lines=False, all_verbs=all_verbs,
                                                     theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold,
                                                     no_meter=no_meter,
                                                     theme_choice=theme_choice, theme_cutoff=theme_cutoff,
@@ -624,6 +624,8 @@ class Scenery_Gen(poem_core.Poem):
 
         # rhymes = []
         # theme = None
+
+        n_regened = []
 
         lines = []
         used_templates = []
@@ -758,6 +760,7 @@ class Scenery_Gen(poem_core.Poem):
 
             bound = 5.5 if "custom" in gpt_size else 6
             if best[0] > bound and dynamik:
+                n_regened.append(line_number)
                 if verbose:
                     print("best option not up to snuff, trying again.")
                     print(best[1] + " was the best for line", line_number)
@@ -765,6 +768,8 @@ class Scenery_Gen(poem_core.Poem):
                 lines.append(best[1])
                 used_templates.append(best[2])
                 line_number += 1
+
+
 
                 last = helper.remove_punc(lines[-1].split()[-1])
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
@@ -775,6 +780,7 @@ class Scenery_Gen(poem_core.Poem):
             ret += str(lines[cand]) #+ "\n"
             if (cand + 1) % 4 == 0: ret += "\n"
         if verbose: print(ret)
+        if verbose and dynamik: print("regened", n_regened)
 
         self.pos_to_words = self.vocab_orig.copy()
 
