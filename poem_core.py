@@ -663,7 +663,7 @@ class Poem:
         return t[0], t[1]
         # L- chooses punctuation between <>
 
-    def get_next_template_old(self, used_templates, end=""):
+    def get_next_template(self, used_templates, end=""):
         """
         Parameters
         ----------
