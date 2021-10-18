@@ -657,7 +657,7 @@ class Scenery_Gen(poem_core.Poem):
                     meter_dict = None
                     template = ""
                     while tries < len(self.templates) and meter_dict is None:
-                        template, meter = self.get_next_template_old(used_templates, end=r)
+                        template, meter = self.get_next_template(used_templates, end=r)
                         if not template:
                             print("no template", 1 / 0)
 
