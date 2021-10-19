@@ -451,7 +451,7 @@ class Scenery_Gen(poem_core.Poem):
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False,
-                           random_word_selection=False,
+                           bound=5.8, random_word_selection=False,
                            b=1, b_inc=1, beam_score="token", phi_score=False):
 
         if tense == "rand": tense = random.choice(["present", "past"])
@@ -739,7 +739,7 @@ class Scenery_Gen(poem_core.Poem):
 
             if verbose: print("the best was", best)
 
-            bound = 5.8 if "custom" in gpt_size else 6
+            #bound = 5.8 if "custom" in gpt_size else 6
             if best[0] > bound and dynamik:
                 if verbose:
                     print("best option not up to snuff, trying again.")
