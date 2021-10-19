@@ -1274,7 +1274,6 @@ class BeamManager:
         sliced_outputs = [first_tokens + list(out[len(input_ids[0]):]) for out in outputs]
 
 
-
         return self.gpt_tokenizer.batch_decode(sliced_outputs, skip_special_tokens=True)
 
     def get_hyp_from_tokens(self, tokens, exclude=[]):
