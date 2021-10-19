@@ -451,8 +451,8 @@ class Scenery_Gen(poem_core.Poem):
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False,
-                           random_word_selection=False,
-                           b=5, b_inc=1, beam_score="token", phi_score=False):
+                           bound=5.8, random_word_selection=False,
+                           b=1, b_inc=1, beam_score="token", phi_score=False):
 
 # deleted random_templates
 # changed default k to 1, for testing efficiency purposes
@@ -469,10 +469,6 @@ class Scenery_Gen(poem_core.Poem):
 # see if some themes are better in past vs present
 # test random_word_selection for low beam
 # compare token and line for beam_score
-
-# Btw forgot to mention last time but since the write_poem_revised function is a bit long, it would be
-# great to put parts of it in helper functions so if you encounter arguments where that could be easily
-# done (e..g maybe the theme_word preparation stuff at the beginning) it would be great to outsource
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -758,7 +754,7 @@ class Scenery_Gen(poem_core.Poem):
 
             if verbose: print("the best was", best)
 
-            bound = 5.5 if "custom" in gpt_size else 6
+            #bound = 5.8 if "custom" in gpt_size else 6
             if best[0] > bound and dynamik:
                 n_regened.append(line_number)
                 if verbose:
