@@ -514,7 +514,7 @@ class Poem:
         if not backwards:
             for i, word in enumerate(words):
                 word = word.split("_")[0]
-                poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(word)]
+                poss = [p for p in poss if helper.remove_punc(p.split()[i]) in self.get_word_pos(word)]
                 if len(poss) == 1: return poss
         else:
             for i in range(-1, -len(words) - 1, -1):
