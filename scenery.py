@@ -451,8 +451,8 @@ class Scenery_Gen(poem_core.Poem):
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False,
-                           bound=5.8, random_word_selection=False,
-                           b=1, b_inc=1, beam_score="token", phi_score=False):
+                           random_word_selection=False,
+                           b=3, b_inc=1, beam_score="token", phi_score=False):
 
 # deleted random_templates
 # changed default k to 1, for testing efficiency purposes
@@ -754,7 +754,7 @@ class Scenery_Gen(poem_core.Poem):
 
             if verbose: print("the best was", best)
 
-            #bound = 5.8 if "custom" in gpt_size else 6
+            bound = 5.8 if "custom" in gpt_size else 6
             if best[0] > bound and dynamik:
                 n_regened.append(line_number)
                 if verbose:
