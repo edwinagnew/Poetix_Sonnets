@@ -1228,6 +1228,10 @@ class BeamManager:
         self.model.poem_object = self #looks dodgy but...
 
         self.gpt_tokenizer = tokenizer
+        if 'eol' in gpt_size:
+            special_dict = {'additional_special_tokens': ['[EOL]']}
+            self.gpt_tokenizer.add_special_tokens(special_dict)
+
         self.gpt_tokens = list(self.gpt_tokenizer.get_vocab().keys())
 
         self.eos_token = self.gpt_tokenizer.eos_token = self.model.config.eos_token_id
@@ -1271,8 +1275,9 @@ class BeamManager:
         outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams,
                                       early_stopping=False, max_length=input_ids.shape[-1] + 30, repetition_penalty=1.75)
 
-        sliced_outputs = [first_tokens + list(out[len(input_ids[0]):]) for out in outputs]
+        sliced_outputs = [first_tokens + out[len(input_ids[0]):].tolist() for out in outputs]
 
+        print(sliced_outputs)
 
         return self.gpt_tokenizer.batch_decode(sliced_outputs, skip_special_tokens=True)
 
