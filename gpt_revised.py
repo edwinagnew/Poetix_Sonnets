@@ -17,7 +17,7 @@ from custom_beam_scorer import CustomGPT2Model
 
 class gpt_gen:
 
-    def __init__(self, sonnet_object=None, model="gpt2", fast_tokenizer=False):
+    def __init__(self, sonnet_object=None, model="gpt2", fast_tokenizer=True):
         if sonnet_object:
             # self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
@@ -590,10 +590,10 @@ class Partial_Line:
         i = self.template_loc
         if i >= len(self.template):
             if self.tokens[-1] == self.parent.newline_token:
-                if self.verbose: print("end of the road, forcing", self.parent.eos_token)
+                print("end of the road, forcing", self.parent.eos_token)
                 checks = {self.parent.eos_token}
             else:
-                if self.verbose: print("adding newline", self.parent.eos_token)
+                print("adding newline", self.parent.eos_token)
                 checks = {self.parent.newline_token} #if template is over only allow eos token
 
         else:
@@ -1255,12 +1255,7 @@ class BeamManager:
             first_word = new_partial.write_first_word()
             self.seed = first_word
 
-            first_tokens = new_partial.tokens
-
             new_partial.tokens = []
-
-        else:
-            first_tokens = []
 
         input_ids = self.gpt_tokenizer(self.seed, return_tensors="pt").input_ids
         new_partial.seed_tokens = input_ids.tolist()[0]
@@ -1268,11 +1263,13 @@ class BeamManager:
         for _ in range(num_beams):
             self.partial_lines.append(new_partial.copy())
 
-        outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams,
-                                      early_stopping=False, max_length=input_ids.shape[-1] + 30, repetition_penalty=1.75)
+        print("input_ids", input_ids)
 
-        sliced_outputs = [first_tokens + list(out[len(input_ids[0]):]) for out in outputs]
+        outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams, early_stopping=False, max_length=input_ids.shape[-1] + 30)
 
+        sliced_outputs = [out[len(input_ids[0]):] for out in outputs]
+
+        print("news", sliced_outputs)
 
         return self.gpt_tokenizer.batch_decode(sliced_outputs, skip_special_tokens=True)
 
