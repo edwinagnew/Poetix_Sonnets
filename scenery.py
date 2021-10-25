@@ -748,6 +748,7 @@ class Scenery_Gen(poem_core.Poem):
             #        line = p_l.curr_line
             for t in completed_beams:
                 for line in completed_beams[t]:
+                    #line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     line = line.replace(" i ", " I ")
                     best = min(best, (self.gpt.score_line("".join(lines) + line), line, t))
