@@ -518,7 +518,7 @@ class Poem:
                 if len(poss) == 1: return poss
         else:
             for i in range(-1, -len(words) - 1, -1):
-                poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(words[i])]
+                poss = [p for p in poss if helper.remove_punc(p.split()[i]) in self.get_word_pos(words[i])]
                 if len(poss) == 1: return poss
         return poss
 
