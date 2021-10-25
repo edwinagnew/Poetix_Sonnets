@@ -78,3 +78,5 @@ for iter1 in range(len(contains_verb)):
           new_scores[iter1] = new_score
           new_lines[iter1] = new_line
 
+for i in range(len(contains_verb)):
+    print(contains_verb[i] + ', ' + str(old_scores[i]) + '\n' + new_lines[i] + ', ' + str(new_scores[i]) + '\n\n')
