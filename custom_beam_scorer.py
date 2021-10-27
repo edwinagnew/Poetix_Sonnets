@@ -285,13 +285,9 @@ class CustomGPT2Model(GPT2LMHeadModel):
             beam_next_tokens = beam_outputs["next_beam_tokens"]
             beam_idx = beam_outputs["next_beam_indices"]
 
-            #print("group size", beam_scorer.group_size)
 
-            #print("beamscores", beam_scores, beam_next_tokens)
-
-            #assert beam_scores.max() > -np.inf, input_ids
             if beam_scores.max() == -np.inf:
-                print("all bad or done hopefully got 2 in", [len(h.beams) for h in beam_scorer._beam_hyps])
+                #print("all bad or done hopefully got 2 in", [len(h.beams) for h in beam_scorer._beam_hyps])
                 beam_next_tokens = []
                 done = True
 
