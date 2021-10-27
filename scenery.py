@@ -517,17 +517,14 @@ class Scenery_Gen(poem_core.Poem):
                 self.save_poems = True
             if theme not in self.saved_poems:
                 if verbose: print("generating seed poem first")
-                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, random_templates=random_templates,
-                                                    rhyme_lines=False, all_verbs=all_verbs,
+                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, rhyme_lines=False, all_verbs=all_verbs,
                                                     theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold,
-                                                    no_meter=no_meter,
-                                                    theme_choice=theme_choice, theme_cutoff=theme_cutoff,
+                                                    no_meter=no_meter,theme_choice=theme_choice, theme_cutoff=theme_cutoff,
                                                     sum_similarity=sum_similarity, weight_repetition=False,
-                                                    theme_progression=theme_progression, story=story,
-                                                    story_file=story_file,
+                                                    theme_progression=theme_progression, story=story, story_file=story_file,
                                                     gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False,
-                                                    random_word_selection=random_word_selection)  # .split("\n")
-                # seed_stanzas = ["\n".join(seed_poem_lines[1:5]), "\n".join(seed_poem_lines[6:10]), "\n".join(seed_poem_lines[11:15])]
+                                                    random_word_selection=random_word_selection)
+
                 self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
 
             sample_lines = self.saved_poems[theme].split("\n")
