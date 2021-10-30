@@ -669,7 +669,7 @@ class Partial_Line:
         wws = np.zeros(len(self.parent.gpt_tokens))
 
         for t in tokens:
-            wws[self.parent.gpt_tokenizer.encoder[t]] = 1
+            wws[self.parent.gpt_tokenizer.encode(t)] = 1
 
         orig = word_scores.copy()
         word_scores[wws != 0] *= 2  # TODO - maybe tweak to avoid pungent beavers
