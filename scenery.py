@@ -518,7 +518,7 @@ class Scenery_Gen(poem_core.Poem):
             if theme not in self.saved_poems:
                 if verbose: print("generating seed poem first")
                 seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, rhyme_lines=False, all_verbs=all_verbs,
-                                                    theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold,
+                                                    theme_lines=0, k=1, b=1, alliteration=0, theme_threshold=theme_threshold,
                                                     no_meter=no_meter,theme_choice=theme_choice, theme_cutoff=theme_cutoff,
                                                     sum_similarity=sum_similarity, weight_repetition=False,
                                                     theme_progression=theme_progression, story=story, story_file=story_file,
