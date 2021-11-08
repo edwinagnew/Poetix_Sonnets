@@ -98,7 +98,6 @@ class Poem:
 
         self.tense = tense
 
-        self.saved_poems = {}
         self.save_poems = False
 
     def get_meter(self, word):
