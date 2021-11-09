@@ -49,7 +49,7 @@ class Scenery_Gen(poem_core.Poem):
         self.beam_manager = None
 
         try:
-            self.example_poems = pickle.load(open("saved_objects/saved_sample_poems.p", "wb"))
+            self.example_poems = pickle.load(open("saved_objects/saved_sample_poems.p", "rb"))
         except:
             self.example_poems = {}
 
@@ -754,13 +754,15 @@ class Scenery_Gen(poem_core.Poem):
                     if line[-1] != "\n": line += "\n"
                     cand_poem = "".join(lines) + line
                     inputs = self.gpt.tokenizer(cand_poem, return_tensors="pt")
-                    best = min(best, (self.gpt.score_tokens_new(inputs['input_ids']), line, t, inputs['input_ids'].size(1)))
+                    best = min(best, (self.gpt.score_tokens_new(inputs['input_ids'].to(self.gpt.model.device)), line, t, inputs['input_ids'].size(1)))
 
 
-            line_score = self.gpt.score_line(best[1])
+            #line_score = self.gpt.score_line(best[1])/len(best[1].split())
+            line_score = best[0] * len("".join(lines + [best[1]]))
             if verbose: print("the best was", line_score, best)
 
-            bound = 5.8 if "custom" in gpt_size else 6
+            #bound = 5.8 if "custom" in gpt_size else 6
+            bound = 200
             if line_score > bound and dynamik:
                 if verb_swap:
                     new_line, new_score = self.swap_all_verbs(best[1], best[2], r, seed="".join(lines), verbose=verbose)
@@ -1121,9 +1123,9 @@ class Scenery_Gen(poem_core.Poem):
 
                     print("")
 
-    def swap_all_verbs(self, line, template, rhyme=None, seed="", verbose=False):
+    def swap_all_verbs(self, orig_line, template, rhyme=None, seed="", verbose=False):
         if type(template) == str: template = template.split()
-        line_words = helper.remove_punc(line.replace("'s", "")).split()
+        line_words = helper.remove_punc(orig_line.replace("'s", "")).split()
 
         vb_idxs = [i for i in range(len(template)) if "VB" in template[i]]
         vb_pos = [template[i] for i in vb_idxs]
@@ -1133,7 +1135,7 @@ class Scenery_Gen(poem_core.Poem):
             all_poss_verbs[-1] = self.get_pos_words(template[-1], rhyme=rhyme)
 
         # get every single combination of alternate lines
-        all_poss_lines = {(line, tuple(line_words))}
+        all_poss_lines = {(orig_line, tuple(line_words))}
         for i, vb_i in enumerate(vb_idxs):
             new_lines = []
             for old_line, old_line_words in all_poss_lines:
@@ -1150,7 +1152,10 @@ class Scenery_Gen(poem_core.Poem):
         new_lines = [p[0] for p in all_poss_lines]
         assert len(set(new_lines)) == len(new_lines) == len(all_poss_lines)
 
-        new_lines = list(set(np.random.choice(new_lines, 10000)))
+        new_lines = list(set(np.random.choice(new_lines, 10000))) + [orig_line]
+
+        if verbose:
+            print("reduced to", len(new_lines))
 
         #tokenize and score them
         if verbose:
@@ -1176,9 +1181,9 @@ class Scenery_Gen(poem_core.Poem):
 
 
         if verbose:
-            print("done: best_score =", best_score, "for '" + best_sent + "'")
-            orig_idx = new_lines.index(line)
-            print("compared to", line, new_lines[orig_idx], new_line_scores[orig_idx])
+            print("done: best_score =", best_score, "for '" + best_sent.strip() + "'")
+            orig_idx = new_lines.index(orig_line)
+            print("compared to", orig_line, new_lines[orig_idx].strip(), new_line_scores[orig_idx])
 
         return best_sent, best_score
 

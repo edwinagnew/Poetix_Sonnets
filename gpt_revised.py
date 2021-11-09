@@ -82,7 +82,7 @@ class gpt_gen:
 
     def score_tokens_new(self, input_ids):
         with torch.no_grad():
-            s = self.model(input_ids, labels=input_ids)["loss"] * (input_ids.size(1) - 1)
+            s = self.model(input_ids, labels=input_ids)["loss"] #* (input_ids.size(1) - 1)
             return s.item()
 
     def get_past(self, seed):
