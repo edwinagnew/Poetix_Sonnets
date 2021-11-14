@@ -63,7 +63,7 @@ class Poem:
                      w.split()[0].lower().split("(")[0] in self.words_to_pos}
 
         with open(top_file) as tf:
-            self.top_common_words = [line.strip() for line in tf.readlines()][:125]
+            self.top_common_words = [line.strip() for line in tf.readlines()]#[:125]
 
         places = open("saved_objects/words/places.txt").readlines()
         self.pos_to_words["PLC"] = {p.strip(): 1 for p in places}
