@@ -68,7 +68,8 @@ class gpt_gen:
     def score_line(self, line):
         if type(line) == list: return [self.score_line(li.strip()) for li in line]
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
-        return self.score_tokens(input_ids.to(self.model.device))
+        # return self.score_tokens(input_ids.to(self.model.device))
+        return self.score_tokens_new(input_ids.to(self.model.device))
 
     def score_tokens(self, tokens):
         if type(tokens) == tuple or type(tokens) == list: tokens = torch.tensor(tokens).to(self.model.device)
@@ -79,8 +80,25 @@ class gpt_gen:
         return outputs[0].item() / tok_count
         # return torch.mean(outputs[1])
 
-    def score_tokens_new(self):
-        return model(**inputs, labels=inputs["input_ids"])["loss"] * (inputs["input_ids"].size(1) - 1)
+    def score_tokens_new(self, input_ids):
+        with torch.no_grad():
+            s = self.model(input_ids, labels=input_ids)["loss"] #* (input_ids.size(1) - 1)
+            return s.item()
+
+    def get_past(self, seed):
+        with torch.no_grad():
+            seed_toks = self.tokenizer(seed, return_tensors='pt')['input_ids']
+            past = self.model(seed_toks, labels=seed_toks, use_cache=True)['past_key_values']
+            return past
+
+    def score_all_with_past(self, lines, past):
+        scores = []
+        for toks in lines:
+            with torch.no_grad():
+                score = self.model(toks, labels=toks, past_key_values=past)['loss'] #* (toks.size(1) - 1)
+                scores.append(score.item())
+
+        return scores
 
     def get_sentiment(self, word):
         tokenized = self.tokenizer.encode(word)
@@ -149,7 +167,6 @@ class Partial_Line:
         p_copy.rhyme_finishers = self.rhyme_finishers.copy()  # words/tokens that could be used to rhyme
         p_copy.theme_tokens = self.theme_tokens.copy()
         p_copy.alliterated = self.alliterated
-
 
         # syntactic coherance
         p_copy.punc_next = self.punc_next
@@ -274,9 +291,9 @@ class Partial_Line:
         if n_ret > 1:
             if self.verbose: print("f returning", n_ret, "tokens here", tokens)
             if self.parent.phi_score:
-                #assert dist.min() >= 0, "dist is negative still"
-                #assert np.isclose(dist.sum(), 1), "not sum to 1"
-                #return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
+                # assert dist.min() >= 0, "dist is negative still"
+                # assert np.isclose(dist.sum(), 1), "not sum to 1"
+                # return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
                 return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
             else:
                 return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
@@ -331,7 +348,6 @@ class Partial_Line:
 
             assert dist is not None, "dist is None"
 
-
             if self.parent.random_selection:
                 token_indices = np.random.choice(np.arange(len(self.parent.gpt_tokens)), n_ret, p=dist)
             else:
@@ -348,9 +364,9 @@ class Partial_Line:
         else:
             if self.verbose: print("returning", n_ret, "tokens here", tokens)
             if self.parent.phi_score:
-                #assert dist.min() >= 0, "dist is negative still"
-                #assert np.isclose(dist.sum(), 1), "not sum to 1" + str(dist.sum())
-                #return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
+                # assert dist.min() >= 0, "dist is negative still"
+                # assert np.isclose(dist.sum(), 1), "not sum to 1" + str(dist.sum())
+                # return [(tokens[i], self.score_custom_dists(tokens[i], dist[tokens[i]])) for i in range(len(tokens))]
                 return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
             else:
                 return [(tokens[i], dist[tokens[i]]) for i in range(len(tokens))]
@@ -480,11 +496,11 @@ class Partial_Line:
 
         return output
 
-    def get_all_custom(self, gpt_scores,  w_alliteration=0, w_repetition=0, w_rhyme=0):
+    def get_all_custom(self, gpt_scores, w_alliteration=0, w_repetition=0, w_rhyme=0):
 
-        #TODO - rewrite individual ones to only consider tokens in pot_tokens and so on (for speedup)
+        # TODO - rewrite individual ones to only consider tokens in pot_tokens and so on (for speedup)
 
-        #TODO - include theme scores
+        # TODO - include theme scores
 
         n = len(self.parent.gpt_tokens)
 
@@ -492,22 +508,22 @@ class Partial_Line:
             alliteration_vector = torch.zeros(n)
         else:
             alliteration_vector = self.get_alliteration_vector()
-        #print("a vector", type(alliteration_vector), alliteration_vector.shape, alliteration_vector.sum(), alliteration_vector)
+        # print("a vector", type(alliteration_vector), alliteration_vector.shape, alliteration_vector.sum(), alliteration_vector)
 
         if w_repetition == 0:
             repetition_vector = torch.zeros(n)
         else:
             repetition_vector = self.get_repetition_vector()
-        #print("re vector", type(repetition_vector), repetition_vector.shape, repetition_vector.sum(), repetition_vector)
+        # print("re vector", type(repetition_vector), repetition_vector.shape, repetition_vector.sum(), repetition_vector)
 
         if w_rhyme == 0:
             rhyme_vector = torch.zeros(n)
         else:
             rhyme_vector = self.get_rhyme_vector()
-        #print("ry vector", type(rhyme_vector), rhyme_vector.shape, rhyme_vector.sum(), rhyme_vector)
+        # print("ry vector", type(rhyme_vector), rhyme_vector.shape, rhyme_vector.sum(), rhyme_vector)
 
-
-        return gpt_scores + (w_alliteration * alliteration_vector) + (w_repetition * repetition_vector) + (w_rhyme * rhyme_vector)
+        return gpt_scores + (w_alliteration * alliteration_vector) + (w_repetition * repetition_vector) + (
+                w_rhyme * rhyme_vector)
 
     def get_alliteration_vector(self):
 
@@ -530,7 +546,7 @@ class Partial_Line:
         lemmas = [self.parent.lemma.lemmatize(word) for word in past_words]  # gets lemmas for all words in poem
         lemmas_last = [self.parent.lemma.lemmatize(word) for word in helper.remove_punc(
             self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
-        #self.score_cache['lemma'][len(self.tokens)] = lemmas, lemmas_last
+        # self.score_cache['lemma'][len(self.tokens)] = lemmas, lemmas_last
 
         r_v = []
         # cacheable?
@@ -559,10 +575,8 @@ class Partial_Line:
 
         if not self.parent.internal_rhymes: return np.zeros(len(tokens))
 
-
-
         rhymes = []
-        #gets a list of all words that rhyme with existing words in poem
+        # gets a list of all words that rhyme with existing words in poem
         for w in self.internal_rhymes + self.curr_line.split():
             if w not in self.parent.sonnet_object.gpt.checked_for_rhymes:
                 temp_rhymes = self.parent.sonnet_object.get_rhyme_words(w)
@@ -571,8 +585,8 @@ class Partial_Line:
             rhymes += self.parent.sonnet_object.gpt.checked_for_rhymes[w]
 
         all_tokens = [self.parent.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
-        #self.rhyme_finishers = all_tokens  # can't remember what this does
-        #self.score_cache['rhyme'][self.curr_line] = all_tokens
+        # self.rhyme_finishers = all_tokens  # can't remember what this does
+        # self.score_cache['rhyme'][self.curr_line] = all_tokens
 
         # tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos and len(self.gpt_tokenizer.tokenize((w))) > len_sub])
         len_sub = len(self.sub_tokens)
@@ -581,11 +595,11 @@ class Partial_Line:
         rhyme_tokens = set(p[len_sub] for p in valid_tokens)
 
         return np.array([int(token in rhyme_tokens) for token in tokens])  # simple as
-        #return np.isin(tokens, rhyme_tokens) # slightly slower?
+        # return np.isin(tokens, rhyme_tokens) # slightly slower?
 
     def adjust_logits(self, logits):
-        #template constraints
-        assert len(logits.shape) == 1 #1 dimensional
+        # template constraints
+        assert len(logits.shape) == 1  # 1 dimensional
         assert len(logits) == len(self.parent.gpt_tokens)
 
         n = logits.shape[0]
@@ -593,11 +607,11 @@ class Partial_Line:
         i = self.template_loc
         if i >= len(self.template):
             if self.tokens[-1] == self.parent.newline_token:
-                #print("end of the road, forcing", self.parent.eos_token)
+                # print("end of the road, forcing", self.parent.eos_token)
                 checks = {self.parent.eos_token}
             else:
-                #print("adding newline", self.parent.eos_token)
-                checks = {self.parent.newline_token} #if template is over only allow eos token
+                # print("adding newline", self.parent.eos_token)
+                checks = {self.parent.newline_token}  # if template is over only allow eos token
 
         else:
             len_sub = len(self.sub_tokens)
@@ -606,7 +620,7 @@ class Partial_Line:
 
             checks = set([p[len_sub] for p in self.poss_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
 
-        mask = torch.tensor([1 if i in checks else 0 for i in range(n)]) #could be sped up
+        mask = torch.tensor([1 if i in checks else 0 for i in range(n)])  # could be sped up
         ninfs = torch.ones(n) * -np.inf
         logits = torch.where(mask == torch.zeros(n), ninfs, logits)
 
@@ -616,17 +630,11 @@ class Partial_Line:
             print("checks", checks)
             print("subtokens", self.sub_tokens)
             print("mask", mask, len(mask.nonzero()))
-            print(1/0)
-
+            print(1 / 0)
 
         return self.get_all_custom(logits)
 
-
-
-
-
-        #remeber to update once
-
+        # remeber to update once
 
     def get_next_token_no_template(self):
         assert False, ("uh oh, this hasn't been finished yet")
@@ -669,7 +677,7 @@ class Partial_Line:
         wws = np.zeros(len(self.parent.gpt_tokens))
 
         for t in tokens:
-            wws[self.parent.gpt_tokenizer.encoder[t]] = 1
+            wws[self.parent.gpt_tokenizer.encode(t)] = 1
 
         orig = word_scores.copy()
         word_scores[wws != 0] *= 2  # TODO - maybe tweak to avoid pungent beavers
@@ -705,7 +713,7 @@ class Partial_Line:
         next_pos = self.template[i]
 
         if self.punc_next:
-            #if verbose: print("puncing", self.punc_next)
+            # if verbose: print("puncing", self.punc_next)
             self.poss = set(self.punc_next)
             self.punc_next = False
         else:
@@ -828,7 +836,7 @@ class Partial_Line:
             for i in range(len(theme_scores)):
                 if theme_scores[i][1] in self.parent.theme_bayes:
                     theme_scores[i] = (
-                    theme_scores[i][0] * self.parent.theme_bayes[theme_scores[i][1]], theme_scores[i][1])
+                        theme_scores[i][0] * self.parent.theme_bayes[theme_scores[i][1]], theme_scores[i][1])
 
         # if verbose: print("maxest token", np.max(ws), np.argmax(ws), self.parent.gpt_tokens[np.argmax(ws)])
         # if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
@@ -840,36 +848,34 @@ class Partial_Line:
 
         if max(ws) <= 0:
             if verbose: print("something went wrong", max(ws))
-            return 1/0
+            return 1 / 0
 
-        #dist = helper.softmax(ws, exclude_zeros=True)
+        # dist = helper.softmax(ws, exclude_zeros=True)
         dist = ws
 
         if self.parent.phi_score:
-            #dist = self.get_all_custom(ws)
+            # dist = self.get_all_custom(ws)
             a = time.time()
-            #dist1 = [self.score_custom_dists(i, ws[i]) for i in range(len(ws))]
+            # dist1 = [self.score_custom_dists(i, ws[i]) for i in range(len(ws))]
             b = time.time()
 
-            #print("one by one took", b-a)
+            # print("one by one took", b-a)
 
             a = time.time()
             dist = self.get_all_custom(ws)
             b = time.time()
 
-            print("all together took", b-a)
+            print("all together took", b - a)
             assert dist is not None, "dist is None"
             assert type(dist) == type(ws), "wrong type"
             assert dist.shape == ws.shape, "wrong length"
             print("dist:", type(dist), dist.shape, dist.sum(), dist)
-            #print(np.isclose(dist1, dist).sum(), np.isclose(dist1, dist))
-            #input("contine?")
-
+            # print(np.isclose(dist1, dist).sum(), np.isclose(dist1, dist))
+            # input("contine?")
 
         dist = helper.softmax(dist, exclude_zeros=True)
 
-
-        if verbose: print("after2", len(dist.nonzero()[0]), sum(dist), dist)
+        #if verbose: print("after2", len(dist.nonzero()[0]), sum(dist), dist)
 
         assert 0.99 <= sum(dist) <= 1.01, sum(dist)
 
@@ -883,7 +889,7 @@ class Partial_Line:
 
         punc = ",.;?"
 
-        #did_punc = False
+        # did_punc = False
 
         word = self.parent.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
 
@@ -906,7 +912,6 @@ class Partial_Line:
             self.word_scores = []
             self.rhyme_finishers = []
             self.sub_tokens = []  # indicates we have moved onto new word
-
 
             self.curr_line += self.space + word
 
@@ -996,7 +1001,7 @@ class Line_Generator:
             elif meter_dicts[i]:
                 self.new_line(template, meter_dicts[i], rhyme_word=self.rhyme_word)
 
-        #self.
+        # self.
 
         self.completed_lines = {}
 
@@ -1088,7 +1093,8 @@ class Line_Generator:
                             self.beam_history[template][num_toks].append((toks, partial_scores[toks]))
 
                     # potential_partials.sort(key=lambda x: self.gpt.score_line(x.curr_line))
-                    potential_partials.sort(key=lambda x: partial_scores[tuple(x.tokens)], reverse=(score_direction=="up"))
+                    potential_partials.sort(key=lambda x: partial_scores[tuple(x.tokens)],
+                                            reverse=(score_direction == "up"))
 
                     self.partial_lines[template] = []
                     picked_lines = set()
@@ -1200,6 +1206,7 @@ class Line_Generator:
                 self.beam_history[template][num_toks] = []
             self.beam_history[template][num_toks].append((hyp.tokens, 0))
 
+
 class BeamManager:
     def __init__(self, gpt_size, tokenizer, sonnet_object, verbose=False):
 
@@ -1216,19 +1223,20 @@ class BeamManager:
         self.verbose = verbose
 
         if 'custom' in gpt_size:
-            #self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+            # self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 
-            assert len(gpt_size.split()) == 2, "custom should be in the form 'custom fine_tuning/twice_retrained' or something like that"
+            assert len(
+                gpt_size.split()) == 2, "custom should be in the form 'custom fine_tuning/twice_retrained' or something like that"
             model_path = gpt_size.split()[1]
 
             config = GPT2Config.from_json_file(model_path + '/config.json')
             self.model = CustomGPT2Model.from_pretrained(model_path + '/pytorch_model.bin', config=config)
         else:
-            #self.tokenizer = GPT2TokenizerFast.from_pretrained(gpt_size)
+            # self.tokenizer = GPT2TokenizerFast.from_pretrained(gpt_size)
             self.model = CustomGPT2Model.from_pretrained(gpt_size)
 
         self.model_size = gpt_size
-        self.model.poem_object = self #looks dodgy but...
+        self.model.poem_object = self  # looks dodgy but...
 
         self.gpt_tokenizer = tokenizer
         if 'eol' in gpt_size:
@@ -1238,7 +1246,7 @@ class BeamManager:
         self.gpt_tokens = list(self.gpt_tokenizer.get_vocab().keys())
 
         self.eos_token = self.gpt_tokenizer.eos_token = self.model.config.eos_token_id
-        self.newline_token = 198 # new line character
+        self.newline_token = 198  # new line character
 
     def reset_to_new_line(self, rhyme_word, theme_words, alliteration, seed, internal_rhymes):
 
@@ -1250,15 +1258,13 @@ class BeamManager:
         self.seed = seed
         self.internal_rhymes = internal_rhymes
 
-
-
     def generate(self, template, meter, num_beams):
 
         if self.verbose: print("generating", num_beams, template, meter)
 
         new_partial = Partial_Line(self, template, meter, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
         if not self.seed.strip():
-            #write first word
+            # write first word
             first_word = new_partial.write_first_word()
             self.seed = first_word
 
@@ -1274,34 +1280,34 @@ class BeamManager:
         for _ in range(num_beams):
             self.partial_lines.append(new_partial.copy())
 
-        #print("input_ids", input_ids)
+        # print("input_ids", input_ids)
 
-        outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams, early_stopping=False, max_length=input_ids.shape[-1] + 30)
-
+        outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams,
+                                      early_stopping=False, max_length=input_ids.shape[-1] + 30, repetition_penalty=1.5)
 
         sliced_outputs = [first_tokens + out[len(input_ids[0]):].tolist() for out in outputs]
 
-        #print(sliced_outputs)
-
+        # print(sliced_outputs)
 
         return self.gpt_tokenizer.batch_decode(sliced_outputs, skip_special_tokens=True)
 
     def get_hyp_from_tokens(self, tokens, exclude=[]):
         tok_list = tokens.tolist()
         for partial in self.partial_lines:
-            #all_tokens = partial.seed_tokens + partial.tokens
+            # all_tokens = partial.seed_tokens + partial.tokens
             all_tokens = partial.tokens
             assert len(all_tokens) == len(tokens), [all_tokens] + [tok_list]
-            #print("\n\n", partial.tokens, tokens)
-            #print(partial.tokens == tokens)
+            # print("\n\n", partial.tokens, tokens)
+            # print(partial.tokens == tokens)
             if partial not in exclude and all_tokens == tok_list:
                 return partial
 
-        print('couldnt get any partials', tok_list, [p.seed_tokens + p.tokens for p in self.partial_lines], [e.tokens for e in exclude])
-        return 1/0
+        print('couldnt get any partials', tok_list, [p.seed_tokens + p.tokens for p in self.partial_lines],
+              [e.tokens for e in exclude])
+        return 1 / 0
 
     def update_beams(self, next_tokens, beam_ids, beam_dict):
-        #if self.verbose: print("picked", next_tokens, "for", beam_ids, "\n")
+        # if self.verbose: print("picked", next_tokens, "for", beam_ids, "\n")
         new_beams = []
         for j, id in enumerate(beam_ids):
             old_hyp = beam_dict[id.item()]
