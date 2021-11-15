@@ -532,7 +532,8 @@ class Scenery_Gen(poem_core.Poem):
                                                     gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False,
                                                     random_word_selection=random_word_selection)
 
-                self.example_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+                #self.example_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+                self.example_poems[theme] = seed_poem.split("-")[-1].strip()
                 pickle.dump(self.example_poems, open("saved_objects/saved_sample_poems.p", "wb"))
 
             sample_lines = self.example_poems[theme].split("\n")
@@ -769,7 +770,7 @@ class Scenery_Gen(poem_core.Poem):
             if verbose: print("the best was", line_score, best)
 
             # bound = 5.8 if "custom" in gpt_size else 6
-            bound = 6
+            bound = 5.5
             if line_score > bound and dynamik:
                 if verb_swap:
                     new_line, new_score = self.swap_verbs(best[1], best[2], r, seed="".join(lines), verbose=verbose)
@@ -1153,11 +1154,12 @@ class Scenery_Gen(poem_core.Poem):
 
         all_poss_words = set(self.top_common_words + self.get_diff_pos(self.theme, "VB", 500))
         poss_verbs = []
-        for vb in vb_pos:
-            poss_verbs.append([w for w in all_poss_words if vb in self.get_word_pos(w)])
+        for i, vb in enumerate(vb_pos):
+            poss_verbs.append([w for w in all_poss_words if vb in self.get_word_pos(w) and w not in orig_line])
 
         if rhyme and "VB" in template[-1]:
             poss_verbs[-1] = [p for p in poss_verbs[-1] if self.rhymes(p, line_words[-1])]
+
 
         all_poss_lines = self.get_poss_lines(poss_verbs, orig_line, vb_idxs)
 
@@ -1215,7 +1217,8 @@ class Scenery_Gen(poem_core.Poem):
 
         top_idxs = list(np.argsort(new_line_scores))
 
-        best_score, best_sent = new_line_scores[top_idxs[0]], new_lines[top_idxs[0]]
+        #best_score, best_sent = new_line_scores[top_idxs[0]], new_lines[top_idxs[0]]
+        best_score, best_sent = self.gpt.score_line(new_lines[top_idxs[0]]), new_lines[top_idxs[0]]
 
         if verbose:
             print("done: best_score =", best_score, "for '" + best_sent.strip() + "'")
