@@ -1,6 +1,5 @@
 import random
-import torch
-import json
+import pickle
 import numpy as np
 import string
 import pandas as pd
@@ -48,6 +47,11 @@ class Scenery_Gen(poem_core.Poem):
         self.all_beam_histories = []
 
         self.beam_manager = None
+
+        try:
+            self.example_poems = pickle.load(open("saved_objects/saved_sample_poems.p", "rb"))
+        except:
+            self.example_poems = {}
 
     # override
     def get_pos_words(self, pos, meter=None, rhyme=None, phrase=()):
@@ -451,24 +455,24 @@ class Scenery_Gen(poem_core.Poem):
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=True,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False,
-                           random_word_selection=False,
+                           random_word_selection=False, verb_swap=False,
                            b=3, b_inc=1, beam_score="token", phi_score=False):
 
-# deleted random_templates
-# changed default k to 1, for testing efficiency purposes
+        # deleted random_templates
+        # changed default k to 1, for testing efficiency purposes
 
-# test all_verbs
-# test theme_lines - either int (0 or positive int) or str (poem or stanza)
-# test dif combinations of theme words' pos for theme_choice (for 2 or more word themes)
-# test theme_cutoff and theme_progression
-# no_meter and rhyme_lines
-# see if sum_similarity is used in write_poem_revised
-# test dif numbers for weight_rep
-# ignore story and story_file b_inc phi_score
-# gpt_size twice_retrained vs xl
-# see if some themes are better in past vs present
-# test random_word_selection for low beam
-# compare token and line for beam_score
+        # test all_verbs
+        # test theme_lines - either int (0 or positive int) or str (poem or stanza)
+        # test dif combinations of theme words' pos for theme_choice (for 2 or more word themes)
+        # test theme_cutoff and theme_progression
+        # no_meter and rhyme_lines
+        # see if sum_similarity is used in write_poem_revised
+        # test dif numbers for weight_rep
+        # ignore story and story_file b_inc phi_score
+        # gpt_size twice_retrained vs xl
+        # see if some themes are better in past vs present
+        # test random_word_selection for low beam
+        # compare token and line for beam_score
 
         if tense == "rand": tense = random.choice(["present", "past"])
         if tense != self.tense:
@@ -485,7 +489,8 @@ class Scenery_Gen(poem_core.Poem):
             self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
 
             if b > 1:
-                self.beam_manager = gpt_revised.BeamManager(gpt_size, self.gpt.tokenizer, sonnet_object=self, verbose=verbose)
+                self.beam_manager = gpt_revised.BeamManager(gpt_size, self.gpt.tokenizer, sonnet_object=self,
+                                                            verbose=verbose)
 
         self.reset_gender()
 
@@ -510,30 +515,34 @@ class Scenery_Gen(poem_core.Poem):
             if verbose and theme_lines: print("total lines", len(theme_contexts), "e.g.",
                                               random.sample(theme_contexts, min(len(theme_contexts), theme_lines)))
             sample_seed = "\n".join(random.sample(theme_contexts, theme_lines)) if theme_lines else ""
-            #L- set sample_seed if theme_lines > 0, otherwise set sample_seed to an empty string
+            # L- set sample_seed if theme_lines > 0, otherwise set sample_seed to an empty string
         else:
             assert theme_lines in ["stanza", "poem"], "expected 'stanza' or 'poem'"
-            if not self.save_poems:
-                self.save_poems = True
-            if theme not in self.saved_poems:
+            if theme not in self.example_poems:
                 if verbose: print("generating seed poem first")
-                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, rhyme_lines=False, all_verbs=all_verbs,
-                                                    theme_lines=0, k=1, alliteration=0, theme_threshold=theme_threshold,
-                                                    no_meter=no_meter,theme_choice=theme_choice, theme_cutoff=theme_cutoff,
+                seed_poem = self.write_poem_revised(theme=theme, verbose=verbose, rhyme_lines=False,
+                                                    all_verbs=all_verbs,
+                                                    theme_lines=0, k=1, b=1, alliteration=0,
+                                                    theme_threshold=theme_threshold,
+                                                    no_meter=no_meter, theme_choice=theme_choice,
+                                                    theme_cutoff=theme_cutoff,
                                                     sum_similarity=sum_similarity, weight_repetition=False,
-                                                    theme_progression=theme_progression, story=story, story_file=story_file,
+                                                    theme_progression=theme_progression, story=story,
+                                                    story_file=story_file,
                                                     gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False,
                                                     random_word_selection=random_word_selection)
 
-                self.saved_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+                #self.example_poems[theme] = "\n".join(seed_poem.split("\n")[1:])
+                self.example_poems[theme] = seed_poem.split("-")[-1].strip()
+                pickle.dump(self.example_poems, open("saved_objects/saved_sample_poems.p", "wb"))
 
-            sample_lines = self.saved_poems[theme].split("\n")
+            sample_lines = self.example_poems[theme].split("\n")
             if theme_lines == "poem":
                 sample_seed = "\n".join(sample_lines)
-                #L- seed poem with saved poem for that theme
+                # L- seed poem with saved poem for that theme
             elif theme_lines == "stanza":
-                sample_seed = "\n".join(sample_lines[10:14]) #last 4 lines
-                #L- seed poem with last 4 lines of saved poem for that theme (change to last 2 lines? 6 lines?)
+                sample_seed = "\n".join(sample_lines[10:14])  # last 4 lines
+                # L- seed poem with last 4 lines of saved poem for that theme (change to last 2 lines? 6 lines?)
 
         if verbose: print("samples: ", sample_seed)
 
@@ -596,7 +605,6 @@ class Scenery_Gen(poem_core.Poem):
                             print("theme words for verb ", stanza_theme[0], " for POS ", pos, " ",
                                   stanza_themes[stanza][pos])
                             print("number of verbs for the same category: ", len(stanza_themes[stanza][pos]), "\n")
-
 
         else:
             for p in ["NN", "NNS", "ABNN"]:
@@ -708,7 +716,7 @@ class Scenery_Gen(poem_core.Poem):
             if len(self.gpt_past) > 0 and self.gpt_past[-1] != "\n": self.gpt_past += "\n"
             for i in range(len(lines)):
                 # if i % 4 == 0: self.gpt_past += samples[i // 4] + "\n"
-                self.gpt_past += lines[i] # + "\n"
+                self.gpt_past += lines[i]  # + "\n"
             self.reset_letter_words()
 
             if verbose:
@@ -718,44 +726,60 @@ class Scenery_Gen(poem_core.Poem):
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number // 4]
 
             if b <= 1:
-                self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r, theme_words=t_w,
-                                                       alliteration=letters, weight_repetition=weight_repetition,
-                                                       prev_lines=self.gpt_past, internal_rhymes=internal_rhymes,
-                                                       verbose=verbose, branching=b, b_inc=b_inc, phi_score=phi_score,
-                                                       random_selection=random_word_selection, beam_score=beam_score)
+                self.line_gen = gpt_revised.Line_Generator(self, self.gpt, templates, meters, rhyme_word=r,
+                                                           theme_words=t_w,
+                                                           alliteration=letters, weight_repetition=weight_repetition,
+                                                           prev_lines=self.gpt_past, internal_rhymes=internal_rhymes,
+                                                           verbose=verbose, branching=b, b_inc=b_inc,
+                                                           phi_score=phi_score,
+                                                           random_selection=random_word_selection,
+                                                           beam_score=beam_score)
                 # all_beams = self.line_gen.complete_lines()
                 completed_beams = self.line_gen.beam_search_tokenwise()
 
                 self.all_beam_histories.append(self.line_gen.beam_history)
             else:
                 completed_beams = {}
-                #new code
-                self.beam_manager.reset_to_new_line(rhyme_word=r, theme_words=t_w, alliteration=letters, seed=self.gpt_past, internal_rhymes=internal_rhymes)
+                # new code
+                self.beam_manager.reset_to_new_line(rhyme_word=r, theme_words=t_w, alliteration=letters,
+                                                    seed=self.gpt_past, internal_rhymes=internal_rhymes)
 
                 for i in range(len(templates)):
                     self.beam_manager.partial_lines = []
                     outs = self.beam_manager.generate(templates[i], meters[i], b)
                     completed_beams[templates[i]] = outs
 
-
-            best = (100, "", "")
+            best = (np.inf, "", "", 0)
 
             # for t in all_beams:
             #    for p_l in all_beams[t]:
             #        line = p_l.curr_line
             for t in completed_beams:
                 for line in completed_beams[t]:
-                    #line = line.replace("[EOL]", "\n")
+                    # line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     line = line.replace(" i ", " I ")
-                    best = min(best, (self.gpt.score_line("".join(lines) + line), line, t))
+                    if line[-1] != "\n": line += "\n"
+                    cand_poem = "".join(lines) + line
+                    inputs = self.gpt.tokenizer(cand_poem, return_tensors="pt")
+                    best = min(best, (self.gpt.score_tokens_new(inputs['input_ids'].to(self.gpt.model.device)), line, t,
+                                      inputs['input_ids'].size(1)))
 
-            if verbose: print("the best was", best)
+            line_score = self.gpt.score_line(best[1])  # /len(best[1].split())
+            # line_score = best[0] * len("".join(lines + [best[1]]))
+            if verbose: print("the best was", line_score, best)
 
-            bound = 5.8 if "custom" in gpt_size else 6
-            if best[0] > bound and dynamik:
+            # bound = 5.8 if "custom" in gpt_size else 6
+            bound = 5.5
+            if line_score > bound and dynamik:
+                if verb_swap:
+                    new_line, new_score = self.swap_verbs(best[1], best[2], r, seed="".join(lines), verbose=verbose)
+                    if new_score <= bound:
+                        lines.append(new_line)
+                        used_templates.append(best[2])
+                        line_number += 1
                 n_regened.append(line_number)
-                if verbose:
+                if verbose and (not verb_swap or new_score > bound):
                     print("best option not up to snuff, trying again.")
                     print(best[1] + " was the best for line", line_number)
             else:
@@ -763,15 +787,13 @@ class Scenery_Gen(poem_core.Poem):
                 used_templates.append(best[2])
                 line_number += 1
 
-
-
                 last = helper.remove_punc(lines[-1].split()[-1])
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):
-            ret += str(lines[cand]) #+ "\n"
+            ret += str(lines[cand])  # + "\n"
             if (cand + 1) % 4 == 0: ret += "\n"
         if verbose: print(ret)
         if verbose and dynamik: print("regened", n_regened)
@@ -1106,3 +1128,103 @@ class Scenery_Gen(poem_core.Poem):
                               "(" + str(round(score, 4)), end="), ")
 
                     print("")
+
+    def get_all_verb_swaps(self, orig_line, template, rhyme=None, verbose=False):
+
+        vb_idxs = [i for i in range(len(template)) if "VB" in template[i]]
+        vb_pos = [template[i] for i in vb_idxs]
+
+        all_poss_verbs = [self.get_pos_words(vb) for vb in vb_pos]
+        if rhyme is not None and "VB" in template[-1]:
+            all_poss_verbs[-1] = self.get_pos_words(template[-1], rhyme=rhyme)
+
+        all_poss_lines = self.get_poss_lines(all_poss_verbs, orig_line, vb_idxs)
+
+        if verbose:
+            print(len(vb_idxs), "verbs gives", len(all_poss_lines), "sentences")
+
+        return [p[0] for p in all_poss_lines]
+
+    def get_top_verb_swaps(self, orig_line, template, rhyme=None, verbose=False):
+
+        line_words = helper.remove_punc(orig_line.replace("'s", "")).split()
+
+        vb_idxs = [i for i in range(len(template)) if "VB" in template[i]]
+        vb_pos = [template[i] for i in vb_idxs]
+
+        all_poss_words = set(self.top_common_words + self.get_diff_pos(self.theme, "VB", 500))
+        poss_verbs = []
+        for i, vb in enumerate(vb_pos):
+            poss_verbs.append([w for w in all_poss_words if vb in self.get_word_pos(w) and w not in orig_line])
+
+        if rhyme and "VB" in template[-1]:
+            poss_verbs[-1] = [p for p in poss_verbs[-1] if self.rhymes(p, line_words[-1])]
+
+
+        all_poss_lines = self.get_poss_lines(poss_verbs, orig_line, vb_idxs)
+
+        if verbose:
+            print(len(vb_idxs), "verbs gives", len(all_poss_lines), "sentences")
+
+        return [p[0] for p in all_poss_lines]
+
+    def get_poss_lines(self, poss_verbs, orig_line, vb_idxs):
+
+        line_words = helper.remove_punc(orig_line.replace("'s", "")).split()
+
+        all_poss_lines = {(orig_line, tuple(line_words))}
+        for i, vb_i in enumerate(vb_idxs):
+            new_lines = []
+            for old_line, old_line_words in all_poss_lines:
+                for new_vb in poss_verbs[i]:
+                    new_line = old_line.replace(old_line_words[vb_i], new_vb)
+                    new_line_words = helper.remove_punc(new_line.replace("'s", "")).split()
+                    new_lines.append((new_line, tuple(new_line_words)))
+            all_poss_lines.update(new_lines)
+
+        return all_poss_lines
+
+    def swap_verbs(self, orig_line, template, rhyme=None, seed="", verbose=False):
+        if type(template) == str: template = template.split()
+
+        # get every single combination of alternate lines
+        #new_lines = self.get_all_verb_swaps(orig_line, template, rhyme, verbose=verbose)
+        new_lines = self.get_top_verb_swaps(orig_line, template, rhyme, verbose=verbose)
+        assert len(set(new_lines)) == len(new_lines)
+
+        #new_lines = list(set(np.random.choice(new_lines, 10000))) + [orig_line]
+
+        if verbose:
+            print("reduced to", len(new_lines))
+
+        # tokenize and score them
+        if verbose:
+            print("tokenizing", end="...")
+
+        new_line_toks = [self.gpt.tokenizer(n, return_tensors='pt')['input_ids'].to(self.gpt.model.device) for n in
+                         new_lines]
+        if verbose: print("\tscoring...", end="")
+
+        if seed:
+            if verbose: print(" (seed) ", end="")
+            old_past = self.gpt.get_past(seed)
+        else:
+            old_past = None
+
+        if verbose: print(" (all) ")
+
+        new_line_scores = self.gpt.score_all_with_past(new_line_toks, old_past)
+
+        top_idxs = list(np.argsort(new_line_scores))
+
+        #best_score, best_sent = new_line_scores[top_idxs[0]], new_lines[top_idxs[0]]
+        best_score, best_sent = self.gpt.score_line(new_lines[top_idxs[0]]), new_lines[top_idxs[0]]
+
+        if verbose:
+            print("done: best_score =", best_score, "for '" + best_sent.strip() + "'")
+            orig_idx = new_lines.index(orig_line)
+            print("compared to", orig_line, new_lines[orig_idx].strip(), new_line_scores[orig_idx])
+
+        return best_sent, best_score
+
+

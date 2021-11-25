@@ -54,8 +54,6 @@ class CustomGPT2Model(GPT2LMHeadModel):
             beam_next_tokens[min_idx] = beam_next_tokens[max_idx]
             beam_idx[min_idx] = beam_idx[max_idx]
 
-            print("rmeoved bottom guy now", beam_scores, beam_next_tokens)
-
         # Edwin - adding in order to update constraints for relevant hyps (and delete irrelevant ones)
         self.poem_object.update_beams(beam_next_tokens, beam_idx, self.partial_dict)
 

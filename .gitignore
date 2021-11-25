@@ -18,3 +18,4 @@ saved_objects/fasttext/
 test.py
 retrained_model/
 fine_tuning/
+saved_sample_poems.p
