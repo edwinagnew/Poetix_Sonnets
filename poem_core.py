@@ -187,6 +187,7 @@ class Poem:
         if not word1 or not word2: return False
         if word1[-1] in ".,?!>": word1 = word1.translate(str.maketrans('', '', string.punctuation))
         if word2[-1] in ".,?!>": word2 = word2.translate(str.maketrans('', '', string.punctuation))
+        if word1 == word2: return False
         if word1 in self.get_rhyme_words(word2) or word2 in self.get_rhyme_words(word1): return True
         if not check_cmu: return False
 
