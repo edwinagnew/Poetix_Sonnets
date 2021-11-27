@@ -496,7 +496,9 @@ class Partial_Line:
 
         return output
 
-    def get_all_custom(self, gpt_scores, w_alliteration=0, w_repetition=0, w_rhyme=0):
+    def get_all_custom(self, gpt_scores, w_alliteration=0, w_repetition=None, w_rhyme=0):
+
+        w_repetition = self.parent.weight_repetition
 
         # TODO - rewrite individual ones to only consider tokens in pot_tokens and so on (for speedup)
 
@@ -540,7 +542,7 @@ class Partial_Line:
     def get_repetition_vector(self):
         tokens = self.parent.gpt_tokens
 
-        if not self.parent.weight_repetition: return np.zeros(len(tokens))
+        #if not self.parent.weight_repetition: return np.zeros(len(tokens))
 
         past_words = helper.remove_punc(self.parent.prev_lines.lower().replace("'s", "")).split()
         lemmas = [self.parent.lemma.lemmatize(word) for word in past_words]  # gets lemmas for all words in poem
@@ -1208,7 +1210,7 @@ class Line_Generator:
 
 
 class BeamManager:
-    def __init__(self, gpt_size, tokenizer, sonnet_object, verbose=False):
+    def __init__(self, gpt_size, tokenizer, sonnet_object, verbose=False, weight_repetition=0):
 
         self.sonnet_object = sonnet_object
 
@@ -1217,8 +1219,11 @@ class BeamManager:
         self.rhyme_word = None
         self.theme_words = []
         self.alliteration = None
-        self.seed = ""
+        self.seed = self.prev_lines = ""
         self.internal_rhymes = None
+        self.weight_repetition = weight_repetition
+
+        self.lemma = nltk.wordnet.WordNetLemmatizer()
 
         self.verbose = verbose
 
@@ -1255,7 +1260,7 @@ class BeamManager:
         self.rhyme_word = rhyme_word
         self.theme_words = theme_words
         self.alliteration = alliteration
-        self.seed = seed
+        self.seed = self.prev_lines = seed
         self.internal_rhymes = internal_rhymes
 
     def generate(self, template, meter, num_beams):
