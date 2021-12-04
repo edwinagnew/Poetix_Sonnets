@@ -1265,7 +1265,7 @@ class BeamManager:
 
     def generate(self, template, meter, num_beams):
 
-        if self.verbose: print("generating", num_beams, template, meter)
+        if self.verbose: print("generating", num_beams, template)
 
         new_partial = Partial_Line(self, template, meter, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
         if not self.seed.strip():
