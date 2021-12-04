@@ -1288,7 +1288,8 @@ class BeamManager:
         # print("input_ids", input_ids)
 
         outputs = self.model.generate(input_ids=input_ids, num_beams=num_beams, num_return_sequences=num_beams,
-                                      early_stopping=False, max_length=input_ids.shape[-1] + 30, repetition_penalty=1.5)
+                                      early_stopping=False, max_length=input_ids.shape[-1] + 30,
+                                      repetition_penalty=1.5, no_repeat_ngram_size=4)
 
         sliced_outputs = [first_tokens + out[len(input_ids[0]):].tolist() for out in outputs]
 
