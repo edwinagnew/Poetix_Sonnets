@@ -722,7 +722,7 @@ class Scenery_Gen(poem_core.Poem):
             if verbose:
                 print("\nwriting line", line_number)
                 print("alliterating", alliterating, letters)
-                print(templates, meters, r)
+                print(templates, r)
             t_w = theme_words[sub_theme] if not theme_progression else stanza_themes[line_number // 4]
 
             if b <= 1:
@@ -760,6 +760,11 @@ class Scenery_Gen(poem_core.Poem):
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     line = line.replace(" i ", " I ")
                     if line[-1] != "\n": line += "\n"
+                    # check to see whether line similarity
+                    similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
+                    if len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
+                        continue
+
                     cand_poem = "".join(lines) + line
                     inputs = self.gpt.tokenizer(cand_poem, return_tensors="pt")
                     best = min(best, (self.gpt.score_tokens_new(inputs['input_ids'].to(self.gpt.model.device)), line, t,
@@ -771,7 +776,7 @@ class Scenery_Gen(poem_core.Poem):
 
             # bound = 5.8 if "custom" in gpt_size else 6
             bound = 5.5
-            if line_score > bound and dynamik:
+            if (line_score > bound and dynamik) or best[0] == np.inf:
                 if verb_swap:
                     new_line, new_score = self.swap_verbs(best[1], best[2], r, seed="".join(lines), verbose=verbose)
                     if new_score <= bound:
