@@ -745,7 +745,7 @@ class Partial_Line:
                 r = self.parent.rhyme_word
                 self.poss = set(self.parent.sonnet_object.get_pos_words(next_pos, meter=meters, rhyme=r))
 
-                if verbose: print("restricting to rhymes", self.parent.rhyme_word, self.poss)
+                #if verbose: print("restricting to rhymes", self.parent.rhyme_word, self.poss)
 
         if len(self.poss) == 0:
             if "PRP" in self.template[i] and next_pos in self.parent.sonnet_object.pos_to_words:
@@ -1265,7 +1265,7 @@ class BeamManager:
 
     def generate(self, template, meter, num_beams):
 
-        if self.verbose: print("generating", num_beams, template)
+        #if self.verbose: print("generating", num_beams, template)
 
         new_partial = Partial_Line(self, template, meter, internal_rhymes=self.internal_rhymes, verbose=self.verbose)
         if not self.seed.strip():
