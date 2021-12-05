@@ -762,7 +762,8 @@ class Scenery_Gen(poem_core.Poem):
 
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
-                    if len(line.split()) > 0 or len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
+                    assert len(line.split()) == len(t.split()), (line, t)
+                    if len(line.split()) != len(t.split()) or len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
                         continue
 
                     if line[-1] != "\n": line += "\n"
@@ -791,6 +792,9 @@ class Scenery_Gen(poem_core.Poem):
                         used_templates.append(best[2])
                         line_number += 1
                 n_regened.append(line_number)
+                if n_regened.count(line_number) > 5: # restart stanza if too many fails
+                    if verbose: print("failed", n_regened, ", resetting to beginning of stanza")
+                    line_number = 4 * (line_number//4)
                 if verbose and (not verb_swap or new_score > bound):
                     print("best option not up to snuff, trying again.")
                     print(best[1] + " was the best for line", line_number)
