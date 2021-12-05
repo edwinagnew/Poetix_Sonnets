@@ -759,25 +759,32 @@ class Scenery_Gen(poem_core.Poem):
                     # line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
                     line = line.replace(" i ", " I ")
-                    if line[-1] != "\n": line += "\n"
-                    # check to see whether line similarity
+
+                    # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
-                    if len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
+                    if len(line.split()) > 0 or len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
                         continue
 
+                    if line[-1] != "\n": line += "\n"
                     cand_poem = "".join(lines) + line
                     inputs = self.gpt.tokenizer(cand_poem, return_tensors="pt")
                     best = min(best, (self.gpt.score_tokens_new(inputs['input_ids'].to(self.gpt.model.device)), line, t,
                                       inputs['input_ids'].size(1)))
 
-            line_score = self.gpt.score_line(best[1])  # /len(best[1].split())
-            # line_score = best[0] * len("".join(lines + [best[1]]))
-            if verbose: print("the best was", line_score, best)
+            if best[0] == np.inf:
+                if verbose: print("failed")
+                success = False
+                line_score = np.inf
+            else:
+                success = True
+                line_score = self.gpt.score_line(best[1])  # /len(best[1].split())
+                # line_score = best[0] * len("".join(lines + [best[1]]))
+                if verbose: print("the best was", line_score, best)
 
             # bound = 5.8 if "custom" in gpt_size else 6
             bound = 5.5
-            if (line_score > bound and dynamik) or best[0] == np.inf:
-                if verb_swap:
+            if (line_score > bound and dynamik) or not success:
+                if verb_swap and success:
                     new_line, new_score = self.swap_verbs(best[1], best[2], r, seed="".join(lines), verbose=verbose)
                     if new_score <= bound:
                         lines.append(new_line)
