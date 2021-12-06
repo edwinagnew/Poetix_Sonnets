@@ -687,10 +687,12 @@ class Scenery_Gen(poem_core.Poem):
 
                         meter_dict = self.get_meter_dict(template, meter, rhyme_word=r, verbose=verbose)
                         tries += 1
-                    templates.append(template)
-                    meters.append(meter_dict)
 
-                if not any(m for m in meters):
+                    if template and meter_dict:
+                        templates.append(template)
+                        meters.append(meter_dict)
+
+                if not any(m for m in meters) or len(meters) == 0:
                     if verbose: print("no meters resetting randomly")
                     if line_number == 13:
                         line_number = 12
@@ -763,7 +765,7 @@ class Scenery_Gen(poem_core.Poem):
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
                     #assert len(line.split()) == len(t.split()), (line, t)
-                    if len(line.split()) != len(t.split()) or len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
+                    if len(line.split()) != len(t.replace(" POS ", " ").split()) or len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
                         continue
 
                     if line[-1] != "\n": line += "\n"
