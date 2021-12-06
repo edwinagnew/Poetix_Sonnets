@@ -762,7 +762,7 @@ class Scenery_Gen(poem_core.Poem):
 
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
-                    assert len(line.split()) == len(t.split()), (line, t)
+                    #assert len(line.split()) == len(t.split()), (line, t)
                     if len(line.split()) != len(t.split()) or len(similarities) > 0 and max(similarities)/len(line.split()) > 0.5: # if the new line is at least half as similar as any previous one, ignore it
                         continue
 
