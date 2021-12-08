@@ -9,7 +9,7 @@ poems = []
 date = datetime.today().date()
 file = open("poems_" + str(date) + ".txt", "a")
 
-for i in range(10):
+for i in range(20):
     theme = random.choice(['love', 'death', 'peace', 'war', 'forest', 'darkness', 'wisdom'])
     b = random.choice([5, 7, 10])
     k = random.choice([2, 3, 5, 7])
@@ -22,5 +22,7 @@ for i in range(10):
     file.write("\n\n" + p)
 
 
-file.write("\n\n\n\n\n".join(poems))
+file.write("\n\n".join(poems))
 print("done")
+
+file.close()
