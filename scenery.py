@@ -641,6 +641,7 @@ class Scenery_Gen(poem_core.Poem):
             if theme_lines and type(theme_lines) == int:
                 sample_seed = "\n".join(random.sample(theme_contexts, theme_lines))
             if line_number % 4 == 0:
+                self.prev_rhyme = None
                 if verbose: print("\n\nwriting stanza", 1 + line_number / 4)
                 # else:
                 #    if line_number > 0: print("done")
@@ -659,11 +660,9 @@ class Scenery_Gen(poem_core.Poem):
 
             if rhyme_lines and line_number % 4 >= 2:
                 r = helper.remove_punc(lines[line_number - 2].split()[-1])  # last word in rhyming couplet
+                self.prev_rhyme = helper.remove_punc(lines[-1].split()[-1])
             elif rhyme_lines and line_number == 13:
                 r = helper.remove_punc(lines[12].split()[-1])
-            elif rhyme_lines and theme:
-                # r = "__" + random.choice(rhymes)
-                r = None  # r = set(rhymes)
             else:
                 r = None
 
