@@ -381,7 +381,7 @@ class Scenery_Gen(poem_core.Poem):
                         self.get_pos_words(rhyme_pos)):
                     if "a" in line_arr and line_arr[line_arr.index("a") + 1][0] in "aeiou": line = line.replace("a ",
                                                                                                                 "an ")
-                    if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                    if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
                     if verbose: print("wrote line which rhymes with", rhyme_pos, ":", line)
                     # score = self.gpt.score_line("\n".join(random.sample(theme_contexts, min(len(theme_contexts), theme_lines))) + line)
                     score = self.gpt.score_line(line)
@@ -400,7 +400,7 @@ class Scenery_Gen(poem_core.Poem):
                     # self.pos_to_words[template.split()[-1]][line.split()[-1]] /= 2
             elif line:
                 if "a" in line_arr and line_arr[line_arr.index("a") + 1][0] in "aeiou": line = line.replace("a ", "an ")
-                if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
                 line = line.replace(" i ", " I ")
                 if verbose: print("wrote line", line)
                 if len(lines) % 4 == 0:
@@ -758,7 +758,7 @@ class Scenery_Gen(poem_core.Poem):
             for t in completed_beams:
                 for line in completed_beams[t]:
                     # line = line.replace("[EOL]", "\n")
-                    if len(lines) % 4 == 0 or lines[-1][-1] in ".?!": line = line.capitalize()
+                    if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
                     line = line.replace(" i ", " I ")
 
                     # check to see whether line similarity is too bad
