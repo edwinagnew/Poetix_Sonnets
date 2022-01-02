@@ -19,3 +19,5 @@ test.py
 retrained_model/
 fine_tuning/
 saved_sample_poems.p
+.ipynb_checkpoints/*
+*.ipynb_checkpoints/*
