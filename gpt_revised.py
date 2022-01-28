@@ -105,6 +105,13 @@ class gpt_gen:
         sentiment_score = self.token_sentiment[tokenized[0]]
         return sentiment_score
 
+    def gen_no_constraints(self, seed, n_tokens=100):
+        input_ids = self.tokenizer.encode(seed, return_tensors='pt')
+
+        output = self.model.generate(input_ids, max_length=n_tokens)
+
+        return self.tokenizer.decode(output[0], skip_special_tokens=True)
+
 
 class Partial_Line:
     def __init__(self, parent, template, meter_dict, internal_rhymes=[], verbose=False):
