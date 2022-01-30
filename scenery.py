@@ -53,6 +53,8 @@ class Scenery_Gen(poem_core.Poem):
         except:
             self.example_poems = {}
 
+        self.used_templates = []
+
     # override
     def get_pos_words(self, pos, meter=None, rhyme=None, phrase=()):
         """
@@ -807,6 +809,7 @@ class Scenery_Gen(poem_core.Poem):
                 last = helper.remove_punc(lines[-1].split()[-1])
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
+        self.used_templates = used_templates
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):
