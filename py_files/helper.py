@@ -279,6 +279,7 @@ def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
     pos_to_words["PRPS"] = {"i":1, "you":1, "he":1, "she":1, "it":1, "we":1, "they":1}
     pos_to_words["PRPO"] = {"me":1, "you":1, "him":1, "her":1, "it":1, "us":1, "them":1, "myself":1, "yourself":1, "himself":1, "herself":1, "itself":1, "ourselves":1, "yourselves":1, "theirselves":1}
 
+    pos_to_words["A"] = {'a': 1, 'an': 1}
 
     for p in ["PRPS", "PRPO"]:
         for w in pos_to_words[p]:
@@ -304,7 +305,7 @@ def get_finer_pos_words():
      'AROUND', 'NEITHER', 'WHOM', 'SINCE', 'ABOVE', 'THROUGH', 'ALL',
      'AND', 'SOME', 'MAY', 'HALF', 'WHATEVER', 'BEHIND',
      'BEYOND', 'WHERE', 'SUCH', 'YET', 'UNTO', 'BY', 'NEED',
-     'A', 'DURING', 'AT', 'AN', 'OUGHT',
+     'DURING', 'AT', 'OUGHT',
      'BUT', 'DESPITE', 'SHOULD', 'THOSE', 'FOR', 'WHEREVER', 'WHOLE', 'THESE',
      'WHOEVER', 'WITH', 'TOWARD', 'WHICH',
      'BECAUSE', 'WHETHER', 'ONWARD', 'UPON', 'JUST', 'ANY',
