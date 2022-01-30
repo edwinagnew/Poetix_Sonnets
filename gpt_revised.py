@@ -750,6 +750,7 @@ class Partial_Line:
             r = None
             if i == len(self.template) - 1 and self.parent.rhyme_word:
                 r = self.parent.rhyme_word
+                meters = [m + "0" for m in meters] # Allowing feminine rhyming as in Hafez
                 self.poss = set(self.parent.sonnet_object.get_pos_words(next_pos, meter=meters, rhyme=r))
 
                 #if verbose: print("restricting to rhymes", self.parent.rhyme_word, self.poss)
