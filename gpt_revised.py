@@ -108,7 +108,7 @@ class gpt_gen:
     def gen_no_constraints(self, seed, n_tokens=100):
         input_ids = self.tokenizer.encode(seed, return_tensors='pt')
 
-        output = self.model.generate(input_ids, max_length=n_tokens)
+        output = self.model.generate(input_ids, max_length=n_tokens, no_repeat_ngram_size=2)
 
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
