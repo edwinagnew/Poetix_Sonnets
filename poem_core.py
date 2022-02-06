@@ -525,14 +525,6 @@ class Poem:
                 if len(poss) == 1: return poss
         return poss
 
-    #Hi Lily, just following up on this. It seems that the new get_next_templates function sometimes cant
-    #find a template and so gives up. When called with the same arguments, the old one manages to find one
-    #so I’m pretty sure we changed something we shouldn’t of, or maybe that fixing it has given rise to a new
-    #bug. You should be able to reproduce this if you pull from git and compare sc.get_used_templates(used),
-    #with sc.get_used_templates_old(used), where
-    #used_templates = ['A JJ NN VBD IN NNS OF NN.','ABNN AND ABNN VBD WITHIN THE NN','FOR VBG NN WITH PRPO RB,']
-    #Since we now group templates according to tense (past, present) it might be that all the followers are present or
-    #something. We should make sure that a gerund templates is in templates_past.txt only if its followers are
     def get_next_template(self, used_templates, end=""):
         """
 
@@ -604,9 +596,6 @@ class Poem:
 
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
-            # L- if most recently used template ends in '.' or '?', next template cannot start with 'and', 'that', 'or', etc.
-            # elif used_templates[-1][-1] in incomplete:
-            #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
             # L- ensure you can't have a stanza of 4 separate sentences
             # ensure that if the first two lines in a stanza ended in a period, then the next one shouldn't
@@ -639,13 +628,13 @@ class Poem:
         else:
             # starting templates taken from google doc
             starters = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
-                    ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
                     ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
                     ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
                     ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
                     ("THE NN OF NN ON A JJ N", "0_1_0_10_1_0_10_1"),
-                    ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1")]
+                    ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1"),
+                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01")]
 
             poss = [p for p in starters if p in self.templates]
 
