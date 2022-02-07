@@ -39,9 +39,10 @@ class Poem:
         self.templates = []
         for t in templates_file:
             try:
-                with open(t) as tf:
-                    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                       "#" not in line and len(line) > 1]
+                #with open(t) as tf:
+                #    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                #                       "#" not in line and len(line) > 1]
+                self.templates += self.get_templates_from_file(t)
             except:
                 print(t, " does not exist so reading from poems/templates_basic.txt instead")
                 with open("poems/templates_basic.txt") as tf:
@@ -461,11 +462,18 @@ class Poem:
             if "_" in pos:  # or pos in "0123456789"
                 del self.pos_to_words[pos]
 
-    def reset_gender(self):
-        self.gender = random.choice(
-            [["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"], ["he", "him", "his", "himself"],
+    def reset_gender(self, choice=None):
+        pronouns = [["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"], ["he", "him", "his", "himself"],
              ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"],
-             ["they", "them", "their", "theirs", "themselves"]])
+             ["they", "them", "their", "theirs", "themselves"]]
+
+        if choice is None:
+            self.gender = random.choice(pronouns)
+        elif choice == "all":
+            #self.gender = [p for p in sub_list for sub_list in pronouns]
+            self.gender = [p for sub_list in pronouns for p in sub_list]
+        else:
+            raise ValueError("not implemented")
 
         g = random.choice(["male", "female"])
         if "he" in self.gender:
@@ -473,7 +481,7 @@ class Poem:
         elif "she" in self.gender:
             g = "female"
 
-        self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
+        #self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
 
         self.reset_meter_pos_dict()
 
@@ -511,7 +519,16 @@ class Poem:
                 self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
                                                     word in self.dict_meters and meter in self.get_meter(word) and word in self.gender]
 
+    def get_templates_from_file(self, filename):
+        with open(filename) as tf:
+            templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                              "#" not in line and len(line) > 1]
+
+        return templates
+
     def get_template_from_line(self, line, backwards=False):
+        self.reset_gender("all")
+
         words = line if type(line) == list else line.lower().split()
         poss = list(self.all_templates_dict.keys())
         if not backwards:
@@ -525,14 +542,6 @@ class Poem:
                 if len(poss) == 1: return poss
         return poss
 
-    #Hi Lily, just following up on this. It seems that the new get_next_templates function sometimes cant
-    #find a template and so gives up. When called with the same arguments, the old one manages to find one
-    #so I’m pretty sure we changed something we shouldn’t of, or maybe that fixing it has given rise to a new
-    #bug. You should be able to reproduce this if you pull from git and compare sc.get_used_templates(used),
-    #with sc.get_used_templates_old(used), where
-    #used_templates = ['A JJ NN VBD IN NNS OF NN.','ABNN AND ABNN VBD WITHIN THE NN','FOR VBG NN WITH PRPO RB,']
-    #Since we now group templates according to tense (past, present) it might be that all the followers are present or
-    #something. We should make sure that a gerund templates is in templates_past.txt only if its followers are
     def get_next_template(self, used_templates, end=""):
         """
 
@@ -598,15 +607,12 @@ class Poem:
                 followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
                         ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
                         ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
-                        ("PRPS VBZ TO THE NN WHERE PRP$ NNS VB", "0_1_0_1_01_0_1_0_1")]
+                        ("PRPS VBZ TO THE NN WHERE PRPD$ NNS VB", "0_1_0_1_01_0_1_0_1")]
                 poss = list(set(followers).intersection(set(poss)))
 
 
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
-            # L- if most recently used template ends in '.' or '?', next template cannot start with 'and', 'that', 'or', etc.
-            # elif used_templates[-1][-1] in incomplete:
-            #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
 
             # L- ensure you can't have a stanza of 4 separate sentences
             # ensure that if the first two lines in a stanza ended in a period, then the next one shouldn't
@@ -639,13 +645,13 @@ class Poem:
         else:
             # starting templates taken from google doc
             starters = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
-                    ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
                     ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
                     ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
                     ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
                     ("THE NN OF NN ON A JJ N", "0_1_0_10_1_0_10_1"),
-                    ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1")]
+                    ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1"),
+                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01")]
 
             poss = [p for p in starters if p in self.templates]
 
@@ -725,7 +731,7 @@ class Poem:
                 followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
                              ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
                              ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
-                             ("PRPS VBZ TO THE NN WHERE PRP$ NNS VB", "0_1_0_1_01_0_1_0_1")]
+                             ("PRPS VBZ TO THE NN WHERE PRPD$ NNS VB", "0_1_0_1_01_0_1_0_1")]
                 poss = list(set(followers).intersection(set(poss)))
 
             if used_templates[-1][-1] in ".?":

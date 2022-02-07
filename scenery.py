@@ -403,7 +403,7 @@ class Scenery_Gen(poem_core.Poem):
             elif line:
                 if "a" in line_arr and line_arr[line_arr.index("a") + 1][0] in "aeiou": line = line.replace("a ", "an ")
                 if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
-                line = line.replace(" i ", " I ")
+                line = line.replace(" i ", " I ").replace("\ni", "\nI")
                 if verbose: print("wrote line", line)
                 if len(lines) % 4 == 0:
                     samp = theme + "\n" + samples[len(lines) // 4] + "\n" + line
@@ -482,10 +482,8 @@ class Scenery_Gen(poem_core.Poem):
             if tense == None:
                 tense = "basic"
             s = "poems/templates_" + tense + ".txt"
-            with open(s) as tf:
-                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                  "#" not in line and len(line) > 1]
-                if verbose: print("updated templates to ", s)
+            self.templates = self.get_templates_from_file(s)
+            if verbose: print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
@@ -761,7 +759,7 @@ class Scenery_Gen(poem_core.Poem):
                 for line in completed_beams[t]:
                     # line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
-                    line = line.replace(" i ", " I ")
+                    line = line.replace(" i ", " I ").replace("\ni", "\nI")
 
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
@@ -1072,7 +1070,7 @@ class Scenery_Gen(poem_core.Poem):
             if line: line_arr = line.split()
             # TODO add some rhyme code back here
             if line:
-                line = line.replace(" i ", " I ")
+                line = line.replace(" i ", " I ").replace("\ni", "\nI")
                 if verbose: print("wrote line", line)
                 if len(lines) % 4 == 0:
                     samp = theme + "\n" + samples[len(lines) // 4] + "\n" + line
