@@ -607,7 +607,7 @@ class Poem:
                 followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
                         ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
                         ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
-                        ("PRPS VBZ TO THE NN WHERE PRP$ NNS VB", "0_1_0_1_01_0_1_0_1")]
+                        ("PRPS VBZ TO THE NN WHERE PRPD$ NNS VB", "0_1_0_1_01_0_1_0_1")]
                 poss = list(set(followers).intersection(set(poss)))
 
 
@@ -731,7 +731,7 @@ class Poem:
                 followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
                              ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
                              ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
-                             ("PRPS VBZ TO THE NN WHERE PRP$ NNS VB", "0_1_0_1_01_0_1_0_1")]
+                             ("PRPS VBZ TO THE NN WHERE PRPD$ NNS VB", "0_1_0_1_01_0_1_0_1")]
                 poss = list(set(followers).intersection(set(poss)))
 
             if used_templates[-1][-1] in ".?":
