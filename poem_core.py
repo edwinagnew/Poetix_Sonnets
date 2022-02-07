@@ -39,9 +39,10 @@ class Poem:
         self.templates = []
         for t in templates_file:
             try:
-                with open(t) as tf:
-                    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                       "#" not in line and len(line) > 1]
+                #with open(t) as tf:
+                #    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                #                       "#" not in line and len(line) > 1]
+                self.templates += self.get_templates_from_file(t)
             except:
                 print(t, " does not exist so reading from poems/templates_basic.txt instead")
                 with open("poems/templates_basic.txt") as tf:
@@ -461,11 +462,18 @@ class Poem:
             if "_" in pos:  # or pos in "0123456789"
                 del self.pos_to_words[pos]
 
-    def reset_gender(self):
-        self.gender = random.choice(
-            [["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"], ["he", "him", "his", "himself"],
+    def reset_gender(self, choice=None):
+        pronouns = [["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"], ["he", "him", "his", "himself"],
              ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"],
-             ["they", "them", "their", "theirs", "themselves"]])
+             ["they", "them", "their", "theirs", "themselves"]]
+
+        if choice is None:
+            self.gender = random.choice(pronouns)
+        elif choice == "all":
+            #self.gender = [p for p in sub_list for sub_list in pronouns]
+            self.gender = [p for sub_list in pronouns for p in sub_list]
+        else:
+            raise ValueError("not implemented")
 
         g = random.choice(["male", "female"])
         if "he" in self.gender:
@@ -473,7 +481,7 @@ class Poem:
         elif "she" in self.gender:
             g = "female"
 
-        self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
+        #self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
 
         self.reset_meter_pos_dict()
 
@@ -511,7 +519,16 @@ class Poem:
                 self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
                                                     word in self.dict_meters and meter in self.get_meter(word) and word in self.gender]
 
+    def get_templates_from_file(self, filename):
+        with open(filename) as tf:
+            templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                              "#" not in line and len(line) > 1]
+
+        return templates
+
     def get_template_from_line(self, line, backwards=False):
+        self.reset_gender("all")
+
         words = line if type(line) == list else line.lower().split()
         poss = list(self.all_templates_dict.keys())
         if not backwards:

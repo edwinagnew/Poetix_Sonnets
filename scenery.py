@@ -482,10 +482,8 @@ class Scenery_Gen(poem_core.Poem):
             if tense == None:
                 tense = "basic"
             s = "poems/templates_" + tense + ".txt"
-            with open(s) as tf:
-                self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                  "#" not in line and len(line) > 1]
-                if verbose: print("updated templates to ", s)
+            self.templates = self.get_templates_from_file(s)
+            if verbose: print("updated templates to ", s)
         if not self.gpt or gpt_size != self.gpt.model_size:
             if verbose: print("getting", gpt_size)
             self.gpt = gpt_revised.gpt_gen(sonnet_object=self, model=gpt_size)
