@@ -675,8 +675,11 @@ class Poem:
 
         if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))
+        if t not in self.templates:
+            self.templates.append(t)
         # t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
+
         return t[0], t[1]
         # L- chooses punctuation between <>
 

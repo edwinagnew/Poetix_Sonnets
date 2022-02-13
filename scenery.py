@@ -246,11 +246,11 @@ class Scenery_Gen(poem_core.Poem):
 
         else:
             for p in ["NN", "NNS", "ABNN"]:
-                if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
+                if False and verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
                                                     self.word_embeddings.ft_word_similarity(w,
                                                                                             self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(
                                                         w, self.theme.split())])
-                if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
+                if False and verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
                                                            self.word_embeddings.ft_word_similarity(w,
                                                                                                    self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
                                                                w, self.theme.split())])
@@ -577,11 +577,11 @@ class Scenery_Gen(poem_core.Poem):
 
         else:
             for p in ["NN", "NNS", "ABNN"]:
-                if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
+                if False and verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
                                                     self.word_embeddings.ft_word_similarity(w,
                                                                                             self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(
                                                         w, self.theme.split())])
-                if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
+                if False and verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
                                                            self.word_embeddings.ft_word_similarity(w,
                                                                                                    self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
                                                                w, self.theme.split())])
@@ -777,10 +777,12 @@ class Scenery_Gen(poem_core.Poem):
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         self.used_templates = used_templates
+        all_templates = [t[0] for t in self.templates]
+        template_indices = [all_templates.index(t) if t in all_templates else -1 for t in used_templates]
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):
-            ret += str(lines[cand])  # + "\n"
+            ret += str(lines[cand])  + "\t(" + str(template_indices[cand]) + ")"
             if (cand + 1) % 4 == 0: ret += "\n"
         if verbose: print(ret)
         if verbose and dynamik: print("regened", n_regened)
@@ -978,18 +980,18 @@ class Scenery_Gen(poem_core.Poem):
             theme_words = []
         # random.shuffle(rhymes)
         for p in ["NN", "NNS", "ABNN"]:
-            if verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
+            if False and verbose: print("glove cutting", [w for w in self.pos_to_words[p] if
                                                 self.word_embeddings.ft_word_similarity(w,
                                                                                         self.theme.split()) > theme_cutoff > self.word_embeddings.gl_word_similarity(
                                                     w, self.theme.split())])
-            if verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
+            if False and verbose: print("\n\nfasttext cutting", [w for w in self.pos_to_words[p] if
                                                        self.word_embeddings.ft_word_similarity(w,
                                                                                                self.theme.split()) < theme_cutoff < self.word_embeddings.gl_word_similarity(
                                                            w, self.theme.split())])
 
             self.pos_to_words[p] = {word: s for (word, s) in self.pos_to_words[p].items() if
                                     self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
-            if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
+            if False and verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
                               set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
