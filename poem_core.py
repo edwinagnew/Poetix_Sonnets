@@ -104,6 +104,7 @@ class Poem:
         self.prev_rhyme = None
 
     def get_meter(self, word):
+        word = word.strip().replace(" ", "_")
         if not word or len(word) == 0: return [""]
         if word[-1] in ".,?;":
             return self.get_meter(word[:-1])
@@ -120,7 +121,7 @@ class Poem:
         Get the set of POS category of a word. If we are unable to get the category, return None.
         """
         # Special case
-        word = helper.remove_punc(word)
+        word = helper.remove_punc(word).strip().replace(" ", "_")
         if word.upper() in self.special_words:
             return [word.upper()] + (self.words_to_pos[word] if word in self.words_to_pos else [])
         if word not in self.words_to_pos:
@@ -166,9 +167,9 @@ class Poem:
             return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
 
         if meter:
-            ret = [word for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
+            ret = [word.replace("_", " ") for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
             return ret
-        return [p for p in self.pos_to_words[pos]]
+        return [p.replace("_", " ") for p in self.pos_to_words[pos]]
 
     def get_backup_pos_words(self, pos, meter=None, rhyme=None):
         if not self.backup_words: return []
