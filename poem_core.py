@@ -104,6 +104,7 @@ class Poem:
         self.prev_rhyme = None
 
     def get_meter(self, word):
+        word = word.strip().replace(" ", "_")
         if not word or len(word) == 0: return [""]
         if word[-1] in ".,?;":
             return self.get_meter(word[:-1])
@@ -120,7 +121,7 @@ class Poem:
         Get the set of POS category of a word. If we are unable to get the category, return None.
         """
         # Special case
-        word = helper.remove_punc(word)
+        word = helper.remove_punc(word).strip().replace(" ", "_")
         if word.upper() in self.special_words:
             return [word.upper()] + (self.words_to_pos[word] if word in self.words_to_pos else [])
         if word not in self.words_to_pos:
@@ -150,20 +151,25 @@ class Poem:
         if meter and type(meter) == str:
             meter = [meter]
 
-        if pos not in self.pos_to_words:
-            return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
-
         if "PRP" in pos and "_" not in pos:
-            ret = [p for p in self.pos_to_words[pos] if p in self.gender]
+            if pos == "PRPOO":
+                #print("here", self.pos_to_words['PRPO'], self.gender)
+                ret = [p for p in self.pos_to_words["PRPO"] if p not in self.gender] #PRPOO gets different pronouns
+            else:
+                ret = [p for p in self.pos_to_words[pos] if p in self.gender]
             if meter:
                 ret = [r for r in ret if any(q in meter for q in self.get_meter(r))]
             return ret
         elif pos not in self.pos_to_words:
             return []
+
+        if pos not in self.pos_to_words:
+            return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
+
         if meter:
-            ret = [word for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
+            ret = [word.replace("_", " ") for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
             return ret
-        return [p for p in self.pos_to_words[pos]]
+        return [p.replace("_", " ") for p in self.pos_to_words[pos]]
 
     def get_backup_pos_words(self, pos, meter=None, rhyme=None):
         if not self.backup_words: return []
@@ -669,8 +675,11 @@ class Poem:
 
         if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))
+        if t not in self.templates:
+            self.templates.append(t)
         # t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
+
         return t[0], t[1]
         # L- chooses punctuation between <>
 
