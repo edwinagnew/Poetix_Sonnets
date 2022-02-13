@@ -782,7 +782,7 @@ class Scenery_Gen(poem_core.Poem):
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):
-            ret += str(lines[cand])  + "\t(" + str(template_indices[cand]) + ")"
+            ret += "(" + str(template_indices[cand]) + ")\t" + str(lines[cand])
             if (cand + 1) % 4 == 0: ret += "\n"
         if verbose: print(ret)
         if verbose and dynamik: print("regened", n_regened)
