@@ -150,16 +150,21 @@ class Poem:
         if meter and type(meter) == str:
             meter = [meter]
 
-        if pos not in self.pos_to_words:
-            return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
-
         if "PRP" in pos and "_" not in pos:
-            ret = [p for p in self.pos_to_words[pos] if p in self.gender]
+            if pos == "PRPOO":
+                #print("here", self.pos_to_words['PRPO'], self.gender)
+                ret = [p for p in self.pos_to_words["PRPO"] if p not in self.gender] #PRPOO gets different pronouns
+            else:
+                ret = [p for p in self.pos_to_words[pos] if p in self.gender]
             if meter:
                 ret = [r for r in ret if any(q in meter for q in self.get_meter(r))]
             return ret
         elif pos not in self.pos_to_words:
             return []
+
+        if pos not in self.pos_to_words:
+            return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
+
         if meter:
             ret = [word for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
             return ret

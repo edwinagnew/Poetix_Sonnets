@@ -65,43 +65,12 @@ class Scenery_Gen(poem_core.Poem):
         meter - (optional) returns only words which fit the given meter, e.g. 101
         phrase (optional) - returns only words which have a phrase in the dataset. in format ([word1, word2, word3], i) where i is the index of the word to change since the length can be 2 or 3
         """
-        # print("oi," , pos, meter, phrase)
-        # punctuation management
-        punc = [".", ",", ";", "?", ">"]
-        # print("here1", pos, meter)
-        # if pos[-1] in punc:
-        #    p = pos[-1]
-        #    if p == ">":
-        #        p = random.choice(pos.split("<")[-1].strip(">").split("/"))
-        #        pos = pos.split("<")[0] + p
-        #    return [word + p for word in self.get_pos_words(pos[:-1], meter=meter, rhyme=rhyme)]
-        # print("here", pos, meter, rhyme)
         # similar/repeated word management
         if "*VB" in pos:
             ps = []
             for po in ["VB", "VBZ", "VBG", "VBD", "VBN", "VBP"]:
                 ps += self.get_pos_words(po, meter=meter, rhyme=rhyme, phrase=phrase)
             return ps
-        """if pos not in self.pos_to_words and "_" in pos:
-            sub_pos = pos.split("_")[0]
-            word = self.weighted_choice(sub_pos, meter=meter, rhyme=rhyme)
-            if not word: input("rhyme broke " + sub_pos + " " + str(meter) + " " + str(rhyme))
-            #word = random.choice(poss)
-            if pos.split("_")[1] in string.ascii_lowercase:
-                #print("maybe breaking on", pos, word, sub_pos)
-                self.pos_to_words[pos] = {word: self.pos_to_words[sub_pos][word]}
-            else:
-                num = pos.split("_")[1]
-                if num not in self.pos_to_words:
-                    #self.pos_to_words[pos] = {word:1}
-                    self.pos_to_words[num] = word
-                else:
-                    poss = self.get_pos_words(sub_pos, meter)
-                    word = self.pos_to_words[num]
-                    self.pos_to_words[pos] = {w: helper.get_spacy_similarity(w, word) for w in poss}
-                    return poss
-
-            return [word]"""
         # if rhyme: return [w for w in self.get_pos_words(pos, meter=meter) if self.rhymes(w, rhyme)]
         if len(phrase) == 0 or len(phrase[0]) == 0:
             return super().get_pos_words(pos, meter=meter, rhyme=rhyme)
