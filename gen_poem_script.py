@@ -9,11 +9,11 @@ poems = []
 date = datetime.today().date()
 file = open("poems_" + str(date) + ".txt", "a")
 
-for i in range(20):
+for i in range(2):
     theme = random.choice(['love', 'death', 'forest', 'wisdom'])
     b = random.choice([5, 7])
-    k = random.choice([2, 3, 5, 7])
-    weight_repetition = random.choice([-1, -2, -3])
+    k = random.choice([3, 5, 7])
+    weight_repetition = random.choice([-1])
     #theme_threshold = random.choice([0.5, 0.75])
     print("\n\ngenerating poem", i, theme, k, b, weight_repetition)
 
