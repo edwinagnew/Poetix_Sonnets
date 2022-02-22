@@ -729,6 +729,7 @@ class Scenery_Gen(poem_core.Poem):
                     # line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
                     line = line.replace(" i ", " I ").replace("\ni", "\nI")
+                    line = helper.fix_caps(line)
 
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]

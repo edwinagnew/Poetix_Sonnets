@@ -1,7 +1,7 @@
 from datetime import datetime
 import scenery
 import random
-
+import pickle
 
 sc = scenery.Scenery_Gen()
 
@@ -22,7 +22,7 @@ for i in range(2):
     print(p)
     poems.append(p)
     file.write("\n\n" + p)
-
+    pickle.dump(poems, open("poems_" + str(date) + ".p", "wb"))
 
 file.write("\n\n".join(poems))
 print("done")
