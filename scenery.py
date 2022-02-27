@@ -729,6 +729,7 @@ class Scenery_Gen(poem_core.Poem):
                     # line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
                     line = line.replace(" i ", " I ").replace("\ni", "\nI")
+                    line = helper.fix_caps(line)
 
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
@@ -777,8 +778,8 @@ class Scenery_Gen(poem_core.Poem):
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         self.used_templates = used_templates
-        all_templates = [t[0] for t in self.templates]
-        template_indices = [all_templates.index(t) if t in all_templates else -1 for t in used_templates]
+        all_templates = [helper.remove_punc(t[0]) for t in self.templates]
+        template_indices = [all_templates.index(helper.remove_punc(t)) if helper.remove_punc(t) in all_templates else -1 for t in used_templates]
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):

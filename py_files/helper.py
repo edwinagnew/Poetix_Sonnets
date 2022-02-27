@@ -296,6 +296,10 @@ def remove_punc(s):
     return s.translate(str.maketrans('', '', punc))
 
 
+def fix_caps(x):
+    return '. '.join(map(lambda s: s.strip().capitalize(), x.split('.')))
+
+
 def get_finer_pos_words():
     return {'WHAT', 'MORE', 'EXCEPT', 'WITHOUT', 'ASIDE', 'WHY',
      'AWAY', 'OF', 'COULD', 'WHOSOEVER', 'WHENEVER', 'SHALL', 'ALBEIT',
@@ -341,4 +345,5 @@ def add_new_word(word, pos, meters):
     meter_file.close()
 
     print("added and saved", word, pos, meters)
+    print("dont forget to scp to cluster...")
 
