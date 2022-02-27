@@ -778,8 +778,8 @@ class Scenery_Gen(poem_core.Poem):
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         self.used_templates = used_templates
-        all_templates = [t[0] for t in self.templates]
-        template_indices = [all_templates.index(t) if t in all_templates else -1 for t in used_templates]
+        all_templates = [helper.remove_punc(t[0]) for t in self.templates]
+        template_indices = [all_templates.index(helper.remove_punc(t)) if helper.remove_punc(t) in all_templates else -1 for t in used_templates]
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):
