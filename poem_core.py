@@ -602,12 +602,16 @@ class Poem:
                         ("ABNN VBD AND VBD EVERY WHERE<,/.>", "01_01_0_10_10_1"),
                         ("PRPD$ JJ NN COULD VB RB WITH PRPO.", "0_10_10_1_0_1_0_1"),
                         ("PRPS VBD AN ALL JJ NN AND JJ NN.", "0_1_0_1_0_1_0_10_1")]
-            elif used_templates[-1] == "FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01": #checked 4/2/21
+            elif used_templates[-1] == "FROM JJS NNS, PRPS VBP RB": #checked 4/2/21
                 poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
                         ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
                         ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
                         ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
                         ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
+            elif used_templates[-1] == "AS THE JJ NN OF THE NNS":
+                poss = [("VB RB ON JJ AND JJ NNS", "0_10_0_1_0_10_10"),
+                        ("VBZ RB ON JJ AND JJ NNS", "0_10_0_1_0_10_10"),
+                        ("VB RB ON JJ AND JJ NN", "0_10_0_1_0_10_10")]
 
             elif used_templates[-1] in gerund_templates:
                 followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
@@ -657,7 +661,12 @@ class Poem:
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
                     ("THE NN OF NN ON A JJ N", "0_1_0_10_1_0_10_1"),
                     ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1"),
-                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01")]
+                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01"),
+                    ("WHEN ALL THE NNS OF THIS NN ARE JJ,", "0_1_0_10_1_0_1_0_1"),
+                    ("WHY VBC PRPS VBP SUCH A JJ NN?", "0_1_0_10_1_0_101_0"),
+                    ("AS THE JJ NN OF THE NNS", "0_1_01_01_0_1_01"),
+                    ("FOR ALL THE ABNN THAT DOES VB PRPO,", "0_1_0_10_1_0_1_0_1"),
+                    ("IN ABNN PRPS DO NOT VB PRPOO WITH PRPD$ NN,", "0_1_0_1_0_1_0_1_0_1")]
 
             poss = [p for p in starters if p in self.templates]
 
