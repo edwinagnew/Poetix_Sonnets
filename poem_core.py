@@ -602,12 +602,16 @@ class Poem:
                         ("ABNN VBD AND VBD EVERY WHERE<,/.>", "01_01_0_10_10_1"),
                         ("PRPD$ JJ NN COULD VB RB WITH PRPO.", "0_10_10_1_0_1_0_1"),
                         ("PRPS VBD AN ALL JJ NN AND JJ NN.", "0_1_0_1_0_1_0_10_1")]
-            elif used_templates[-1] == "FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01": #checked 4/2/21
+            elif used_templates[-1] == "FROM JJS NNS, PRPS VBP RB": #checked 4/2/21
                 poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
                         ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
                         ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
                         ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
                         ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
+            elif used_templates[-1] == "AS THE JJ NN OF THE NNS":
+                poss = [("VB RB ON JJ AND JJ NNS", "0_10_0_1_0_10_10"),
+                        ("VBZ RB ON JJ AND JJ NNS", "0_10_0_1_0_10_10"),
+                        ("VB RB ON JJ AND JJ NN", "0_10_0_1_0_10_10")]
 
             elif used_templates[-1] in gerund_templates:
                 followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
@@ -657,7 +661,12 @@ class Poem:
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
                     ("THE NN OF NN ON A JJ N", "0_1_0_10_1_0_10_1"),
                     ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1"),
-                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01")]
+                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01"),
+                    ("WHEN ALL THE NNS OF THIS NN ARE JJ,", "0_1_0_10_1_0_1_0_1"),
+                    ("WHY VBC PRPS VBP SUCH A JJ NN?", "0_1_0_10_1_0_101_0"),
+                    ("AS THE JJ NN OF THE NNS", "0_1_01_01_0_1_01"),
+                    ("FOR ALL THE ABNN THAT DOES VB PRPO,", "0_1_0_10_1_0_1_0_1"),
+                    ("IN ABNN PRPS DO NOT VB PRPOO WITH PRPD$ NN,", "0_1_0_1_0_1_0_1_0_1")]
 
             poss = [p for p in starters if p in self.templates]
 
@@ -682,112 +691,6 @@ class Poem:
 
         return t[0], t[1]
         # L- chooses punctuation between <>
-
-    def get_next_template(self, used_templates, end=""):
-        """
-        Parameters
-        ----------
-        used_templates
-        check_the_rhyme
-        end - makes sure the template could have that word at the end (but only if it starts with __)
-        Returns
-        -------
-        """
-        if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
-        poss = [p for p in self.templates if
-                used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
-        # incomplete = ",;" + string.ascii_lowercase
-        n = len(used_templates)
-        if n > 0:
-            gerund_templates = ["RB VBG VBD WHERE ALL PRPD$ JJ NNS VB,", "FOR VBG NN WITH PRPO RB,",
-                                "VBG A NN WHERE NNS VB,", "AND VBG A NN WHERE NNS VB,", "AND VBG PRPD$ NN BY PRPD$ NN,"]
-            gerund_templates = []
-            if used_templates[-1] == "FOR JJS NNS, PRPS VBP NNS":  # checked 4/2/21
-                poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
-                        ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
-                        ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
-                        ("BUT THE NN SHOULD BY NN VB", "0_1_010_1_0_1_01")]
-            elif used_templates[-1] == "BUT PRPS VBD TO PRPD$ JJ NNS":  # checked 4/2/21
-                poss = [("SO PRPS THROUGH NNS OF JJ NNS VBD.", "0_1_0_10_1_0_1_01"),
-                        ("SO TOO PRPD$ NNS VBD TO PRPD$ NN.", "0_1_0_10_1_0_1_01"),
-                        ("AND ABNN WAS A JJ AND JJ NN.", "0_10_1_0_1_0_1_01"),
-                        ("AND VBD PRPD$ NN BY PRPD$ NN<,/.>", "0_10_1_01_0_1_01"),
-                        ("SO JJ A NN OF NNS, YET PRPS VBD RB", "0_1_0_1_0_1_0_1_0_1")]
-            elif helper.remove_punc(used_templates[-1]) in "IF PRPS COULD VB THIS JJ NN OF ABNN<./,>":  # checked 4/2/21
-                poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
-                        ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
-                        ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
-                        ("SO TOO PRPD$ NNS WILL VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_0_1")]
-            elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,":  # checked 4/2/21
-                poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
-                        ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
-                        ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
-                        ("SO TOO PRPD$ NNS WILL VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_0_1")]
-            elif used_templates[-1] == "WHEN PRPS VBD THE JJ, VBD NN":  # checked 4/2/21
-                poss = [("SO TOO PRPD$ NNS VBD TO PRPD$ NN<;/.>", "0_1_0_1_01_0_1_01"),
-                        ("THE NN VBBD LIKE A NN IN THE NN<./,/;>", "0_1_01_0_1_0_1_0_1"),
-                        ("ABNN VBD AND VBD EVERY WHERE<,/.>", "01_01_0_10_10_1"),
-                        ("PRPD$ JJ NN COULD VB RB WITH PRPO.", "0_10_10_1_0_1_0_1"),
-                        ("PRPS VBD AN ALL JJ NN AND JJ NN.", "0_1_0_1_0_1_0_10_1")]
-            elif used_templates[-1] == "FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01":  # checked 4/2/21
-                poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
-                        ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
-                        ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
-                        ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
-                        ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
-
-            elif used_templates[-1] in gerund_templates:
-                followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
-                             ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
-                             ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
-                             ("PRPS VBZ TO THE NN WHERE PRPD$ NNS VB", "0_1_0_1_01_0_1_0_1")]
-                poss = list(set(followers).intersection(set(poss)))
-
-            if used_templates[-1][-1] in ".?":
-                poss = [p for p in poss if
-                        p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD",
-                                                "IN"]]
-            # elif used_templates[-1][-1] in incomplete:
-            #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
-
-            if n % 4 == 3 or n == 13:
-                # poss = [p for p in poss if p[0][-1] not in ",;" + string.ascii_uppercase]
-                poss = [(p.replace("/,", "").replace("<,/", "<"), q) for p, q in poss if p[-1] in ">."]
-                # print("last line of stanza so:", poss)
-
-            if n % 4 == 0:
-                poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND", "OR"]]
-            elif sum([int("_" in t) for t in used_templates]) > 1:
-                poss = [(p, q) for p, q in poss if "_" not in p]
-
-            if n % 4 > 1 or n == 13:
-                poss = [(p, q) for p, q in poss if "_" not in p.split()[-1]]
-
-        else:
-            # starting templates taken from google doc
-            starters = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
-                        ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
-                        ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
-                        ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
-                        ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
-                        ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01")]
-
-            poss = [p for p in starters if p in self.templates]
-
-            if len(poss) == 0: poss = starters
-
-        if len(poss) == 0:
-            print("there are no templates " + str(len(used_templates)) + used_templates[-1])
-            return 1 / 0
-            # return self.fix_template(random.choice(self.templates))
-
-        poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
-
-        if len(poss) == 0: return None, None
-        t = self.fix_template(random.choice(poss))
-        # t = self.fix_template(t[0]), t[1]
-        if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
-        return t[0], t[1]
 
     def fix_template(self, template):
         if type(template) == tuple: return self.fix_template(template[0]), template[1]
