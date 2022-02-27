@@ -345,4 +345,5 @@ def add_new_word(word, pos, meters):
     meter_file.close()
 
     print("added and saved", word, pos, meters)
+    print("dont forget to scp to cluster...")
 

@@ -9,7 +9,7 @@ poems = []
 date = datetime.today().date()
 file = open("poems_" + str(date) + ".txt", "a")
 
-for i in range(2):
+for i in range(5):
     theme = random.choice(['love', 'death', 'forest', 'wisdom'])
     b = random.choice([5, 7])
     k = random.choice([3, 5, 7])
@@ -22,7 +22,7 @@ for i in range(2):
     print(p)
     poems.append(p)
     file.write("\n\n" + p)
-    pickle.dump(poems, open("poems_" + str(date) + ".p", "wb"))
+    pickle.dump(poems, open("new_gen_poems/poems_" + str(date) + ".p", "wb"))
 
 file.write("\n\n".join(poems))
 print("done")
