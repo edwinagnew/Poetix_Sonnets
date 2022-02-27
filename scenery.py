@@ -497,7 +497,7 @@ class Scenery_Gen(poem_core.Poem):
                                                     theme_cutoff=theme_cutoff,
                                                     sum_similarity=sum_similarity, weight_repetition=False,
                                                     theme_progression=theme_progression, story=story,
-                                                    story_file=story_file,
+                                                    story_file=story_file, rep_penalty=rep_penalty,
                                                     gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False,
                                                     random_word_selection=random_word_selection)
 
