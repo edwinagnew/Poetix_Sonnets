@@ -590,7 +590,8 @@ class Poem:
                 poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
                         ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
                         ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
-                        ("SO TOO PRPD$ NNS WILL VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_0_1")]
+                        ("SO TOO PRPD$ NNS WILL VB PRPD$ NN<;/.>", "0_1_0_10_1_01_0_1"),
+                        ("SO PRPD$ NNS WILL VB PRPD$ NN<;/.>", "0_1_01_0_10_0_1")]
             elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,": #checked 4/2/21
                 poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
                         ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
@@ -657,7 +658,6 @@ class Poem:
             starters = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
                     ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
                     ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
-                    ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
                     ("THE NN OF NN ON A JJ N", "0_1_0_10_1_0_10_1"),
                     ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1"),
