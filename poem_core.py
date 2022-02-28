@@ -590,7 +590,8 @@ class Poem:
                 poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
                         ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
                         ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
-                        ("SO TOO PRPD$ NNS WILL VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_0_1")]
+                        ("SO TOO PRPD$ NNS WILL VB PRPD$ NN<;/.>", "0_1_0_10_1_01_0_1"),
+                        ("SO PRPD$ NNS WILL VB PRPD$ NN<;/.>", "0_1_01_0_10_0_1")]
             elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,": #checked 4/2/21
                 poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
                         ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
