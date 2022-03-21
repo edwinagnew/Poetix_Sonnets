@@ -257,7 +257,7 @@ class Scenery_Gen(poem_core.Poem):
 
                 self.pos_to_words[p] = {word: s for (word, s) in self.pos_to_words[p].items() if
                                         self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
-                if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
+                if verbose and False: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
                                   set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
@@ -426,7 +426,7 @@ class Scenery_Gen(poem_core.Poem):
                            theme_choice="or", theme_cutoff=0.35, sum_similarity=True, weight_repetition=0,
                            theme_progression=False, story=False, story_file="saved_objects/story_graphs/love.txt",
                            gpt_size="custom fine_tuning/twice_retrained", tense="rand", internal_rhyme=1, dynamik=False,
-                           random_word_selection=False, verb_swap=False,
+                           random_word_selection=False, verb_swap=False, rep_penalty=1,
                            b=3, b_inc=1, beam_score="token", phi_score=False):
 
         # deleted random_templates
@@ -497,7 +497,7 @@ class Scenery_Gen(poem_core.Poem):
                                                     theme_cutoff=theme_cutoff,
                                                     sum_similarity=sum_similarity, weight_repetition=False,
                                                     theme_progression=theme_progression, story=story,
-                                                    story_file=story_file,
+                                                    story_file=story_file, rep_penalty=rep_penalty,
                                                     gpt_size=gpt_size, tense=tense, internal_rhyme=0, dynamik=False,
                                                     random_word_selection=random_word_selection)
 
@@ -588,7 +588,7 @@ class Scenery_Gen(poem_core.Poem):
 
                 self.pos_to_words[p] = {word: s for (word, s) in self.pos_to_words[p].items() if
                                         self.word_embeddings.both_similarity(word, self.theme.split()) > theme_cutoff}
-                if verbose: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
+                if verbose and False: print("ended for", p, len(self.vocab_orig[p]), len(self.pos_to_words[p]),
                                   set(self.pos_to_words[p]))
         self.set_meter_pos_dict()
 
@@ -729,6 +729,7 @@ class Scenery_Gen(poem_core.Poem):
                     # line = line.replace("[EOL]", "\n")
                     if len(lines) % 4 == 0 or any(p in lines[-1][-2:] for p in ".?!"): line = line.capitalize()
                     line = line.replace(" i ", " I ").replace("\ni", "\nI")
+                    line = helper.fix_caps(line)
 
                     # check to see whether line similarity is too bad
                     similarities = [len(set.intersection(set(old_line.lower().split()), set(line.lower().split()))) for old_line in lines]
@@ -777,8 +778,8 @@ class Scenery_Gen(poem_core.Poem):
                 if last in rhymes: rhymes = [r for r in rhymes if r != last]
 
         self.used_templates = used_templates
-        all_templates = [t[0] for t in self.templates]
-        template_indices = [all_templates.index(t) if t in all_templates else -1 for t in used_templates]
+        all_templates = [helper.remove_punc(t[0]) for t in self.templates]
+        template_indices = [all_templates.index(helper.remove_punc(t)) if helper.remove_punc(t) in all_templates else -1 for t in used_templates]
         # if not verbose and len(choices) == 0: print("done")
         ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
         for cand in range(len(lines)):

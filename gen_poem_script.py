@@ -1,28 +1,28 @@
 from datetime import datetime
 import scenery
 import random
-
+import pickle
 
 sc = scenery.Scenery_Gen()
 
 poems = []
 date = datetime.today().date()
-file = open("poems_" + str(date) + ".txt", "a")
+file = open("new_gen_poems/poems_" + str(date) + ".txt", "a")
 
-for i in range(20):
+for i in range(5):
     theme = random.choice(['love', 'death', 'forest', 'wisdom'])
-    b = random.choice([5, 7])
-    k = random.choice([2, 3, 5, 7])
-    weight_repetition = random.choice([-1, -2, -3])
-    #theme_threshold = random.choice([0.5, 0.75])
-    print("\n\ngenerating poem", i, theme, k, b, weight_repetition)
+    b = random.choice([5, 7, 9])
+    k = random.choice([3, 5, 7])
+    #weight_repetition = random.choice([-1])
+    weight_pen = random.choice([1.5, 2, 3])
+    print("\n\ngenerating poem", i, theme, k, b, weight_pen)
 
-    p = sc.write_poem_revised(theme, verbose=False, b=b, k=k, theme_lines="stanza", weight_repetition=weight_repetition)
+    p = sc.write_poem_revised(theme, verbose=False, b=b, k=k, theme_lines="stanza", rep_penalty=weight_pen)
 
     print(p)
     poems.append(p)
     file.write("\n\n" + p)
-
+    pickle.dump(poems, open("new_gen_poems/poems_" + str(date) + ".p", "wb"))
 
 file.write("\n\n".join(poems))
 print("done")
