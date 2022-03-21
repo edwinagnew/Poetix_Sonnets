@@ -321,7 +321,8 @@ def get_finer_pos_words():
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
      'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "AM", "ARE", "OH",
-    "EVEN", "DO", "DOES", "BE", "OFT", "TOO", "ANOTHER", "IT", "WAS", "EVERYWHERE"}
+     "EVEN", "DO", "DOES", "BE", "OFT", "TOO", "ANOTHER", "IT", "WAS", "EVERYWHERE",
+     "TAKE", "CARE"}
 
 
 def add_new_word(word, pos, meters):
