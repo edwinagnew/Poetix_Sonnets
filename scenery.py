@@ -459,7 +459,7 @@ class Scenery_Gen(poem_core.Poem):
 
             if b > 1:
                 self.beam_manager = gpt_revised.BeamManager(gpt_size, self.gpt.tokenizer, sonnet_object=self,
-                                                            verbose=verbose, weight_repetition=weight_repetition)
+                                                            verbose=verbose, weight_repetition=weight_repetition, rep_penalty=rep_penalty)
 
         self.reset_gender()
 
@@ -781,7 +781,7 @@ class Scenery_Gen(poem_core.Poem):
         all_templates = [helper.remove_punc(t[0]) for t in self.templates]
         template_indices = [all_templates.index(helper.remove_punc(t)) if helper.remove_punc(t) in all_templates else -1 for t in used_templates]
         # if not verbose and len(choices) == 0: print("done")
-        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + "\n") if theme else ""
+        ret = ("         ---" + theme.upper() + "---       , k=" + str(k) + ", b=" + str(b) + ", rep=" + str(rep_penalty) + "\n") if theme else ""
         for cand in range(len(lines)):
             ret += "(" + str(template_indices[cand]) + ")\t" + str(lines[cand])
             if (cand + 1) % 4 == 0: ret += "\n"
