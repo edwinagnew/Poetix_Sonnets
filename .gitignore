@@ -1,4 +1,5 @@
 __pycache__/
+py_files/__pycache__/
 *.pyc
 saved_rhyme*
 pp_maker.py
@@ -6,3 +7,17 @@ heros_journey_words.p
 *.DS_Store
 .idea/
 theme_words.p
+extra_adjs.p
+word_corpus/
+*.yaml
+saved_objects/glove/
+local_*
+py_files/.ipynb_checkpoints/
+saved_objects/fasttext/wiki-news-300d-1M.vec
+saved_objects/fasttext/
+test.py
+retrained_model/
+fine_tuning/
+saved_sample_poems.p
+.ipynb_checkpoints/*
+*/ipynb_checkpoints/*

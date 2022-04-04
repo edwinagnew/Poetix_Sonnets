@@ -1,0 +1,19 @@
+0,3
+love=NN=FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01
+someone=NN=FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01
+beloved=NN=FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01
+heartbroken=JJ=FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01
+alone=JJ=FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01
+abandoned=JJ=FROM JJS NNS, PRPS VBP RB 0_10_10_1_01_01
+0=1=adores
+0=4=abandoned
+3=4=feels
+3=1=meets
+1=2=enjoys
+1=5=becomes
+4=2=desires
+4=5=deserted
+2=0=experiences
+2=3=rejects
+5=0=finds
+5=3=feels

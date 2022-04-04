@@ -1,0 +1,9 @@
+admit NN
+dolly RB
+greeks NNS
+warm NN
+hid VB
+snow JJ
+hers NNS
+bless NN
+evaporates NNS

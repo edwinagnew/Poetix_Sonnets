@@ -1,0 +1,259 @@
+abodes  01
+absolve resolve 
+abstruser NN 010
+accords NN 
+accurs NN 01
+accustom 010 
+adjuration  1010
+affluence affluent 
+affronted VBD 
+anchorite NN 11
+anon NN 11
+anteros NN 11
+apocalypse 0101 
+apprize VB 01
+arcadian 11 
+arimanes NN 11
+astarte NN 11
+atoned VBD 01
+aught NN 
+augustan JJ 010
+avalanches NNS 
+avaunt NN 11
+avouch NN 11
+aweary JJ 010
+ay NN 
+barkless JJ 10
+barrenness NN 100
+begirt NN 11
+begone UH 01
+belov NN 
+bernese NN 11
+beshrew VB 01
+bestrode VB 
+bethink VB 01
+bitumen NN 
+blesseth JJ 10
+bodiless JJ 100
+boilingly JJ 101
+borest NN 10
+bowshot NN 11
+braced VBD 
+branchless JJ 10
+breatheth VBZ 10
+burthen NN 11
+byzantine 101 
+canst NN 11
+carcases  11
+carnation NN 
+carousing VBG 
+castled VBG 10
+cataract NN 
+chaldean NN 11
+chamois NN 11
+chiefest JJS 10
+churlish JJ 
+clankless JJ 10
+cleaving  10
+coloseum NN 11
+cometh VBZ 
+communest NN 100
+convulsed  01
+couldst NN 11
+courser coarser 
+crags NNS 1
+croesus N 11
+curs NNS 1
+cypresses NNS 100
+damming damning 
+decking VBG 
+dependants NNS 010
+desart NN 11
+didst  11
+distemper NN 
+distil VB 
+dominators NNS 1010
+dost NN 
+dramatis NN 010
+dst NN 11
+eaglets NNS 10
+earthless JJ 10
+eigher NN 11
+endor NN 11
+endurable  0100
+enlightener NN 0100
+enthrall VB 01
+epochs NNS 
+erwhelming NN 11
+evocators NNS 1010
+exorcise VB 101
+exulted VBD 
+faintness NN 
+feebleness  100
+festal  10
+forbears VBZ 01
+forgetfulness  0100
+freeborn JJ, NN 
+fretwork NN 11
+fulness  10
+furies  10
+gadara NN 11
+gazeth VB 10
+gilds NNS 1
+girded VBD 00
+glacier NN 
+gnash VB 
+graven JJ 
+griefs NNS 1
+guiltless JJ 
+gulfs NNS 
+gusty JJ 
+healthful JJ 
+hearths NNS 
+heaves VBZ 
+herbless JJ 10
+hereabouts JJ 
+herman NN 
+holdest VB 10
+honours  10
+hooting VBG 00
+humbleness NN 100
+imperishable JJ 01000
+inborn JJ 
+incantation NN 
+increaseth VBZ 110
+interruptedly RB 10101
+jocund NN 11
+jove NN 1
+jungfrau NN 11
+kalon NN 11
+l 11 
+leagued VBD 1
+levell 11 
+liest NN 11
+lightnings lightning 
+lineaments  quit
+liveth VB 10
+ll  11
+lov NN 11
+lovelier  100
+loveliness  100
+lovest VBP 10
+lt NN 11
+magi NN 
+magian NN 11
+manfred NN 
+manuel NN 
+mastereth VBP 100
+maurice NN 
+mayst NN 1
+momently RB 100
+mont NN 
+morass NN 
+morn NN 
+motliest NN 11
+moveth VBP 10
+ning NN 
+nought NN 11
+o NN 
+officious  010
+openest JJS 100
+orisons NNS 010
+outlive VB, VBP 
+outstaid VBD 01
+outwatch VB, VBP 01
+overruling VBG 
+parley NN 
+partaken VBN 010
+pathless JJ 10
+penitence  100
+personae NN 
+phantasy NN 100
+phigalia NN 11
+phyxian NN 11
+pierces  10
+pitiless 100 
+predominates 0101 
+promethean JJ 0100
+quitted  10
+recede VB, VBJ 
+reck NN 
+recoils recoil 
+recreant NN 11
+rejectest NN 11
+rend NN 1
+reproachfully  0100
+requital NN, 010
+reveller NN 
+rosenberg NN 
+s NN 
+saith VB, VBP 10
+sauntering  100
+sceptred NN 11
+schoolman NN 10
+seeketh VB, VBP 10
+seest  11
+senates NNS 10
+sepulchre NN 11
+sheeted VBD 10
+shin NN 
+sigismund NN 11
+simoom NN 11
+sinn NN 
+sire VB, VBP 
+slumbers VBZ 10
+soaringly RB 100
+sooth NN 1
+speaketh VB, VBP 10
+spurn VB, VBP 
+st  11
+stanch VB 
+stirrer NN 10
+strew VBD 
+stripp NN 11
+striven VBD 
+sufferance  100
+sullenly  100
+sulphury NN 11
+sunbeams NNS 11
+sunbow NN 11
+surer RBR 
+t NN 
+temperest NN 11
+throb VB 
+thyself PRP$ 
+tiber NN 
+torpor NN 
+travail VB 
+tuneless JJ 10
+twere NN 11
+twines VBZ 1
+unbidden JJ 010
+uncharnel NN 11
+undiseased JJ 101
+unfathom NN 11
+unheavenly JJ 0100
+unimpair VB 011
+unpardon VB 010
+unquiet  010
+unslaked NN 11
+unsleeping VBG 010
+untaught VBD 01
+urns NNS 1
+usurper  110
+usurps VBZ 
+vales NNS 
+viewless JJ 11
+vigils vigil 
+villager NN 
+watchdog NN 
+watchings  10
+wert NN 
+whatsoe NN 11
+wherefore NN 11
+whereof  11
+withholds withhold 
+whate NN 
+worest NN 11
+wouldst NN 11
+wrapt NN 11

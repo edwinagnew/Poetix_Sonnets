@@ -1,0 +1,39 @@
+#Epizeuxis
+VB_a, VB_a THE NN OF PRPD$ NN<./!/;/,> 1_1_0_10_1_0_101
+OH NN_a, NN_a, NN_a<./!/;/,> 0_101_101_101
+NN_a, NN_a, NN_a IN THE NNS<./!/;/,> 01_01_01_0_1_01
+JJ_a, JJ_a, JJ_a IN THE JJ NN<./!/;/,> 01_01_01_0_1_0_1
+#Ploce:
+AND PRPS_a, EVEN PRPS_a, VBP TO THE NN. 0_1_01_1_1_0_1_01
+THE NN_a, THE NN_a PRPS VBZ, VBG RB. 0_1_0_1_0_1_010_1
+LIKE NN_a TO NN_a, NN_b TO NN_b, NN_c TO NN_c<,/./;> 0_1_0_1_0_1_0_1_0_1
+NN_a TO NN_a, NN_b TO NN_b, NN_c AGAINST NN_c. 0_1_0_1_0_1_1_10_1
+#Polysyndeton:
+PRPS VBD THE NN AND VBD AND VBD AND VBD<,/./;> 0_1_0_1_0_1_0_1_0_1
+PRPS VBD THE NN AND VBD AND VBD RB<,/./;> 0_1_0_1_0_1_0_1_01
+#Epistrophe:
+A JJ NN_a, A JJ NN_a, A JJ NN_a. 0_1_0_1_0_1_0_10_1
+A JJ NN_a, A JJ NN_a, A VBD NN_a. 0_1_0_1_0_1_0_10_1
+VB PRPO JJ_a NNS_b, AND PRPS WILL VB JJ_a NNS_b. 0_1_0_1_0_1_0_1_0_1
+VB_a A JJ_b NN_c, VB_a A JJ_b NN_c. 01_0_1_0_01_1_1_1
+#Symploce:
+WHEN PRPS_a WAS A NN_b, PRPS_a VBP AS A NN_b. 0_1_0_1_0_1_0_1_0_1
+PRPS_a VBP NN_b, SO PRPS_a VBP LIKE A NN_b. 0_1_0_1_0_10_1_0_1
+#Epanalepsis:
+THE NNS_a ARE JJ AND JJ ARE THE NNS_a<./;> 0_1_0_1_0_10_1_0_1
+VB_a NN THAT NN MAY VB_a. 01_0_1_010_1_01
+#Anadiplosis:
+THE NNS ARE JJ_a AND JJ_a TOO ARE THE NNS. 0_1_0_1_0_1_0_1_0_1
+WHEN PRPS VBP_a, VBP_a WITH PRPD$ JJ NN. 0_1_0_1_0_1_0_101
+JJ IS THE ABNN_a IF THE ABNN_a IS JUST NN. 0_1_0_1_0_1_1_1_0_1
+VB THE NN_a IF THE NN_a IS ONLY NN. 0_1_1_1_0_1_0_10_1
+DO NOT VB_a TO VB_b, VB_b TO VB_a. 0_1_01_0_1_1_1_01
+#Antimetabole:
+NN_a IS NN_b, NN_b IS NN_a. 01_0_10_10_1_01
+JJ_a IS NN_b AND NN_b JJ_a. 01_0_10_1_10_01
+RB_a IS THIS NN_b, FOR NN_b IS RB_a. 01_0_1_0_1_0_1_01
+#Isocolon:
+IN THE NN, IN THE NN, ABOUT THE NNS. 0_1_0_1_0_1_01_0_1
+VB THE NN, VB THE NN, VB THE NN. 0_1_0_1_0_1_01_0_1
+#Chiasmus:
+WHEN PRPS_a VBZ_b RB_c, THE RB_c VBZ_b PRPS_a. 0_1_01_0_1_0_01_1
