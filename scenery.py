@@ -86,59 +86,6 @@ class Scenery_Gen(poem_core.Poem):
             ret = [ret[i] for i in range(len(ret)) if self.phrase_in_poem_fast(phrases[i], include_syns=True)]
             return ret
 
-    # @override
-    def last_word_dict(self, rhyme_dict):
-        """
-        Given the rhyme sets, extract all possible last words from the rhyme set
-        dictionaries.
-
-        Parameters
-        ----------
-        rhyme_dict: dictionary
-            Format is   {'A': {tone1 : {similar word: [rhyming words], similar word: [rhyming words], etc.}}, {tone2:{...}}},
-                        'B': {tone1 : {similar word: [rhyming words], similar word: [rhyming words], etc.}}, {tone2:{...}}}
-                        etc
-        Returns
-        -------
-        dictionary
-            Format is {1: ['apple', 'orange'], 2: ['apple', orange] ... }
-
-        """
-        scheme = {1: 'A', 2: 'B', 3: 'A', 4: 'B'}
-        last_word_dict = {}
-
-        first_rhymes = []
-        for i in range(1, len(scheme) + 1):
-            if i in [1, 2]:  # lines with a new rhyme -> pick a random key
-                last_word_dict[i] = [random.choice(
-                    list(rhyme_dict[scheme[i]].keys()))]  # NB ensure it doesnt pick the same as another one
-                j = 0
-                while not self.suitable_last_word(last_word_dict[i][0], i - 1) or last_word_dict[i][0] in first_rhymes:
-                    # or any(rhyme_dict['A'][last_word_dict[i][0]] in rhyme_dict['A'][word] for word in first_rhymes):
-                    last_word_dict[i] = [random.choice(list(rhyme_dict[scheme[i]].keys()))]
-                    if not any(self.templates[i - 1][1].split("_")[-1] in self.dict_meters[w] for w in
-                               rhyme_dict[scheme[i]]):
-                        word = last_word_dict[i][0]
-                        if self.templates[i - 1][0].split()[-1] in self.get_word_pos(word) and len(
-                                self.dict_meters[word][0]) == len(self.templates[i - 1][1].split("_")[-1]) and any(
-                            self.suitable_last_word(r, i + 1) for r in rhyme_dict[scheme[i]][word]):
-                            self.dict_meters[word].append(self.templates[i - 1][1].split("_")[-1])
-
-                            print("cheated with ", word, " ", self.dict_meters[word],
-                                  self.suitable_last_word(word, i - 1))
-                    j += 1
-                    if j > len(rhyme_dict[scheme[i]]) * 2: input(str(scheme[i]) + " " + str(rhyme_dict[scheme[i]]))
-                first_rhymes.append(last_word_dict[i][0])
-
-            if i in [3, 4]:  # lines with an old rhyme -> pick a random value corresponding to key of rhyming couplet
-                letter = scheme[i]
-                pair = last_word_dict[i - 2][0]
-                last_word_dict[i] = [word for word in rhyme_dict[letter][pair] if self.suitable_last_word(word, i - 1)]
-                if len(last_word_dict[i]) == 0:
-                    print("fuck me", last_word_dict, i, self.templates[i])
-                    print(1 / 0)
-        return last_word_dict
-
     # @ovveride
     def suitable_last_word(self, word, line):
         pos = self.templates[line][0].split()[-1].split("sc")[-1]
@@ -416,10 +363,6 @@ class Scenery_Gen(poem_core.Poem):
         self.pos_to_words = self.vocab_orig.copy()
 
         return ret
-
-    def write_poem_test(self, theme, k=3, gpt="gpt2"):
-        return self.write_poem_revised(theme=theme, k=k, verbose=True, alliteration=0, internal_rhyme=0,
-                                       rhyme_lines=True, no_meter=False, gpt_size=gpt, weight_repetition=False)
 
     def write_poem_revised(self, theme="love", verbose=False, rhyme_lines=True, all_verbs=False,
                            theme_lines=0, k=1, alliteration=1, theme_threshold=0.5, no_meter=False,
@@ -847,13 +790,6 @@ class Scenery_Gen(poem_core.Poem):
                             if a + 1 >= 1 and a + 1 < len(p_words): self.surrounding_words[word].add(p_words[a + 1])
             return self.phrase_in_poem_fast(words, include_syns=False)
 
-    def get_backup_words(self, pos, meter, words_file="saved_objects/tagged_words.p"):
-        if not self.backup_words:
-            pc = poem_core.Poem()
-            self.backup_words = pc.get_pos_words
-
-        return [p for p in self.backup_words(pos) if meter in self.get_meter(p)]
-
     def close_adv(self, input, num=5, model_topn=50):
         if type(input) == str:
             positive = input.split() + ['happily']
@@ -1078,15 +1014,6 @@ class Scenery_Gen(poem_core.Poem):
 
         return ret
 
-    def filter_for_rhyme_count(self, words, rhyme_count=5):
-        "Takes a list of words, filters out the words which have less than five rhymes"
-
-        words_with_rhymes = []
-        for word in words:
-            if len(self.get_rhymes(word)) > rhyme_count:
-                return
-        return
-
     def print_beam_history(self, lines=range(14)):
         """
         Prints the beam history of the most recent poem
@@ -1118,22 +1045,6 @@ class Scenery_Gen(poem_core.Poem):
                               "(" + str(round(score, 4)), end="), ")
 
                     print("")
-
-    def get_all_verb_swaps(self, orig_line, template, rhyme=None, verbose=False):
-
-        vb_idxs = [i for i in range(len(template)) if "VB" in template[i]]
-        vb_pos = [template[i] for i in vb_idxs]
-
-        all_poss_verbs = [self.get_pos_words(vb) for vb in vb_pos]
-        if rhyme is not None and "VB" in template[-1]:
-            all_poss_verbs[-1] = self.get_pos_words(template[-1], rhyme=rhyme)
-
-        all_poss_lines = self.get_poss_lines(all_poss_verbs, orig_line, vb_idxs)
-
-        if verbose:
-            print(len(vb_idxs), "verbs gives", len(all_poss_lines), "sentences")
-
-        return [p[0] for p in all_poss_lines]
 
     def get_top_verb_swaps(self, orig_line, template, rhyme=None, verbose=False):
 

@@ -179,19 +179,6 @@ class Poem:
         self.pos_to_words = temp
         return words
 
-    def can_rhyme(self, pair1, pair2):
-        """
-        pair1 - (pos, meter)
-        pair2 - (pos, meter)
-
-        Returns - whether it is possible the two words to rhyme
-        """
-        if not pair1 or not pair2 or not any(pair1) or not any(pair2): return False
-        set1 = set(self.get_pos_words(pair1[0], pair1[1]))
-        set2 = set(self.get_pos_words(pair2[0], pair2[1]))
-        return any(r1 in set2 for w1 in set1 for r1 in self.get_rhyme_words(w1)) or any(
-            r2 in set1 for w2 in set2 for r2 in self.get_rhyme_words(w2))
-
     def rhymes(self, word1, word2, check_cmu=False):
         if not word1 or not word2: return False
         if word1[-1] in ".,?!>": word1 = word1.translate(str.maketrans('', '', string.punctuation))
@@ -910,8 +897,6 @@ class Poem:
                 return None
             return poss_meters
 
-
-
     def get_poss_meters_forward_rhet(self, template, meter, rhet_dict,
                                 rhyme_meters=None):  # template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
         """
@@ -968,17 +953,6 @@ class Poem:
             if len(poss_meters) == 0:
                 return None
             return poss_meters
-
-    def get_poss_words_no_pos(self, meter_list):
-
-        all_words = []
-
-        for meter in meter_list:
-            poss_pos = [key[1] for key in self.meter_and_pos.keys() if len(self.meter_and_pos[key]) > 0 and key[0] == meter]
-            for pos in poss_pos:
-                all_words += self.meter_and_pos[(meter,pos)]
-
-        return all_words
 
     def write_line_gpt_no_template(self, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
         if not self.gpt:
