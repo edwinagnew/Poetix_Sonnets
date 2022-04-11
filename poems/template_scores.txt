@@ -1,4 +1,0 @@
-number      template                      meter       rating  comment
-
-7	AND RB NN TO THE NN NN	0_10_10_1_0_10_1	1	4
-2	BUT AS THE NN SHOULD BY NN VB	0_1_0_10_1_0_1_01	4
