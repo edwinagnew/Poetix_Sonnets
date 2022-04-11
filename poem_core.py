@@ -6,18 +6,19 @@ import numpy as np
 
 import string
 import pronouncing
-# import gpt_2_gen
 
 from os import path
 
 
+
 class Poem:
     def __init__(self, words_file="saved_objects/tagged_words.p",
-                 templates_file=('poems/jordan_templates.txt', "poems/rhetorical_templates.txt"),
+                 templates_file=('poems/templates_basic.txt', "poems/rhetorical_templates.txt"),
                  syllables_file='saved_objects/cmudict-0.7b.txt',
                  extra_stress_file='saved_objects/edwins_extra_stresses.txt',
                  top_file='saved_objects/words/top_words.txt',
-                 mistakes_file=None):
+                 mistakes_file=None, tense=None):
+
         while mistakes_file and not path.exists(mistakes_file): mistakes_file = input(
             mistakes_file + "does not exist on your laptop, please enter your path now and/or when creating a poem object or change the code (ask edwin): ")
         keep_scores = False  # "byron" in words_file
@@ -26,18 +27,34 @@ class Poem:
         self.backup_words = None
         if "byron" in words_file:
             self.backup_words, _ = helper.get_new_pos_dict('saved_objects/tagged_words.p')
+            for pos in self.backup_words:
+                if pos not in self.pos_to_words:
+                    self.pos_to_words[pos] = self.backup_words[pos]
+                    for word in self.backup_words[pos]:
+                        if word not in self.words_to_pos:
+                            self.words_to_pos[word] = []
+                        self.words_to_pos[word].append(pos)
+
         if type(templates_file) == str: templates_file = [templates_file]
         self.templates = []
         for t in templates_file:
             try:
-                with open(t) as tf:
-                    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
-                                       "#" not in line and len(line) > 1]
+                #with open(t) as tf:
+                #    self.templates += [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                #                       "#" not in line and len(line) > 1]
+                self.templates += self.get_templates_from_file(t)
             except:
-                print(t, " does not exist so reading from poems/jordan_templates.txt instead")
-                with open("poems/jordan_templates.txt") as tf:
+                print(t, " does not exist so reading from poems/templates_basic.txt instead")
+                with open("poems/templates_basic.txt") as tf:
                     self.templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
                                       "#" not in line and len(line) > 1]
+
+        self.all_templates_dict = {}
+        for file in ["templates_present", "templates_past", "templates_future", "templates_basic"]:
+            file_path = "poems/" + file + ".txt"
+            f = open(file_path, "r")
+            for line in f.readlines():
+                self.all_templates_dict[" ".join(line.split()[:-1])] = line.split()[-1]
 
         self.special_words = helper.get_finer_pos_words()
 
@@ -47,7 +64,7 @@ class Poem:
                      w.split()[0].lower().split("(")[0] in self.words_to_pos}
 
         with open(top_file) as tf:
-            self.top_common_words = [line.strip() for line in tf.readlines()][:125]
+            self.top_common_words = [line.strip() for line in tf.readlines()]#[:125]
 
         places = open("saved_objects/words/places.txt").readlines()
         self.pos_to_words["PLC"] = {p.strip(): 1 for p in places}
@@ -80,14 +97,23 @@ class Poem:
         self.gpt = None
         self.gpt_past = ""
 
+        self.tense = tense
+
+        self.save_poems = False
+
+        self.prev_rhyme = None
+
     def get_meter(self, word):
+        word = word.strip().replace(" ", "_")
         if not word or len(word) == 0: return [""]
         if word[-1] in ".,?;":
             return self.get_meter(word[:-1])
         elif word[-1] == ">":
             return self.get_meter(word.split("<")[0])
+
         if word not in self.dict_meters: return []
-        if len(self.dict_meters[word][0]) == 1: return ["0", "1"]
+
+        if any(len(j) == 1 for j in self.dict_meters[word]): return list(set(["0", "1"] + self.dict_meters[word]))
         return self.dict_meters[word]
 
     def get_word_pos(self, word):
@@ -95,7 +121,7 @@ class Poem:
         Get the set of POS category of a word. If we are unable to get the category, return None.
         """
         # Special case
-        word = helper.remove_punc(word)
+        word = helper.remove_punc(word).strip().replace(" ", "_")
         if word.upper() in self.special_words:
             return [word.upper()] + (self.words_to_pos[word] if word in self.words_to_pos else [])
         if word not in self.words_to_pos:
@@ -124,18 +150,26 @@ class Poem:
             return [pos.lower()]
         if meter and type(meter) == str:
             meter = [meter]
-        #if meter and len(meter) == 1: meter = ["0", "1"]
-        if "PRP" in pos and "_" not in pos and meter:
-            ret = [p for p in self.pos_to_words[pos] if p in self.gender and any(q in meter for q in self.get_meter(p))]
-            # if len(ret) == 0: ret = [input("PRP not happening " + pos + " '" + meter + "' " + str(self.gender) + str([self.dict_meters[p] for p in self.gender]))]
-            # if len(ret) == 0: return [p for p in self.pos_to_words[pos] if any(m in self.get_meter(p) for m in meter)]
+
+        if "PRP" in pos and "_" not in pos:
+            if pos == "PRPOO":
+                #print("here", self.pos_to_words['PRPO'], self.gender)
+                ret = [p for p in self.pos_to_words["PRPO"] if p not in self.gender] #PRPOO gets different pronouns
+            else:
+                ret = [p for p in self.pos_to_words[pos] if p in self.gender]
+            if meter:
+                ret = [r for r in ret if any(q in meter for q in self.get_meter(r))]
             return ret
         elif pos not in self.pos_to_words:
             return []
+
+        if pos not in self.pos_to_words:
+            return self.get_backup_pos_words(pos=pos, meter=meter, rhyme=rhyme)
+
         if meter:
-            ret = [word for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
+            ret = [word.replace("_", " ") for word in self.pos_to_words[pos] if any(m in self.get_meter(word) for m in meter)]
             return ret
-        return [p for p in self.pos_to_words[pos]]
+        return [p.replace("_", " ") for p in self.pos_to_words[pos]]
 
     def get_backup_pos_words(self, pos, meter=None, rhyme=None):
         if not self.backup_words: return []
@@ -162,6 +196,8 @@ class Poem:
         if not word1 or not word2: return False
         if word1[-1] in ".,?!>": word1 = word1.translate(str.maketrans('', '', string.punctuation))
         if word2[-1] in ".,?!>": word2 = word2.translate(str.maketrans('', '', string.punctuation))
+        if word1 == word2: return False
+        if self.prev_rhyme is not None and word1 in self.get_rhyme_words(self.prev_rhyme): return False
         if word1 in self.get_rhyme_words(word2) or word2 in self.get_rhyme_words(word1): return True
         if not check_cmu: return False
 
@@ -187,7 +223,7 @@ class Poem:
         if word[-1] in string.punctuation:
             word = word.translate(str.maketrans('', '', string.punctuation))
             return self.get_rhyme_words(word)
-        return pronouncing.rhymes(word)
+        return [w for w in pronouncing.rhymes(word) if w in self.words_to_pos]
 
     def weighted_choice(self, pos, meter=None, rhyme=None):
         punc = ".,;?!"
@@ -209,7 +245,7 @@ class Poem:
             self.pos_to_words[pos][word] /= 2
             return word
 
-    def getRhymes(self, theme, words):
+    def get_rhymes(self, theme, words):
         """
         :param theme: an array of either [prompt] or [prompt, line_theme] to find similar words to. JUST PROMPT FOR NOW
         :return: all words which rhyme with similar words to the theme in format {similar word: [rhyming words], similar word: [rhyming words], etc.}
@@ -293,19 +329,20 @@ class Poem:
     def suitable_last_word(self, word, punc=False):  # checks pos is in self.end_pos and has correct possible meters
         if punc: return self.suitable_last_word(word + ".") or self.suitable_last_word(word + "?")
         return any(w in self.end_pos for w in self.get_word_pos(word)) and any(
-            t in self.end_pos[pos] for t in self.dict_meters[word] for pos in self.get_word_pos(word) if
+            t in self.end_pos[pos] for t in self.get_meter(word) for pos in self.get_word_pos(word) if
             pos in self.end_pos)
 
-    def write_line_gpt(self, template=None, meter=None, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
-                       all_verbs=False, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
+    def write_line_gpt(self, template=None, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True,
+                       all_verbs=False, verbose=False, alliteration=None, internal_rhymes=[], theme_words=[], theme_threshold=0.5):
         if not self.gpt:
             # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
             self.gpt = gpt_model
             if not gpt_model: print("need a gpt model", 1 / 0)
 
-        if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs,
+        if n > 1: return [self.write_line_gpt(template, meter, rhyme_word, flex_meter=flex_meter, all_verbs=all_verbs, internal_rhymes=internal_rhymes,
                                               verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold) for _ in range(n)]
 
+        if not meter: flex_meter = False
         if template is None: template, meter = random.choice(self.templates)
 
         #template = self.fix_template(template)
@@ -322,20 +359,16 @@ class Poem:
                     r = set(self.get_meter(rhyme_word.strip("__")))
                 else:
                     rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
+
                     r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
                              x in self.get_meter(w)]) if rhyme_word else None
-                    if len(r) == 0 or len(rhyme_words) == 0:
+                    if (meter and len(r) == 0) or len(rhyme_words) == 0:
                         if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words, r)
                         return None
             else:
                 r = None
 
             if "_" in base_template:
-                """
-                meter_dict = {}
-                for m in meter.split("_")[::-1]:
-                    meter_dict = {m: meter_dict.copy()}
-                """
                 meter_dict = self.get_poss_meters_forward_rhet(base_template, "".join(meter.split("_")), {}, r)
 
             else:
@@ -346,17 +379,57 @@ class Poem:
             if verbose: print("writing flexible line", template, meter_dict, rhyme_word)
 
             return self.gpt.generation_flex_meter(template.split(), meter_dict, seed=self.gpt_past,
-                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, internal_rhymes=internal_rhymes,
+                                                  theme_words=theme_words, theme_threshold=theme_threshold)
 
         else:
             if verbose: print("writing line", template, meter)
             # if n > 1: return [self.gpt.good_generation(template=template.split(), meter=meter.split("_"), rhyme_word=rhyme_word, verbose=verbose) for i in range(n)]
 
-            return self.gpt.good_generation(seed=self.gpt_past, template=template.split(), meter=meter.split("_"),
-                                            rhyme_word=rhyme_word, verbose=verbose)
+            rhyme_pos = helper.remove_punc(template.split()[-1]).split("_")[-1]
+            rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
+
+            if rhyme_words is not None and len(rhyme_words) == 0:
+                if verbose: print("couldn't get a rhyme here:", template, rhyme_word, rhyme_words)
+                return None
+            print("my rhymes are", rhyme_words)
+            print("the rhyme pos i found was", rhyme_pos)
+            print("this is for the rhyme word", rhyme_word)
+            return self.gpt.generation_flex_meter(template.split(), meter_dict={}, seed=self.gpt_past, internal_rhymes=internal_rhymes,
+                                                  rhyme_word=rhyme_word, verbose=verbose, alliteration=alliteration, theme_words=theme_words, theme_threshold=theme_threshold)
+
+
+    def get_meter_dict(self, template, meter, rhyme_word=None, verbose=False):
+
+        base_template = template.replace("*VB", "VB").replace("sc", "")
+        self.check_template(base_template, meter)
+        rhyme_pos = helper.remove_punc(template.split()[-1]).split("_")[-1]
+        # if "_" in rhyme_pos
+        if rhyme_word:
+
+            rhyme_words = self.get_pos_words(rhyme_pos, rhyme=rhyme_word) if type(rhyme_word) == str else rhyme_word
+
+            r = set([x for x in ["1", "01", "101", "0101", "10101"] for w in rhyme_words if
+                     x in self.get_meter(w)]) if rhyme_word else None
+            if (meter and len(r) == 0) or len(rhyme_words) == 0:
+                if verbose: print("couldn't get a rhyme here:", template, rhyme_pos, rhyme_word, rhyme_words, r)
+                return None
+        else:
+            r = None
+
+        if "_" in base_template:
+            meter_dict = self.get_poss_meters_forward_rhet(base_template, "".join(meter.split("_")), {}, r)
+
+        else:
+            meter_dict = self.get_poss_meters_forward(base_template, "01" * 5, r)
+        if not meter_dict:
+            if verbose: print("couldn't get a meter_dict:", template, rhyme_word)
+            return None
+
+        return meter_dict
 
     def write_line_random(self, template=None, meter=None, rhyme_word=None, n=1, verbose=False):
-        if template is None: template, meter = random.choice(self.templates)
+        if template is None: template, meter = random.choice([t for t in self.templates if "_" not in t[0]])
         #template = self.fix_template(template)
 
         if n > 1: return [self.write_line_random(template, meter, rhyme_word) for i in range(n)]
@@ -395,11 +468,18 @@ class Poem:
             if "_" in pos:  # or pos in "0123456789"
                 del self.pos_to_words[pos]
 
-    def reset_gender(self):
-        self.gender = random.choice(
-            [["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"], ["he", "him", "his", "himself"],
+    def reset_gender(self, choice=None):
+        pronouns = [["i", "me", "my", "mine", "myself"], ["you", "your", "yours", "yourself"], ["he", "him", "his", "himself"],
              ["she", "her", "hers", "herself"], ["we", "us", "our", "ours", "ourselves"],
-             ["they", "them", "their", "theirs", "themselves"]])
+             ["they", "them", "their", "theirs", "themselves"]]
+
+        if choice is None:
+            self.gender = random.choice(pronouns)
+        elif choice == "all":
+            #self.gender = [p for p in sub_list for sub_list in pronouns]
+            self.gender = [p for sub_list in pronouns for p in sub_list]
+        else:
+            raise ValueError("not implemented")
 
         g = random.choice(["male", "female"])
         if "he" in self.gender:
@@ -407,7 +487,7 @@ class Poem:
         elif "she" in self.gender:
             g = "female"
 
-        self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
+        #self.pos_to_words["NAM"] = {n: 1 for n in self.all_names[g]}
 
         self.reset_meter_pos_dict()
 
@@ -418,11 +498,11 @@ class Poem:
             for meter in self.possible_meters:
                 if "PRP" in pos:
                     self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                        word in self.dict_meters and meter in self.dict_meters[
-                                                            word] and word in self.gender]
+                                                        word in self.dict_meters and meter in self.get_meter(word)
+                                                        and word in self.gender]
                 else:
                     self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                        word in self.dict_meters and meter in self.dict_meters[word]]
+                                                        word in self.dict_meters and meter in self.get_meter(word)]
         for word in self.special_words:
             if word in self.dict_meters:
                 meter = self.dict_meters[word]
@@ -436,31 +516,39 @@ class Poem:
                 self.meter_and_pos[("0", pos)] = list(set(self.meter_and_pos[("0", pos)]))
             if meter == "0":
                 self.meter_and_pos[("1", pos)] += self.meter_and_pos[(meter,pos)]
-                self.meter_and_pos[("1", pos)] = list(set(self.meter_and_pos[("0", pos)]))
+                self.meter_and_pos[("1", pos)] = list(set(self.meter_and_pos[("1", pos)]))
 
     def reset_meter_pos_dict(self):
         possible_pos = [item for item in list(self.pos_to_words.keys()) if "PRP" in item]
         for pos in possible_pos:
             for meter in self.possible_meters:
                 self.meter_and_pos[(meter, pos)] = [word for word in self.pos_to_words[pos] if
-                                                    word in self.dict_meters and meter in self.dict_meters[
-                                                        word] and word in self.gender]
+                                                    word in self.dict_meters and meter in self.get_meter(word) and word in self.gender]
+
+    def get_templates_from_file(self, filename):
+        with open(filename) as tf:
+            templates = [(" ".join(line.split()[:-1]), line.split()[-1]) for line in tf.readlines() if
+                              "#" not in line and len(line) > 1]
+
+        return templates
 
     def get_template_from_line(self, line, backwards=False):
+        self.reset_gender("all")
+
         words = line if type(line) == list else line.lower().split()
-        poss = self.templates
+        poss = list(self.all_templates_dict.keys())
         if not backwards:
             for i, word in enumerate(words):
                 word = word.split("_")[0]
-                poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(word)]
+                poss = [p for p in poss if helper.remove_punc(p.split()[i]) in self.get_word_pos(word)]
                 if len(poss) == 1: return poss
         else:
             for i in range(-1, -len(words) - 1, -1):
-                poss = [p for p in poss if helper.remove_punc(p[0].split()[i]) in self.get_word_pos(words[i])]
+                poss = [p for p in poss if helper.remove_punc(p.split()[i]) in self.get_word_pos(words[i])]
                 if len(poss) == 1: return poss
         return poss
 
-    def get_next_template(self, used_templates, check_the_rhyme=None, end=""):
+    def get_next_template(self, used_templates, end=""):
         """
 
         Parameters
@@ -473,59 +561,136 @@ class Poem:
         -------
 
         """
+        if type(used_templates) == str:
+            used_templates = [used_templates]
+
         if len(used_templates) > 0 and type(used_templates[0]) == tuple: used_templates = [u[0] for u in used_templates]
-        poss = [p for p in self.templates if used_templates.count(p) < 2]
+        poss = [(p, q) for (p, q) in self.templates if used_templates.count(p) < 2 and (not used_templates or p != used_templates[-1])]
+        # L- makes sure that a template isn't used more than twice
+        # L- second part of and statement makes sure that the next possible template is not the same as the most recently
+        # used template
         # incomplete = ",;" + string.ascii_lowercase
         n = len(used_templates)
         if n > 0:
+            gerund_templates = ["RB VBG VBD WHERE ALL PRPD$ JJ NNS VB,", "FOR VBG NN WITH PRPO RB,",
+                              "VBG A NN WHERE NNS VB,", "AND VBG A NN WHERE NNS VB,", "AND VBG PRPD$ NN BY PRPD$ NN,"]
+            #gerund_templates = []
+            if used_templates[-1] == "FOR JJS NNS, PRPS VBP NNS": #checked 4/2/21
+                poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
+                        ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
+                        ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
+                        ("BUT THE NN SHOULD BY NN VB", "0_1_010_1_0_1_01")]
+            elif used_templates[-1] == "BUT PRPS VBD TO PRPD$ JJ NNS": #checked 4/2/21
+                poss = [("SO PRPS THROUGH NNS OF JJ NNS VBD.", "0_1_0_10_1_0_1_01"),
+                        ("SO TOO PRPD$ NNS VBD TO PRPD$ NN.", "0_1_0_10_1_0_1_01"),
+                        ("AND ABNN WAS A JJ AND JJ NN.", "0_10_1_0_1_0_1_01"),
+                        ("AND VBD PRPD$ NN BY PRPD$ NN<,/.>", "0_10_1_01_0_1_01"),
+                        ("SO JJ A NN OF NNS, YET PRPS VBD RB", "0_1_0_1_0_1_0_1_0_1")]
+            elif helper.remove_punc(used_templates[-1]) in "IF PRPS COULD VB THIS JJ NN OF ABNN<./,>": #checked 4/2/21
+                poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
+                        ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
+                        ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
+                        ("SO TOO PRPD$ NNS WILL VB PRPD$ NN<;/.>", "0_1_0_10_1_01_0_1"),
+                        ("SO PRPD$ NNS WILL VB PRPD$ NN<;/.>", "0_1_01_0_10_0_1")]
+            elif used_templates[-1] == "BUT IF PRPS VBP PRPO TO THE NN,": #checked 4/2/21
+                poss = [("THERE WILL BE, PRPD$ JJ NN, MUCH OF;", "0_1_0_1_01_01_0_1"),
+                        ("THE JJ NN WILL BE PRPD$ JJS ABNN.", "0_10_1_0_1_0_10_1"),
+                        ("THE ABNN, LIKE NNS IN THE NN", "0_1_0_101_0_1_01"),
+                        ("SO TOO PRPD$ NNS WILL VB TO PRPD$ NN<;/.>", "0_1_0_10_1_0_1_0_1")]
+            elif used_templates[-1] == "WHEN PRPS VBD THE JJ, VBD NN": #checked 4/2/21
+                poss = [("SO TOO PRPD$ NNS VBD TO PRPD$ NN<;/.>", "0_1_0_1_01_0_1_01"),
+                        ("THE NN VBBD LIKE A NN IN THE NN<./,/;>", "0_1_01_0_1_0_1_0_1"),
+                        ("ABNN VBD AND VBD EVERY WHERE<,/.>", "01_01_0_10_10_1"),
+                        ("PRPD$ JJ NN COULD VB RB WITH PRPO.", "0_10_10_1_0_1_0_1"),
+                        ("PRPS VBD AN ALL JJ NN AND JJ NN.", "0_1_0_1_0_1_0_10_1")]
+            elif used_templates[-1] == "FROM JJS NNS, PRPS VBP RB": #checked 4/2/21
+                poss = [("TO VB WITHIN PRPD$ JJ JJ JJ NNS,", "0_1_01_0_1_0_10_1"),
+                        ("TO VB THE NN POS NN BY THE NN AND VB", "0_1_0_1__0_1_0_1_0_1"),
+                        ("TO VB THE NNS TO THE JJ NN.", "0_1_0_10_1_0_10_1"),
+                        ("BUT AS THE NN SHOULD BY NN VB,", "0_1_0_10_1_0_1_01"),
+                        ("A JJ NN VBD IN NNS OF NNS<,/.>", "0_10_10_1_0_1_0_1")]
+            elif used_templates[-1] == "AS THE JJ NN OF THE NNS":
+                poss = [("VB RB ON JJ AND JJ NNS", "0_10_0_1_0_10_10"),
+                        ("VBZ RB ON JJ AND JJ NNS", "0_10_0_1_0_10_10"),
+                        ("VB RB ON JJ AND JJ NN", "0_10_0_1_0_10_10")]
+
+            elif used_templates[-1] in gerund_templates:
+                followers = [("PRPS VBZ TO THOSE THAT VB RB", "0_1_0_1_0_10_101"),
+                        ("PRPS VBZ AND VBZ TO THOSE THAT VB RB", "0_1_0_10_1_0_1_0_1"),
+                        ("PRPS VBZ WHERE THE NNS VB", "0_10_1_0_10_101"),
+                        ("PRPS VBZ TO THE NN WHERE PRPD$ NNS VB", "0_1_0_1_01_0_1_0_1")]
+                poss = list(set(followers).intersection(set(poss)))
+
+
             if used_templates[-1][-1] in ".?":
                 poss = [p for p in poss if p[0].split()[0] not in ["AND", "THAT", "OR", "SHALL", "WILL", "WHOSE", "TO", "WAS", "VBD", "IN"]]
-            # elif used_templates[-1][-1] in incomplete:
-            #   poss = [p.replace("?", ".") for p in poss if p[0].split()]
+
+            # L- ensure you can't have a stanza of 4 separate sentences
+            # ensure that if the first two lines in a stanza ended in a period, then the next one shouldn't
+            # (though maybe first one or first three?)
+            # Beware of templates that end like "<./,>" - you're allowed to replace that with just "," if you want
+            if n % 4 == 2 and (used_templates[-1][-1] == "." and used_templates[-2][-1] == "."):
+                poss = [(p, q) for p, q in poss if p[-1] != '.']
+                poss = [(p.replace("/.", "").replace("<./", "<"), q) for p, q in poss if p[-1] in ".>"]
+            # L- for the second line in every stanza, if the two most recently used templates both ended in '.',
+            # remove next possible templates that end in '.'
 
             if n % 4 == 3 or n == 13:
                 # poss = [p for p in poss if p[0][-1] not in ",;" + string.ascii_uppercase]
                 poss = [(p.replace("/,", "").replace("<,/", "<"), q) for p, q in poss if p[-1] in ">."]
+                # L- for the third line in every stanza or the second-to-last line in the sonnet, remove comma as punctuation
+                # choice for next possible template
                 # print("last line of stanza so:", poss)
 
             if n % 4 == 0:
                 poss = [(p, q) for p, q in poss if p.split()[0] not in ["AND", "OR"]]
             elif sum([int("_" in t) for t in used_templates]) > 1:
                 poss = [(p,q) for p,q in poss if "_" not in p]
-
+            # L- for the last line in every stanza, the next possible template cannot begin with 'and' or 'or'
 
             if n % 4 > 1 or n == 13:
                 poss = [(p, q) for p, q in poss if "_" not in p.split()[-1]]
+            #for the second and third line in every stanza or the second-to-last line in the sonnet, drop next possible
+            # L- templates that end in '_' (are there any basic templates like this?)
 
         else:
             # starting templates taken from google doc
-            poss = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
-                    ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1"),
+            starters = [("A JJ NN VBD IN NNS OF NN<,/.>", "0_10_10_1_0_1_0_1"),
                     ("WHAT JJ NN VBZ PRPD$ NN?", "0_1010_10_1_0_1"),
                     ("PRPS VBC JJ TO VB THE NNS", "0_1_01_0_1_0_101"),
-                    ("THE JJ NN VBN PRPO TO VB", "0_10_10_10_1_0_1"),
-                    ("THERE IS VBN, PRPD$ JJ NN, JJR OF;", "0_1_01_0_10_1_0_1"),
                     ("FROM JJS NNS, PRPS VBP RB", "0_10_10_1_01_01"),
-                    ("IF PRPS COULD VB THIS JJ NN OF ABNN,", "0_1_0_10_1_0_1_0_1")]
+                    ("THE NN OF NN ON A JJ N", "0_1_0_10_1_0_10_1"),
+                    ("RB VBG LIKE A NN VBG", "010_10_1_0_10_1"),
+                    ("A JJ NN FROM THE JJ NN", "0_10_10_1_0_1_01"),
+                    ("WHEN ALL THE NNS OF THIS NN ARE JJ,", "0_1_0_10_1_0_1_0_1"),
+                    ("WHY VBC PRPS VBP SUCH A JJ NN?", "0_1_0_10_1_0_101_0"),
+                    ("AS THE JJ NN OF THE NNS", "0_1_01_01_0_1_01"),
+                    ("FOR ALL THE ABNN THAT DOES VB PRPO,", "0_1_0_10_1_0_1_0_1"),
+                    ("IN ABNN PRPS DO NOT VB PRPOO WITH PRPD$ NN,", "0_1_0_1_0_1_0_1_0_1")]
+
+            poss = [p for p in starters if p in self.templates]
+
+            if len(poss) == 0: poss = starters
 
         if len(poss) == 0:
-            print("theres no templates " + str(len(used_templates)) + used_templates[-1])
-            return self.fix_template(random.choice(self.templates))
+            print("there are no templates ", str(len(used_templates)), used_templates[-1], end)
+            return 1/0
+            #return self.fix_template(random.choice(self.templates))
 
-        if check_the_rhyme: poss = [p for p in poss if any(
-            self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
-        if end and type(end) == set:
-            # pos = helper.remove_punc(self.get_word_pos(end.strip("__")))
-            pos = set([self.get_word_pos(w)[0] for w in end])
-            poss = [(p, q) for p, q in poss if helper.remove_punc(p.split()[-1]) in pos]
-
-        poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
+        #if check_the_rhyme: poss = [p for p in poss if any(
+         #   self.rhymes(check_the_rhyme, w) for w in self.get_pos_words(p[0].split()[-1], p[1].split("_")[-1]))]
+        # poss = [(p, q) for p, q in poss if used_templates.count(p) < 2]
+        # L- if a template has been used 2 or more times in the sonnet already, it cannot be used again
 
         if len(poss) == 0: return None, None
         t = self.fix_template(random.choice(poss))
+        if t not in self.templates:
+            self.templates.append(t)
         # t = self.fix_template(t[0]), t[1]
         if "<" in t[0]: t = (t[0].split("<")[0] + random.choice(t[0].split("<")[-1].strip(">").split("/")), t[1])
+
         return t[0], t[1]
+        # L- chooses punctuation between <>
 
     def fix_template(self, template):
         if type(template) == tuple: return self.fix_template(template[0]), template[1]
@@ -724,6 +889,29 @@ class Poem:
 
         return line.strip()
 
+    def get_poss_meters_no_template(self, desired_meter="0101010101"):
+
+        if isinstance(desired_meter, list):
+            desired_meter = "".join(desired_meter)
+        meter_options = set([key[0] for key in self.meter_and_pos.keys() if len(self.meter_and_pos[key]) > 0])
+        if desired_meter == "":
+            return {}
+        else:
+            poss_meters = {}
+            for poss_meter in self.possible_meters:
+                # print("checking for ", word_pos, "with meter ", poss_meter)
+                if desired_meter.find(poss_meter) == 0 and poss_meter in meter_options:
+                    temp = self.get_poss_meters_no_template(desired_meter[len(poss_meter):])
+                    # print("made recursive call")
+                    if temp != None:
+                        # print("adding something to dict")
+                        poss_meters[poss_meter] = temp
+            if len(poss_meters) == 0:
+                return None
+            return poss_meters
+
+
+
     def get_poss_meters_forward_rhet(self, template, meter, rhet_dict,
                                 rhyme_meters=None):  # template is a list of needed POS, meter is a string of the form "0101010..." or whatever meter remains to be assinged
         """
@@ -780,3 +968,27 @@ class Poem:
             if len(poss_meters) == 0:
                 return None
             return poss_meters
+
+    def get_poss_words_no_pos(self, meter_list):
+
+        all_words = []
+
+        for meter in meter_list:
+            poss_pos = [key[1] for key in self.meter_and_pos.keys() if len(self.meter_and_pos[key]) > 0 and key[0] == meter]
+            for pos in poss_pos:
+                all_words += self.meter_and_pos[(meter,pos)]
+
+        return all_words
+
+    def write_line_gpt_no_template(self, meter={}, rhyme_word=None, n=1, gpt_model=None, flex_meter=True, verbose=False, alliteration=None, theme_words=[], theme_threshold=0.5):
+        if not self.gpt:
+            # self.gpt = gpt_2_gen.gpt(seed=None, sonnet_method=self.get_pos_words)
+            self.gpt = gpt_model
+            if not gpt_model: print("need a gpt model", 1 / 0)
+        #TODO figure out seed stuff
+        if not self.gpt_past or self.gpt_past.strip() == "":
+            self.gpt_past = "Shall I compare thee to a summer's day? Thou art more lovely and more temperate."
+        print("GPT past: ", self.gpt_past)
+        return self.gpt.gen_line_no_template(seed=self.gpt_past)
+
+

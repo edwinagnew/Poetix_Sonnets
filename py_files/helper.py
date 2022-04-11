@@ -278,6 +278,9 @@ def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
 
     pos_to_words["PRPS"] = {"i":1, "you":1, "he":1, "she":1, "it":1, "we":1, "they":1}
     pos_to_words["PRPO"] = {"me":1, "you":1, "him":1, "her":1, "it":1, "us":1, "them":1, "myself":1, "yourself":1, "himself":1, "herself":1, "itself":1, "ourselves":1, "yourselves":1, "theirselves":1}
+    pos_to_words["PRPOO"] = pos_to_words['PRPO'].copy()
+
+    pos_to_words["A"] = {'a': 1, 'an': 1}
 
     for p in ["PRPS", "PRPO"]:
         for w in pos_to_words[p]:
@@ -289,7 +292,12 @@ def get_new_pos_dict(file, mistakes_file=None, keep_scores=False):
 
 def remove_punc(s):
     if type(s) == list: return [remove_punc(t) for t in s]
-    return s.translate(str.maketrans('', '', string.punctuation))
+    punc = string.punctuation.replace("$", "")
+    return s.translate(str.maketrans('', '', punc))
+
+
+def fix_caps(x):
+    return '. '.join(map(lambda s: s.strip().capitalize(), x.split('.')))
 
 
 def get_finer_pos_words():
@@ -302,7 +310,7 @@ def get_finer_pos_words():
      'AROUND', 'NEITHER', 'WHOM', 'SINCE', 'ABOVE', 'THROUGH', 'ALL',
      'AND', 'SOME', 'MAY', 'HALF', 'WHATEVER', 'BEHIND',
      'BEYOND', 'WHERE', 'SUCH', 'YET', 'UNTO', 'BY', 'NEED',
-     'A', 'DURING', 'AT', 'AN', 'OUGHT',
+     'DURING', 'AT', 'OUGHT',
      'BUT', 'DESPITE', 'SHOULD', 'THOSE', 'FOR', 'WHEREVER', 'WHOLE', 'THESE',
      'WHOEVER', 'WITH', 'TOWARD', 'WHICH',
      'BECAUSE', 'WHETHER', 'ONWARD', 'UPON', 'JUST', 'ANY',
@@ -313,4 +321,30 @@ def get_finer_pos_words():
      'EVER', 'ON', 'AGAINST', 'EACH', 'BELOW',
      'DOWN', 'BEFORE', 'THE', 'WHICHEVER', 'WHO', 'PER', 'THIS',
      'ACROSS', 'THAN', 'WITHIN', 'NOT', "IS", "AM", "ARE", "OH",
-    "EVEN", "DO", "DOES", "BE", "OFT", "TOO", "ANOTHER", "IT", "WAS"}
+     "EVEN", "DO", "DOES", "BE", "OFT", "TOO", "ANOTHER", "IT", "WAS", "EVERYWHERE",
+     "TAKE", "CARE"}
+
+
+def add_new_word(word, pos, meters):
+    assert type(pos) == str, "cant do multiple poss yet"
+    if type(meters) == str: meters = [meters]
+
+    word_dictionary = pickle.load(open("saved_objects/tagged_words.p", "rb"))
+
+    assert word not in word_dictionary, "word already added"
+
+    word_dictionary[word] = {pos: 1}
+
+    pickle.dump(word_dictionary, open("saved_objects/tagged_words.p", "wb"))
+
+    assert " " not in word, "no spaces - use underscore _ instead"
+
+    meter_file = open("saved_objects/edwins_extra_stresses.txt", "a")
+
+    for m in meters:
+        meter_file.write("\n" + word + " " + m)
+    meter_file.close()
+
+    print("added and saved", word, pos, meters)
+    print("dont forget to scp to cluster...")
+

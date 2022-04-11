@@ -1,32 +1,44 @@
-import sonnet_basic
-from transformers import GPT2LMHeadModel, GPT2Tokenizer#, GPT2DoubleHeadsModel
+# import sonnet_basic
+import poem_core
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPTNeoForCausalLM
 import torch
 import numpy as np
 import random
-import string
 import nltk
+import string
 
 from py_files import helper
 
+
 class gpt_gen:
 
-    def __init__(self, sonnet_object=None,  model="gpt2"):
+    def __init__(self, sonnet_object=None, model="gpt2"):
         if sonnet_object:
-            #self.sonnet_words = sonnet_object.get_pos_words
+            # self.sonnet_words = sonnet_object.get_pos_words
             self.sonnet_object = sonnet_object
         else:
-            print("didnt give me a sonnet_method, making one myself")
-            self.sonnet_object = sonnet_basic.Sonnet_Gen()
-            #self.sonnet_words = self.sonnet_object.get_pos_words
 
-        if torch.cuda.is_available(): model = "gpt2-large"
+            print("didnt give me a sonnet_method, but it's fine, I don't care, I'll just make one myself")
+            #self.sonnet_object = sonnet_basic.Sonnet_Gen()
+            
+            self.sonnet_object = poem_core.Poem()
+            # self.sonnet_words = self.sonnet_object.get_pos_words
+
+        # if torch.cuda.is_available(): model = "gpt2-large"
         self.model_size = model
+        if model == "gpt3":
 
-        print("loading model")
-        self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+            self.tokenizer = GPT2Tokenizer.from_pretrained('EleutherAI/gpt-neo-1.3B')
+            self.model = GPTNeoForCausalLM.from_pretrained('EleutherAI/gpt-neo-1.3B')
 
-        print("1")
-        self.model = GPT2LMHeadModel.from_pretrained(model)
+
+        else:
+            self.tokenizer = GPT2Tokenizer.from_pretrained(model)
+
+            self.model = GPT2LMHeadModel.from_pretrained(model)
+            #self.gpt_tokens = list(self.tokenizer.encoder.keys())
+
+        self.gpt_tokens = list(self.tokenizer.get_vocab().keys())
         if torch.cuda.is_available():
             print("putting to gpu")
             self.model.to('cuda')
@@ -34,227 +46,123 @@ class gpt_gen:
         print("loaded", model)
         self.lemma = nltk.wordnet.WordNetLemmatizer()
 
-    def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None, verbose=False, alliteration=None, weight_repetition=True):
+        self.line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
+
+
+        self.checked_for_rhymes = {}
+
+    def generation_flex_meter(self, template, meter_dict, seed="", theme_words={}, theme_threshold=0.6, rhyme_word=None,
+                              verbose=False, alliteration=None, weight_repetition=True, internal_rhymes=[]):
+        """
+        Generates a line of poetry
+
+        Parameters
+        ----------
+        template
+        meter_dict
+        seed - (optional) - previous lines in poem
+        theme_words - (optional) - dictionary of thematic words in format: {pos: [word1, word2], pos2: [...], ...}
+        theme_threshold (optional) - determines whether to only attempt to insert thematic words => if best_theme_token/best_token > theme_threshold
+        rhyme_word (optional) - a word which the line has to rhyme with
+        verbose
+        alliteration (optional) - which possible letters to try and alliterate
+        weight_repetition (optional) - boolean. If True, words which occur more than once in the seed or once in the current line (including stems/lemmas) are deweighted to zero
+
+       Procedure:
+            0. Preprocessing. If no seed first token is chosen randomly (TODO ?)
+            1. Main loop: get next words
+                a. Update GPT token scores
+                b. Deal with punctuation:
+                    i. if a template ends with punctuation(s), it is stored in punc_next for later
+                    ii. When the word is finished generating (ie sub_tokens is empty), poss_tokens is set to punc_next
+                c. Deal with repetition templates:
+                    i. If a template contains a _ and hasnt been seen before, words are chosen normally then filtered for previous repetitions
+                    ii. If it has been seen before, that is the option
+                d. Potential next words are collected from poem object
+            2. Choose next token
+                a. If there's only one possible token, correctly choose the spacing and insert it
+                b. If theres many options:
+                    i. On the first iteration create poss_tokens a list of lists of tokens corresponding to all possible words
+                    ii. Create list of all possible tokens for this iteration
+                    iii. Filters the gpt scores for only desired tokens and potentially reweights for alliteration, repetition (see weight_repetition) and existing word score
+                    iv. normalises the scores and chooses with np.random.choice
+                c. post -processing - check if word is complete and then move on
+
+        New procedure:
+            0. Preprocessing
+            1. Update gpt score
+            2. Call line generator for new token
+            3. Repeat
+
+        Ideas:
+
+            - scoring words in pos_to_words for theme
+            - token alliteration
+
         """
 
-        Some parameter for uncertainty - above which it does what it wants, below which we choose
-        Probablistic in proportion to how uncertain it is
-
         """
-
+        0 - preprocessing
+        """
         if type(template) != list: template = template.split()
-
-        words = list(self.tokenizer.encoder.keys())
-
-        a, b = 0, len(template)  # write new line given previous ones
 
         if verbose: print("tokenizing")
         if not seed or not seed.strip():
-            first_word = random.choice(self.sonnet_object.get_pos_words(template[0], meter=list(meter_dict.keys())))
+            if template[0] in theme_words:
+                first_word = random.choice([w for w in theme_words[template[0]] if
+                                            any(m in meter_dict for m in self.sonnet_object.get_meter(w))])
+            else:
+                first_word = random.choice(self.sonnet_object.get_pos_words(template[0], meter=list(meter_dict.keys())))
             first_met = ""
-            while first_met not in meter_dict: first_met = random.choice(self.sonnet_object.get_meter(first_word))
-            meter_dict = meter_dict[first_met]
-            if verbose: print("(seedless) meter dict now", first_met, first_word, meter_dict)
+            if meter_dict:
+                while first_met not in meter_dict: first_met = random.choice(self.sonnet_object.get_meter(first_word))
+                meter_dict = meter_dict[first_met]
+                if verbose: print("(seedless) meter dict now", first_met, first_word, meter_dict)
             generated = self.tokenizer.encode(first_word)  # picks first word randomly
             a = 1
         else:
+            a = 0
             generated = self.tokenizer.encode(seed)
-
 
         context = torch.tensor([generated]).to(self.model.device)
         past = None
 
-        punc = ",.;?"
+        """
+        1 - main loop
+        """
+        if verbose: print("about to go with", internal_rhymes)
 
-        punc_next = False
+        line_gen = Line_Generator(self.sonnet_object, self.tokenizer)
+        line_gen.new_line(template, meter_dict, rhyme_word=rhyme_word, theme_words=theme_words,
+                               alliteration=alliteration, internal_rhymes=internal_rhymes, weight_repetition=weight_repetition,
+                               theme_threshold=theme_threshold, prev_lines=seed)
+        # i = a
+        # while i < len(template):
+        for i in range(a, len(template)):
+            # 1a - get new tokens
+            while True:
+                with torch.no_grad():
+                    output, past = self.model(context, past_key_values=past, use_cache=True).values()
+                    #print(output.size())
+                    #input("okok?")
 
-        first_lets = set()
+                if verbose: print(i, "(" + str(len(line_gen.sub_tokens)) + ")")
 
-        # for i in range(a, b):
-        sub_tokens = []
-        theme_tokens = []
+                output += abs(torch.min(output))  # makes all positive
 
-        repeats = {}
+                token = line_gen.update(output, i, verbose=verbose)
 
-        i = a
-        while i < b:
-            with torch.no_grad():
-                output, past = self.model(context, past=past)
-                #past = past.to(self.model.device)
-            if verbose: print(i, "(" + str(len(sub_tokens)) + ")")
+                generated += [token]  # .tolist()
+                # context = token.unsqueeze(0)
+                context = torch.tensor(token).unsqueeze(0).to(self.model.device)
 
+                if len(line_gen.sub_tokens) == 0 and not line_gen.punc_next:
+                    break
 
-            output += abs(torch.min(output))  # makes all positive
-            if punc_next and len(sub_tokens) == 0: # and punc_finished:
-                poss = set(punc_next)
-                punc_next = False
-            else:
-                if template[i][-1] == ">":
-                    template[i], punc_next = template[i].split("<")[0], template[i].split("<")[-1].strip(">").split("/")
-
-                elif template[i][-1] in punc:
-                    template[i], punc_next = template[i][:-1], template[i][-1]
-                if "_" in template[i]:
-                    if template[i] in repeats:
-                        if verbose: print("choosing", template[i], "from", repeats)
-                        poss = [repeats[template[i]]]
-                    else:
-                        poss = self.sonnet_object.get_pos_words(template[i].split("_")[0], meter=list(meter_dict.keys()))
-                        poss = set([p for p in poss if p not in repeats.values()])
-                else:
-                    poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys())))
-                r = None
-                if i == b - 1 and rhyme_word:
-                    if "__" in rhyme_word:
-                        poss = {rhyme_word.strip("__")}
-                    else:
-                        r = rhyme_word
-                        if type(rhyme_word) == str:
-                            poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys()), rhyme=rhyme_word))
-                        else:
-                            assert len(meter_dict.keys()) == 1, meter_dict
-                            poss = [r for r in rhyme_word if any(met in meter_dict for met in self.sonnet_object.get_meter(r))]
-                    if verbose: print("restricting to rhymes", rhyme_word, poss)
-            if len(poss) == 0:
-                if "sc" in template[i]:
-                    if verbose: print("there arent any words so removing sc from", template[i])
-                    template[i] = template[i].replace("sc", "")
-
-                    poss = set(self.sonnet_object.get_pos_words(template[i], meter=list(meter_dict.keys()), rhyme=r))
-
-                if self.sonnet_object.backup_words: #in case were using byron vocab
-                    if verbose: print("getting backup words")
-                    poss = set(self.sonnet_object.get_backup_pos_words(template[i], list(meter_dict.keys()), rhyme=r))
-
-
-                if len(poss) == 0: #still
-                    if verbose: print("there arent any words so giving up")
-                    return None
-
-            if len(poss) <= 1:
-                # choose token with right spacing
-                #if verbose: print(poss, template[i], meter_dict)
-                space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
-                poss_tokens = [self.tokenizer.encode(space + list(poss)[0])]
-                token = poss_tokens[0][len(sub_tokens)]
-                dist = ws = np.ones(len(words))
-            else:
-                if len(sub_tokens) == 0:
-                    space = " " * int(list(poss)[0] not in punc + "'s" and i > 0)
-                    poss_tokens = [self.tokenizer.encode(space + p) for p in poss]  # + [self.tokenizer.encode(p) for p in poss]
-                    if template[i] in theme_words:
-                        theme_tokens = [self.tokenizer.encode(space + p) for p in theme_words[template[i]] if p in poss]
-                    else:
-                        theme_tokens = []
-                checks = set([p[len(sub_tokens)] for p in poss_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
-                if theme_tokens: theme_checks = set([p[len(sub_tokens)] for p in theme_tokens if p[:len(sub_tokens)] == sub_tokens and len(p) > len(sub_tokens)])
-                word_scores = self.sonnet_object.pos_to_words[helper.remove_punc(template[i].split("_")[0])]
-                if any(v != 1 for v in word_scores.values()):
-                    theme_tokens = {self.tokenizer.encode(space + t)[len(sub_tokens)]: v for t, v in word_scores.items() if len(self.tokenizer.encode(space + t)) > len(sub_tokens)}
-                    word_scores = np.array([theme_tokens[t] if t in theme_tokens else 0 for t in range(len(words))])
-                    #if verbose: print("theme_scores", theme_scores.sum(), len(theme_scores.nonzero()[0]), theme_scores)
-                else:
-                    word_scores = np.ones(len(words))
-                if len(sub_tokens) == 0 and alliteration:
-                    wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in alliteration) for x in words])
-                    word_scores[wws == 1] *= 2 #maybe make more or += ___
-                    if verbose: print("alliterating", alliteration, sum(wws))
-                filt = np.array([int(i in checks) for i in range(len(words))]) * word_scores
-                #if verbose: print("filt", filt.sum(), len(filt.nonzero()[0]), filt)
-                ws = output[..., -1, :].cpu().detach().numpy() * filt
-                if ws.shape[0] == 1: ws = ws[0]
-
-                if weight_repetition:
-                    seed_words = helper.remove_punc(seed.lower().replace("'s", "")).split()
-                    lemmas = [self.lemma.lemmatize(word) for word in seed_words] #gets lemmas for all words in poem
-                    lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(self.tokenizer.decode(generated).lower().replace("'s", "")).split()] #gets lemmas for last line in poem
-                    #if verbose: print("\ntemp: lemmas_last", lemmas_last, "\n, poss", poss, "\n", poss_tokens)
-                    for j, p in enumerate(poss):
-                        p_lemma = self.lemma.lemmatize(p)
-                        if lemmas.count(p_lemma) > 1 or lemmas_last.count(p_lemma) > 0: # solved - doesnt allow repetition in the same line
-                            #if len(poss_tokens[j]) > len(sub_tokens) and poss_tokens[j][len(sub_tokens)] in checks: #fix
-                            if len(sub_tokens) == 0 and poss_tokens[j][0] in checks:  # fix
-                                if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma), "times")
-                                repeated_token = poss_tokens[j][len(sub_tokens)]
-                                ws[repeated_token] = 0
-                                if verbose: print("so deweighted", repeated_token, self.tokenizer.decode(repeated_token), "\n")
-                            else:
-                                pass
-
-                theme_scores = []
-                if theme_tokens: theme_scores = [(ws[x],x) for x in range(len(ws)) if x in theme_checks]
-
-                if verbose: print("max token", np.max(ws), np.argmax(ws), words[np.argmax(ws)])
-                if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
-                if verbose and theme_scores: print("best theme", max(theme_scores), words[max(theme_scores)[1]])
-
-
-                if theme_scores and max(theme_scores)[0] / max(ws) > theme_threshold:
-                    # ws[ws.find() not in love_checks] = 0
-                    if verbose: print("reducing to theme words")
-                    #ws = [int(x in theme_checks) * ws[x] for x in range(len(words))]
-                    #print("before", len(ws.nonzero()))
-                    ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(words))])
-                    if verbose: print("after", len(ws.nonzero()))
-                if max(ws) <= 0:
-                    if verbose: print("something went wrong", max(ws))
-                    return None
-                dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
-                token = np.random.choice(np.arange(len(words)), p=dist).item()
-
-
-                #if verbose: print("chose", token, sub_tokens, poss_tokens)
-
-            if verbose: print("for ", template[i], end=': ')
-
-            if verbose: print("picked " + str(token) + ": '" + str(self.tokenizer.decode(token)) + "' with prob " + str(
-                dist[token]) + " initial score " + str(ws[token]))
-            #if any(p[:len(sub_tokens)] == sub_tokens and token == p[-1] for p in poss_tokens):
-            if any(p == sub_tokens + [token] for p in poss_tokens):
-                word = self.tokenizer.decode(sub_tokens + [token]).strip()
-
-                # while self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.2
-                #if word not in punc and not punc_next and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, theme_words["NN"][:5]) < 0.3:
-                """if word not in punc and "NN" in template[i] and self.sonnet_object.fasttext.word_similarity(word, self.sonnet_object.theme.split()) < 0.3:
-                    if verbose: print("fasttext didnt like", word, template[i], "so trying again")
-
-                    del self.sonnet_object.pos_to_words[template[i]][word]
-                    if len(sub_tokens) > 0: generated = generated[:-len(sub_tokens)]
-                    token = generated.pop(-1)
-                    sub_tokens = []
-
-                    i -= 1
-                    #fix puncutation!!!!!
-                    punc_finished = False
-
-                    #do some punctuation
-                    #token = np.random.choice(np.arange(len(words)), p=dist).item()
-                    #word = self.tokenizer.decode(sub_tokens + [token]).strip()"""
-
-                if word not in punc:
-                    meter = ""
-                    if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
-                    while meter not in meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
-                    meter_dict = meter_dict[meter]
-                    if "_" in template[i]:
-                        repeats[template[i]] = word
-                sub_tokens = []
-                first_lets.add(word[0])
-                alliteration = alliteration if alliteration is None or alliteration == "s" else first_lets
-            else:
-                sub_tokens.append(token)
-
-
-            generated += [token]  # .tolist()
-            # context = token.unsqueeze(0)
-            context = torch.tensor(token).unsqueeze(0).to(self.model.device)
-
-            i += int(not punc_next and len(sub_tokens) == 0)
-
+            # i += int(not punc_next and len(sub_tokens) == 0)
 
         if verbose: print("tokens: ", generated)
         sequence = self.tokenizer.decode(generated)
-
 
         return sequence.replace(seed.strip(), "").strip()
 
@@ -263,7 +171,7 @@ class gpt_gen:
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         with torch.no_grad():
             outputs = self.model(input_ids.to(self.model.device), labels=input_ids.to(self.model.device))
-        #loss, logits = outputs[:2]
+        # loss, logits = outputs[:2]
         return outputs[0].item()
 
     def get_word_scores(self, line):
@@ -271,197 +179,550 @@ class gpt_gen:
         input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         with torch.no_grad():
             outputs = self.model(input_ids)
-        return torch.tensor([outputs[0][0][max(0,i-1)][input_ids[0][i]] for i in range(len(input_ids[0]))]) #gets the score of each original word in the line
+        return torch.tensor([outputs[0][0][max(0, i - 1)][input_ids[0][i]] for i in
+                             range(len(input_ids[0]))])  # gets the score of each original word in the line
 
-    def get_worst_suitable_word(self, template, meter, line, verbose=False, keep_last=True, p=0.2):
-        words = line.replace("'s", " 's").translate(str.maketrans('', '', string.punctuation)).split()
+    def gen_line_no_template(self, seed="Shall I compare thee to a summer's day?\n", verbose=True):
 
-        if verbose: print("line score before:", self.score_line(line))
+        meter_dict = self.sonnet_object.get_poss_meters_no_template()
 
-        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
+        generated = self.tokenizer.encode(seed)
 
-        if verbose: print([self.tokenizer.decode(t.item()) for t in input_ids[0]], input_ids)
+        context = torch.tensor([generated]).to(self.model.device)
+        past = None
 
-        first_tokens = [self.tokenizer.encode((bool(w) * " ") + words[w])[0] for w in range(len(words))]
-        if verbose: print("first_tokens", first_tokens, self.tokenizer.decode(first_tokens))
-
-        word_scores = self.get_word_scores(line)
-        #if word_scores.min() < 0: word_scores -= word_scores.min()
-        word_scores -= word_scores.max()
-        if keep_last:
-            last = input_ids[0].tolist().index(first_tokens[-1])
-            word_scores[last:] = 0
-
-        worst_token_index = -1
-        worst_index = -1
-        while worst_index < 1 or len(self.sonnet_object.get_pos_words(template[worst_index], meter[worst_index])) < 2: #dont change first word because it doesnt have any context
-        #while self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() not in words or worst_index < 1 or len(self.sonnet_object.get_pos_words(template[worst_index], meter[worst_index])) < 2:
-            if verbose and worst_token_index > -1: print("changing", self.tokenizer.decode(input_ids[0][worst_token_index].item()))
-            #if worst_token_index + worst_index > 0: word_scores[worst_token_index] = 0
-            if word_scores.min() == 0:
-                print("couldnt find any word to change")
-                return None
-            worst_token_index = torch.argmin(word_scores).item()
-            word_scores[worst_token_index] = 0
-            #print("first worst", worst_token_index, input_ids[0][worst_token_index].item(), self.tokenizer.decode(input_ids[0][worst_token_index].item()))
-            #worst_word = self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip()
-            #if worst_word in words: worst_index = words.index(worst_word)
-            while input_ids[0][worst_token_index] not in first_tokens: worst_token_index -= 1
-            worst_index = first_tokens.index(input_ids[0][worst_token_index])
-            #print("worst_token_index now", worst_token_index, input_ids[0][worst_token_index].item(), worst_index, first_tokens[worst_index])
+        """
+        1 - main loop
+        """
+        self.line_gen.new_line(meter_dict, prev_lines=seed, no_template=True, meter_dict=meter_dict,
+                               weight_repetition=False)
+        # i = a
+        # while i < len(template):
+        i = 0  # not needed, but used for keeping track of the line we're on
+        while self.line_gen.meter_dict:
+            print("starting new iteration of while loop")
+            # 1a - get new tokens
+            while True:
+                print("starting new iteration of second while loop")
+                with torch.no_grad():
+                    output, past = self.model(context, past_key_values=past, use_cache=True).values()
 
 
+                if verbose: print(i, "(" + str(len(self.line_gen.sub_tokens)) + ")")
 
-        if verbose: print("word scores:", word_scores.tolist())
-        if verbose: print("worst word was ", worst_token_index, line.split()[worst_index], words[worst_index])
+                output += abs(torch.min(output))  # makes all positive
+                print(output.max())
 
-        if worst_index > 0 and len(self.sonnet_object.get_pos_words(template[worst_index-1], meter[worst_index-1])) > 1 and random.random() < p/2:
-            worst_index -= 1
-            if verbose: print("randomly decremented worst_index to", worst_index, line.split()[worst_index], words[worst_index])
-        elif worst_index < len(words) - 2 and len(self.sonnet_object.get_pos_words(template[worst_index + 1], meter[worst_index+1])) > 1 and random.random() < p/2:
-            worst_index += 1
-            if verbose: print("randomly incremented worst_index to", worst_index, line.split()[worst_index], words[worst_index])
+                token = self.line_gen.update(output, i, verbose=verbose, no_template=True)
 
-        if verbose: print("\n")
-        return worst_index
+                generated += [token]  # .tolist()
+                # context = token.unsqueeze(0)
+                context = torch.tensor(token).unsqueeze(0).to(self.model.device)
 
-    def iterative_improve_loss(self, template, meter, line, n=1, k=10, verbose=False, keep_rhyme_word=True):
-        if n == 0: return line
-        if type(template) != list: template = template.split()
-        if type(meter) != list: meter = meter.split("_")
+                if len(self.line_gen.sub_tokens) == 0 and not self.line_gen.punc_next:
+                    break
+            i += 1
+            # i += int(not punc_next and len(sub_tokens) == 0)
 
-        #input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
+        if verbose: print("tokens: ", generated)
+        sequence = self.tokenizer.decode(generated)
 
-        worst_index = self.get_worst_suitable_word(template, meter, line, verbose=verbose, keep_last=keep_rhyme_word)
-        if worst_index is None: return line
+        return sequence.replace(seed.strip(), "").strip()
 
-        # random
-        #if selection == "random":
-        choices = []
-        scores = []
-        poss = self.sonnet_object.get_pos_words(helper.remove_punc(template[worst_index]), meter[worst_index])
-        if verbose: print("getting ", helper.remove_punc(template[worst_index]), meter[worst_index], end=": ")
-        for new_word in random.sample(poss, min(len(poss), k)):
-            if verbose: print(new_word, end=", ")
-            #new_line = input_ids[0].tolist()
-            #new_line = new_line[:worst_token_index] + self.tokenizer.encode(" " + new_word) + new_line[worst_token_index + 1:]
-            #choices.append(self.tokenizer.decode(new_line))
-            new_line = line.replace(line.split()[worst_index], new_word)
-            choices.append(new_line)
-            scores.append(self.score_line(new_line))
+    def gen_prose_line(self, seed, verbose=True, internal_rhyme=5, alliteration=True):
 
-        """# top k
-        else:
-            poss = self.sonnet_object.get_pos_words(template[worst_index].translate(str.maketrans('', '', string.punctuation)), meter[worst_index])
-            words = list(self.tokenizer.encoder.keys())
-            filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words])
-            if verbose: print("filtering:", self.tokenizer.decode([x for x in range(len(words)) if filt[x]]), sum(filt))
-            output, past = self.model(input_ids)
-            output += abs(output.min())
-            out = torch.tensor(output[..., worst_token_index - 1, :].detach().numpy() * filt)  # predicts what comes after token, not whats there?
+        generated = self.tokenizer.encode(seed)
 
-            best_vals, best_is = out.topk(k)
+        context = torch.tensor([generated]).to(self.model.device)
+        past = None
 
-            if verbose: print("top k: ", best_vals, best_is)
+        found_punc = False
 
-            choices = []
-            scores = []
-            for b in best_is[0]:
-                new_line = input_ids[0].tolist()
-                new_line[worst_token_index] = b.item()
-                choices.append(self.tokenizer.decode(new_line))
-                scores.append(self.score_line(choices[-1]))"""
+        words = []
+        curr_word = []
 
-        if verbose: print("\nchoices", choices)
-        if verbose: print("scores", scores)
+        a = np.arange(1, 10)
+        random.shuffle(a)
 
-        best_line = choices[np.argmin(scores)]
-        print(n, "best =", best_line, min(scores))
+        a = a[:internal_rhyme]
 
-        return self.iterative_improve_loss(template, meter, best_line, n=n-1, k=k, verbose=verbose)
+        if verbose and internal_rhyme: print("internal rhyming", a)
 
-    def iterative_improve_mc(self, template, meter, line, n=1, k=5, selection="random", verbose=False):
-        if n == 0: return line
-        if type(template) != list: template = template.split()
-        if type(meter) != list: meter = meter.split("_")
+        i = 0
+        while not found_punc and len(words) < 12:
+            if verbose: print(i)
 
-        input_ids = torch.tensor(self.tokenizer.encode(line, add_special_tokens=True)).unsqueeze(0)
-
-        worst_index, worst_token_index = self.get_worst_suitable_word(template, meter, line, verbose=verbose)
-        if not worst_index: return line
-
-        #assert self.tokenizer.decode(input_ids[0][worst_token_index].item()).strip() == line.split()[worst_index]
-
-        self.load_mc_model()
-
-        # random options
-        if selection == "random":
-            choices = []
-            for i in range(k):
-                #assuming there's no punctuation
-                if verbose: print(i, "getting ", template[worst_index], meter[worst_index])
-                new_word = random.choice(self.sonnet_object.get_pos_words(template[worst_index].translate(str.maketrans('', '', string.punctuation)), meter[worst_index]))
-                new_line = input_ids[0].tolist()
-                #new_line[worst_token_index] = self.mc_tokenizer.encode(" " + new_word)[0]
-                new_line = new_line[:worst_token_index] + self.mc_tokenizer.encode(" " + new_word) + new_line[worst_token_index + 1:]
-                new_line += self.mc_tokenizer.encode('[CLS]')
-                #new_line = " ".join(new_line) + ' [CLS]'
-                choices.append(new_line)
-
-        else:
-            #top k options
-            choices = []
-            poss = self.sonnet_object.get_pos_words(helper.remove_punc(template[worst_index]), meter[worst_index])
-            words = list(self.tokenizer.encoder.keys())
-            filt = np.array([int(x.strip("Ġ").lower() in poss) for x in words])
             with torch.no_grad():
-                output, past = self.model(input_ids)
-            output += abs(output.min())
-            out = torch.tensor(output[..., worst_token_index - 1, :].detach().numpy() * filt)  # predicts what comes after token, not whats there?
+                output, past = self.model(context, past_key_values=past, use_cache=True).values()
 
-            best_vals, best_is = out.topk(k)
+            output += abs(torch.min(output))
+            ws = output[..., -1, :].cpu().detach().numpy()
 
-            for b in best_is[0]:
-                new_line = input_ids[0].tolist()
-                new_line[worst_token_index] = b.item()
-                new_line += self.mc_tokenizer.encode('[CLS]')
-                choices.append(new_line)
-
-        if verbose: print([self.mc_tokenizer.decode(c) for c in choices], choices)
-
-        choice_scores = self.multiple_choice(choices)
-
-        if verbose: print(choice_scores)
-
-        best_line = self.mc_tokenizer.decode(choices[torch.argmax(choice_scores).item()]).replace(" [CLS]", "")
-
-        print(n, "best = ", best_line, self.score_line(best_line))
-
-        return self.iterative_improve_mc(template, meter, best_line, n=n-1, k=k, verbose=verbose)
+            ws[ws <= 1] = 0
 
 
-    def multiple_choice(self, choices):
-        cls_token_location = [tokens.index(self.mc_tokenizer.cls_token_id) for tokens in choices]
-        input_ids = torch.tensor(choices).unsqueeze(0)  # Batch size: 1, number of choices: 2
-        mc_token_ids = torch.tensor([cls_token_location])  # Batch size: 1
+            #if len(curr_word) == 0 and len(words) > 0: #this never happens
+            if len(words) > 0 and alliteration and "Ġ" in self.gpt_tokens[np.argmax(ws)]: #best guess at whether new word is starting
 
-        with torch.no_grad():
-            outputs = self.mc_model(input_ids, mc_token_ids=mc_token_ids)
-        lm_prediction_scores, mc_prediction_scores = outputs[:2]
+                first_lets = set([w[0] for w in words if len(w) > 0])
+                for j, token in enumerate(self.gpt_tokens):
+                    if len(token) > 1 and token[0] == 'Ġ' and token.strip('Ġ')[0] in first_lets:
+                        ws[j] *= 2
+                        #print("reweighted token", token, "to", ws[i])
 
-        return mc_prediction_scores
+            #internal rhyme very weird
+            if i in a and internal_rhyme and "Ġ" in self.gpt_tokens[np.argmax(ws)]:
 
-    def load_mc_model(self):
-        if not self.mc_model:
-            print("loading mc_model")
-            self.mc_tokenizer = GPT2Tokenizer.from_pretrained(self.model_size)
-            num_added_tokens = self.mc_tokenizer.add_special_tokens({'cls_token': '[CLS]'})
-            self.mc_model = GPT2DoubleHeadsModel.from_pretrained(self.model_size)
-            embedding_layer = self.mc_model.resize_token_embeddings(len(self.mc_tokenizer))
+                wws = np.zeros(len(self.gpt_tokens))
+                for w in words:
+                    wws += np.array([int(len(token) > 1 and w != token.strip('Ġ') and self.sonnet_object.rhymes(w, token.strip('Ġ'))) for token in self.gpt_tokens])
 
+                ws[wws >= 1] *= 1.5 #doubles the score of all the possible tokens which rhyme with any previous word
+                if verbose: print("internal rhyming", internal_rhyme, len(wws.nonzero()[0]))
 
-
-
+            scores = helper.softmax(ws, exclude_zeros=True)
 
 
+            token = np.random.choice(np.arange(len(scores)), p=scores)
 
+
+            word = self.tokenizer.decode([token])
+
+            if verbose: print(i, token, word)
+
+            if any(p in word.strip() for p in string.punctuation + "\n"):
+                found_punc = True
+
+            elif " " in word:
+                words.append(self.tokenizer.decode(curr_word).strip())
+                curr_word = []
+
+            generated += [token]
+            curr_word.append(token)
+
+            #if verbose: print(token)
+            context = torch.tensor(token).unsqueeze(0).to(self.model.device)
+
+            i += 1
+
+
+        sequence = self.tokenizer.decode(generated[-i:])
+
+        return sequence.strip()
+
+    def gen_prose_poem(self, seed=None, n_lines=14, check_threshold=5, verbose=True):
+        if seed is None:
+            seed = """When day comes we ask ourselves, where can we find light in this never-ending shade?"""  # Gorman poem
+
+        lines = seed + "\n"
+
+        while len(lines.split("\n")) < n_lines:
+
+            l = self.gen_prose_line(seed=lines, verbose=False, internal_rhyme=False)
+
+            if self.score_line(l) < check_threshold:
+                lines += l + "\n"
+                if verbose: print("got line", len(lines.split("\n")))
+
+        lines = lines.split(seed)[1]
+
+        if verbose: print(lines)
+
+        return lines
+
+
+class Line_Generator:
+    def __init__(self, sonnet_object, gpt_tokenizer):
+        self.template = None
+        self.meter_dict = None
+        self.rhyme_word = None
+
+        self.poss = []
+
+        self.sub_tokens = []
+        self.poss_tokens = []
+        self.theme_tokens = []
+        self.theme_words = {}
+
+        self.punc_next = False
+        self.repeats = {}
+
+        self.alliteration = None
+        self.internal_rhymes = []
+
+        self.gpt_tokens = list(gpt_tokenizer.get_vocab().keys())
+        self.gpt_tokenizer = gpt_tokenizer
+
+        self.sonnet_object = sonnet_object
+
+        self.space = ""
+
+        self.weight_repetition = False
+
+        self.theme_threshold = 1
+
+        self.first_lets = set()
+
+        self.lemma = nltk.wordnet.WordNetLemmatizer()
+
+        self.prev_lines = self.curr_line = ""
+
+    def new_line(self, template, meter_dict, rhyme_word=None, theme_words={}, alliteration=None, weight_repetition=True,
+                 theme_threshold=0.6, prev_lines="", no_template=False, internal_rhymes=[]):
+        if not no_template:
+            self.template = template
+        self.meter_dict = meter_dict
+        self.rhyme_word = rhyme_word
+
+        self.sub_tokens = []
+
+        # self.punc_next = False
+
+        self.repeats = {}
+
+        self.poss_tokens = []
+        self.theme_tokens = []
+        self.theme_words = theme_words
+
+        self.alliteration = alliteration
+        self.weight_repetition = weight_repetition  # False
+        self.internal_rhymes = internal_rhymes
+
+        self.theme_threshold = theme_threshold
+
+        self.first_lets = set()
+
+        self.prev_lines = prev_lines
+        self.curr_line = ""
+
+    def get_poss(self, i, verbose=False):
+        punc = ",.;?"
+        if self.punc_next:
+            self.poss = set(self.punc_next)
+            self.punc_next = False
+        else:
+            if self.template[i][-1] == ">":
+                self.template[i], self.punc_next = self.template[i].split("<")[0], self.template[i].split("<")[
+                    -1].strip(">").split("/")
+
+            elif self.template[i][-1] in punc:
+                self.template[i], self.punc_next = self.template[i][:-1], self.template[i][-1]
+
+            # 1c - deal with repetition templates
+            if "_" in self.template[i]:
+                if self.template[i] in self.repeats:
+                    if verbose: print("choosing", self.template[i], "from", self.repeats)
+                    self.poss = [self.repeats[self.template[i]]]
+                else:
+                    self.poss = self.sonnet_object.get_pos_words(self.template[i].split("_")[0],
+                                                                 meter=list(self.meter_dict.keys()))
+                    self.poss = set([p for p in self.poss if p not in self.repeats.values()])
+
+            # 1d - get potential next words
+            else:
+                self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys())))
+
+            r = None
+            if i == len(self.template) - 1 and self.rhyme_word:
+                r = self.rhyme_word
+                if self.meter_dict == {}:
+                    print("made it here for rhyming w/o meter")
+                    self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=None, rhyme=r))
+                else:
+                    self.poss = set(self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
+
+                if verbose: print("restricting to rhymes", self.rhyme_word, self.poss)
+
+        if len(self.poss) == 0:
+            if "PRP" in self.template[i] and self.template[i] in self.sonnet_object.pos_to_words:
+                self.poss = [p for p in self.sonnet_object.pos_to_words[self.template[i]] if
+                             any(m in self.meter_dict for m in self.sonnet_object.get_meter(p))]
+
+            if "sc" in self.template[i]:
+                if verbose: print("there arent any words so removing sc from", self.template[i])
+                self.template[i] = self.template[i].replace("sc", "")
+
+                self.poss = set(
+                    self.sonnet_object.get_pos_words(self.template[i], meter=list(self.meter_dict.keys()), rhyme=r))
+
+            if self.sonnet_object.backup_words:  # in case were using byron vocab
+                if verbose: print("getting backup words")
+                self.poss = set(
+                    self.sonnet_object.get_backup_pos_words(self.template[i], list(self.meter_dict.keys()), rhyme=r))
+
+            if len(self.poss) == 0:  # still
+                if verbose: print("there arent any words so giving up", self.template[i], self.meter_dict.keys())
+                return 1 / 0
+
+        space = self.space = " " * int(list(self.poss)[0] not in punc + "'s" and i > 0)
+        if len(self.poss) == 1:
+            # 2a - only one option
+            # choose token with right spacing
+            # if verbose: print(poss, template[i], meter_dict)
+            self.poss_tokens = [self.gpt_tokenizer.encode(space + list(self.poss)[0])]
+            # token = poss_tokens[0][len(self.sub_tokens)]
+            # dist = ws = np.ones(len(self.gpt_tokens))
+        else:
+            self.poss_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.poss]
+            if self.template[i] in self.theme_words:
+                self.theme_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.theme_words[self.template[i]] if
+                                     p in self.poss]
+
+    def update(self, gpt_output, i, should_bigram=0, verbose=False, no_template=False):
+        """
+        Take in gpt_output and return next token
+        Parameters
+        ----------
+        i - word number
+        verbose
+        gpt_output - token scores
+
+        Returns
+        -------
+
+        """
+
+        if len(self.sub_tokens) == 0:  # first token of word
+            if no_template:
+                self.poss = self.sonnet_object.get_poss_words_no_pos(list(self.meter_dict.keys()))
+                space = self.space = " " * int(list(self.poss)[0] and i > 0)
+                self.poss_tokens = [self.gpt_tokenizer.encode(space + p) for p in self.poss]
+            else:
+                self.get_poss(i, verbose=verbose)
+
+        # all tokens
+
+        # next possible tokens are all the ones which could come after the ones already chosen
+        len_sub = len(self.sub_tokens)
+        checks = set([p[len_sub] for p in self.poss_tokens if
+                      p[:len_sub] == self.sub_tokens and len(p) > len_sub]) #creates a list of tokens that could follow the current token based on our vocab
+
+
+
+        if len(checks) == 1:
+            token = checks.pop()
+            dist = ws = np.ones(len(self.gpt_tokens))
+        else:
+            # the same but for theme words
+            if self.theme_tokens: theme_checks = set([p[len_sub] for p in self.theme_tokens if
+                                                      p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+
+            if no_template:
+                words = self.poss
+                word_scores = {}
+                for word in words:
+                    word_scores[word] = 1
+            else:
+                word_scores = self.sonnet_object.pos_to_words[helper.remove_punc(self.template[i].split("_")[0])]
+
+            if any(v != 1 for v in
+                   word_scores.values()):  # if words have different scores, get the scores of the relevant words
+                score_tokens = {self.gpt_tokenizer.encode(self.space + t)[len_sub]: v for t, v in word_scores.items() if
+                                len(self.gpt_tokenizer.encode(self.space + t)) > len_sub}
+                word_scores = np.array([score_tokens[t] if t in score_tokens else 0 for t in range(len_sub)])
+            else:
+                if verbose: print("replacing tokens")
+
+                word_scores = np.ones(len(self.gpt_tokens))
+
+            if len_sub == 0 and self.alliteration:
+                wws = np.array([int(len(x) > 1 and x.strip('Ġ')[0] in self.alliteration) for x in self.gpt_tokens])
+                word_scores[wws == 1] *= 1.5  # maybe make more or += ___
+                if verbose: print("alliterating", self.alliteration, sum(wws))
+
+            if self.internal_rhymes:
+                #assume internal_rhyme is a set of words that we want to rhyme.
+                #for now only increase weight of first token
+
+                rhymes = []
+                for w in self.internal_rhymes + self.curr_line.split():
+                    if w not in self.sonnet_object.gpt.checked_for_rhymes:
+                        temp_rhymes = self.sonnet_object.get_rhyme_words(w)
+                        self.sonnet_object.gpt.checked_for_rhymes[w] = temp_rhymes if len(temp_rhymes) > 3 else []
+                    rhymes += self.sonnet_object.gpt.checked_for_rhymes[w]
+
+                #print("finding rhymes for", self.internal_rhymes + self.curr_line.split(), len(rhymes), rhymes)
+
+                #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos and len(self.gpt_tokenizer.tokenize((w))) > len_sub])
+                all_tokens = [self.gpt_tokenizer.tokenize(self.space + w) for w in rhymes]
+                tokens = set([p[len_sub] for p in all_tokens if p[:len_sub] == self.sub_tokens and len(p) > len_sub])
+
+                if verbose: print("number of shared tokens prior to rhyming", len([w for w in tokens if w in self.poss_tokens]))
+                #tokens = set([self.gpt_tokenizer.tokenize(w)[len_sub] for w in rhymes if w in self.sonnet_object.words_to_pos])
+
+                wws = np.zeros(len(self.gpt_tokens))
+
+                for t in tokens:
+                    wws[self.gpt_tokenizer.encoder[t]] = 1
+
+                orig = word_scores.copy()
+                word_scores[wws != 0] *= 2
+
+
+                if verbose: print("internal rhyming", sum(orig != word_scores), len(wws.nonzero()[0]), len(rhymes), self.internal_rhymes)
+
+                if verbose: print("number of shared checks", len([w for w in rhymes if w in self.poss]))
+
+
+            filt = np.array([int(i in checks) for i in range(len(self.gpt_tokens))]) * word_scores
+            #if verbose and self.internal_rhymes: print("number of shared filts", len([w for w in tokens if filt[w] > 0]))
+
+            ws = gpt_output[..., -1, :].cpu().detach().numpy() * filt
+            if ws.shape[0] == 1: ws = ws[0]
+
+            if self.weight_repetition:
+                ws = self.weight_repeated_words(checks, ws, verbose=verbose)
+
+
+            theme_scores = []
+            if self.theme_tokens: theme_scores = [(ws[x], x) for x in range(len(ws)) if x in theme_checks]
+
+            if verbose: print("maxest token", np.max(ws), np.argmax(ws), self.gpt_tokens[np.argmax(ws)])
+            if verbose: print("top 5", np.argsort(ws)[-5:], [ws[x] for x in np.argsort(ws)[-5:]])
+            if verbose and theme_scores: print("best theme", max(theme_scores), self.gpt_tokens[max(theme_scores)[1]])
+
+            if theme_scores and max(theme_scores)[0] / max(ws) > self.theme_threshold:
+                if verbose: print("reducing to theme words")
+                # ws = [int(x in theme_checks) * ws[x] for x in range(len(words))]
+                # print("before", len(ws.nonzero()))
+                ws = np.array([int(x in theme_checks) * ws[x] for x in range(len(self.gpt_tokens))])
+                if verbose: print("after", len(ws.nonzero()))
+            if max(ws) <= 0:
+                if verbose: print("something went wrong", max(ws))
+                return None
+            dist = helper.softmax(ws, exclude_zeros=True)  # , k=np.percentile(words, 0))
+
+            """
+            if should_bigram and len(self.sub_tokens) == 0 and "VB" in self.template[i]:
+                saved_state = self.save_state()
+                beams = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist, size=5)
+                for b in beams:
+                    self.restore_state()
+                    self.sub_tokens = [b.item]
+                    with torch.no_grad():
+                        output, past = self.model(context, past_key_values=past, use_cache=True).values()
+
+                    if verbose: print(i, "(" + str(len(line_gen.sub_tokens)) + ")")
+                    output += abs(torch.min(output))  # makes all positive
+                    toekn = self.update(gpt_output, i)
+                    generated += [token]  # .tolist()
+                    # context = token.unsqueeze(0)
+                    context = torch.tensor(token).unsqueeze(0).to(self.model.device)
+                    if len(line_gen.sub_tokens) == 0 and not line_gen.punc_next:
+                        break
+
+                self.curr_line += self.gpt_tokenizer.decode(two_words)
+                token = two_words[-1]
+                continue
+            """
+
+            token = np.random.choice(np.arange(len(self.gpt_tokens)), p=dist).item()
+
+            if self.internal_rhymes and self.gpt_tokenizer.decoder[token] in tokens:
+                print("i picked a rhymer", token, self.gpt_tokenizer.decode(token))
+                forced_words = [sub for sub in rhymes if self.gpt_tokenizer.encode(self.space + sub)[len_sub] == token]
+
+                viable_words = [f for f in forced_words if f in self.poss]
+                if len(viable_words) == 0:
+                    pass
+                else:
+                    self.poss = viable_words
+
+                    if verbose: print("new poss", self.poss)
+                    self.poss_tokens = [self.gpt_tokenizer.encode(self.space + p) for p in self.poss]
+
+
+
+        # 2c
+        if verbose and not no_template: print("for ", self.template[i], end=': ')
+
+        if verbose: print("picked " + str(token) + ": '" + str(self.gpt_tokenizer.decode(token)) + "' with prob " + str(
+            dist[token]) + " initial score " + str(ws[token]))
+
+        if any(p == self.sub_tokens + [token] for p in self.poss_tokens):
+
+            word = self.gpt_tokenizer.decode(self.sub_tokens + [token]).strip()
+
+            if word not in ",.;?" and self.meter_dict:
+                meter = ""
+                # if verbose: print("getting meter", meter, word, self.sonnet_object.get_meter(word))
+                while meter not in self.meter_dict: meter = random.choice(self.sonnet_object.get_meter(word))
+                self.meter_dict = self.meter_dict[meter]
+                if not no_template and "_" in self.template[i]:
+                    self.repeats[self.template[i]] = word
+            self.sub_tokens = []
+            self.curr_line += self.space + word
+            self.first_lets.add(word[0])
+            self.alliteration = self.alliteration if self.alliteration is None or self.alliteration == "s" else self.first_lets
+        else:
+            self.sub_tokens.append(token)
+
+        # maybe return token here?
+        return token
+
+    def save_state(self):
+        """
+        meter_dict = self.meter_dict
+        self.sub_tokens = self.sub_tokens
+
+        # self.punc_next = False
+
+        repeats = self.repeats
+
+        self.poss_tokens = self.poss_tokens
+        self.theme_tokens = self.theme_tokens
+        self.theme_words = self.theme_words
+
+        self.alliteration = self.alliteration
+        self.weight_repetition = self.weight_repetition  # False
+        self.internal_rhymes = self.internal_rhymes
+
+        self.theme_threshold = self.theme_threshold
+
+        self.first_lets = set()
+
+        self.prev_lines = self.prev_lines
+        curr_line = self.curr_line
+        """
+        saved = (self.meter_dict, self.sub_tokens, self.repeats, self.poss_tokens, self.theme_tokens, self.theme_words, self.alliteration, self.weight_repetition,
+                                                                            self.internal_rhymes, self.theme_threshold,self.first_lets,self.prev_lines,self.curr_line)
+        return saved
+
+
+
+    def restore_state(self, saved):
+        self.meter_dict, self.sub_tokens, self.repeats, self.poss_tokens, self.theme_tokens, self.theme_words, self.alliteration, self.weight_repetition, \
+                                                                            self.internal_rhymes, self.theme_threshold,self.first_lets,self.prev_lines,self.curr_line = saved
+
+
+
+    def weight_repeated_words(self, checks, ws, verbose=False):
+        seed_words = helper.remove_punc(self.prev_lines.lower().replace("'s", "")).split()
+        lemmas = [self.lemma.lemmatize(word) for word in seed_words]  # gets lemmas for all words in poem
+
+        lemmas_last = [self.lemma.lemmatize(word) for word in helper.remove_punc(
+            self.curr_line.lower().replace("'s", "")).split()]  # gets lemmas for last line in poem
+
+        for j, p in enumerate(self.poss):
+            p_lemma = self.lemma.lemmatize(p)
+            if lemmas.count(p_lemma) > 0 or lemmas_last.count(
+                    p_lemma) > 0:  # solved - doesnt allow repetition in the same line #changed to 0
+                if len(self.sub_tokens) == 0 and self.poss_tokens[j][0] in checks:  # fix
+                    if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
+                                      "times")
+                    repeated_token = self.poss_tokens[j][0]
+                    # ws[repeated_token] = 0
+                    dist = 0
+                    freq = lemmas.count(p_lemma)
+                    if freq > 0:
+                        sep = len(lemmas) - lemmas.index(p_lemma)
+                        dist = (sep / 150) / freq  # for now
+
+                    ws[repeated_token] *= dist
+                    if verbose: print(p, "was repeated ", lemmas.count(p_lemma) + lemmas_last.count(p_lemma),
+                                      "times so deweighted", repeated_token, self.gpt_tokenizer.decode(repeated_token),
+                                      "\n")
+                else:
+                    pass
+
+        return ws

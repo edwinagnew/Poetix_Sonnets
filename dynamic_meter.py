@@ -31,18 +31,6 @@ class Dynamic_Meter(poem_core.Poem):
             for lin in lines:
                 self.templates[" ".join(lin.split()[:-1])] = lin.split()[-1].strip()
 
-        """
-        self.end_pos = {}
-        for temp in self.templates:
-            end = temp.split()[-1]
-            ends = [end]
-            if "<" in end:
-                ends = [end.split("<")[0] + end.split(">")[1].strip(">").split("/")[0], end.split("<")[0] + end.split(">")[1].strip(">").split("/")[0]]
-            meter = self.templates[temp].split("_")[-1]
-            for e in ends:
-                if e not in self.end_pos: self.end_pos[e] = []
-                if meter not in self.end_pos[e]: self.end_pos[e].append(meter)
-        """
         self.meter_and_pos = {}
         self.possible_meters = ["1", "0", "10", "01", "101", "010", "1010", "0101", "10101", "01010", "101010", "010101"]#the possible meters a word could have
         possible_pos = list(self.pos_to_words.keys())
@@ -281,12 +269,7 @@ class Dynamic_Meter(poem_core.Poem):
                 new_meters.append(new_meter)
                 poss_meters = poss_meters[new_meter]
             new_meters.reverse()
-            """
-            for i in range(len(template.split())):
-                new_meter = random.choice(list(poss_meters.keys()))
-                new_meters.append(new_meter)
-                poss_meters = poss_meters[new_meter]
-            """
+
             print(new_meters)
             print(self.write_line_random(template, new_meters))
             #return (template, new_meters)
