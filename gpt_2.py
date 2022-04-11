@@ -7,7 +7,7 @@ import random
 import nltk
 import string
 
-from py_files import helper
+import helper
 
 
 class gpt_gen:

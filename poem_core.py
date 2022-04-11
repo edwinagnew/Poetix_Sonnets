@@ -1,4 +1,4 @@
-from py_files import helper
+import helper
 
 import random
 import pickle

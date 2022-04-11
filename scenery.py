@@ -4,7 +4,7 @@ import numpy as np
 import string
 import pandas as pd
 
-from py_files import helper
+import helper
 
 import theme_word_file
 

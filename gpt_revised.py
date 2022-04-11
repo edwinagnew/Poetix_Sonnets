@@ -4,11 +4,10 @@ import torch
 import numpy as np
 import random
 import nltk
-import string
 import pickle
 import time
 
-from py_files import helper
+import helper
 from copy import deepcopy
 
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2TokenizerFast, GPT2Config, GPTNeoForCausalLM

@@ -1,5 +1,4 @@
 import torch
-import pickle
 import math
 import random
 
@@ -11,14 +10,9 @@ from nltk.stem.snowball import SnowballStemmer
 from PyDictionary import PyDictionary
 
 import sonnet_basic
-from py_files import helper
-
+import helper
 
 from transformers import BertTokenizer, BertForMaskedLM
-
-from py_files import line
-
-
 
 """Implement a*  search based on the generated poem"""
 class Sonnet_Improve:

@@ -2,10 +2,8 @@ import pickle
 import pandas as pd
 import random
 import string
-from types import MethodType
 
-
-from py_files import helper
+import helper
 
 from pattern.en import comparative, superlative, pluralize
 from nltk.corpus import wordnet as wn
