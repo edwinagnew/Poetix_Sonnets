@@ -44,14 +44,14 @@ class Sim_finder:
         if type(word1) == list: return choice(self.ft_word_similarity(w, word2) for w in word1)
         if type(word2) == list: return choice(self.ft_word_similarity(word1, w) for w in word2)
 
-        if word1 not in list(self.fasttext_model.key_to_index) or word2 not in list(self.fasttext_model.key_to_index): return 0
+        if word1 not in self.fasttext_model.vocab or word2 not in self.fasttext_model.vocab: return 0
         return self.fasttext_model.similarity(word1, word2)
 
     def gl_word_similarity(self, word1, word2, choice=max):
         if type(word1) == list: return choice(self.gl_word_similarity(w, word2) for w in word1)
         if type(word2) == list: return choice(self.gl_word_similarity(word1, w) for w in word2)
 
-        if word1 not in list(self.glove_model.key_to_index) or word2 not in list(self.glove_model.key_to_index): return 0
+        if word1 not in self.glove_model.vocab or word2 not in self.glove_model.vocab: return 0
         return self.glove_model.similarity(word1, word2)
 
     def both_similarity(self, word1, word2, choice=min):
