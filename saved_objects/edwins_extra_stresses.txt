@@ -954,6 +954,7 @@ continue_to 0100
 dare_to 10
 decide_to 110
 demand_to 010
+desert 10
 deserve_to 010
 dislike_to 010
 expect_to 010
