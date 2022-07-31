@@ -22,10 +22,11 @@ class gpt_gen:
             self.sonnet_object = sonnet_object
         else:
 
-            print("didnt give me a sonnet_method, but it's fine, I don't care, I'll just make one myself")
+            #print("didnt give me a sonnet_method, but it's fine, I don't care, I'll just make one myself")
             # self.sonnet_object = sonnet_basic.Sonnet_Gen()
 
-            self.sonnet_object = poem_core.Poem()
+            #self.sonnet_object = poem_core.Poem()
+            self.sonnet_object = None
             # self.sonnet_words = self.sonnet_object.get_pos_words
 
         # if torch.cuda.is_available(): model = "gpt2-large"
